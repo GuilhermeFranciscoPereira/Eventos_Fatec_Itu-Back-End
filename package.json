@@ -31,6 +31,7 @@
     "cookie-parser": "^1.4.7",
     "csurf": "^1.11.0",
     "helmet": "^8.1.0",
+    "nodemailer": "^7.0.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

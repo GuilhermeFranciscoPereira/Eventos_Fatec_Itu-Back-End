@@ -26,11 +26,14 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/assets:` Diretório para organizar recursos estáticos adicionais.
+### `./package.json`: Instalado o nodemailer para envio de e-mails.
+> Nodemailer: https://nodemailer.com
 
-### `./src/assets/readme` Pasta que irá armazenar nossas fotos para utilizar na documentação ( README )
+> Instalado: npm i nodemailer
 
-### README.md // README.en.md: Adicionado o tutorial de como navegar pelos commits e visualizar todo o processo e criação
+### `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
+
+### `./src/services/email.service.ts:` Temos as configurações para o envio de email e o método `send` que por onde realmente vamos utilizar para o envio dos e-mails
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -74,6 +77,8 @@
   - `prisma:` Agrupa o PrismaModule (prisma.module.ts) e o PrismaService (prisma.service.ts), centralizando a integração do Prisma no NestJS.
     - `prisma.module.ts`: Define e exporta globalmente o módulo do Prisma no NestJS, registrando o PrismaService como provedor para permitir injeção em qualquer parte da aplicação.
     - `prisma.service.ts`: Estende o PrismaClient, gerenciando automaticamente a conexão ao banco de dados ao inicializar e desconectar no ciclo de vida do módulo.
+- `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
+  - `email.service.ts:` Temos as configurações para o envio de email e o método send que por onde realmente vamos utilizar para o envio dos e-mails
 
 - `./test/` Diretório dedicado aos testes de ponta a ponta (e2e):  
   - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado.

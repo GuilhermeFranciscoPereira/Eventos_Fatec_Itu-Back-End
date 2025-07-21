@@ -25,11 +25,15 @@
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header"/>
 
 ## 🛎️ Updates to this commit
-### `./src/assets:` Directory for organizing additional static assets.
 
-### `./src/assets/readme` Folder that will store our photos for use in the documentation (README)
+### `./package.json`: Installed nodemailer for sending emails.
+> Nodemailer: https://nodemailer.com
 
-### README.md // README.en.md: Added a tutorial on how to navigate through commits and view the entire creation process.
+> Installed: npm i nodemailer
+
+### `./src/services:` Brings together injectable classes that encapsulate business logic, utilities, and external integrations.
+
+### `./src/services/email.service.ts:` We have the configurations for sending emails and the `send` method that we will actually use to send emails.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -73,6 +77,9 @@
     - `prisma:` Bundles the PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma integration in NestJS.
         - `prisma.module.ts`: Defines and globally exports the Prisma module in NestJS, registering the PrismaService as a provider to allow injection into any part of the application.
         - `prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.
+        
+- `./src/services`: Brings together injectable classes that encapsulate business logic, utilities, and external integrations.
+    - `email.service.ts:` We have the configurations for sending emails and the send method that we will actually use to send emails.
 
 - `./test/` Directory dedicated to end-to-end (e2e) tests:
 - `app.e2e-spec.ts`: Our e2e tests to validate endpoints and main API flows, ensuring that scenarios work as expected. - `jest.e2e-json`: Jest configuration file for running e2e tests (defining recognized file extensions, starting point for test searches, transforms, etc.)
