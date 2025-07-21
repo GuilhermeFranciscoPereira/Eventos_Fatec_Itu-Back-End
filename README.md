@@ -26,26 +26,11 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./package.json:` Instalado o prisma para permitir interagir com o banco de dados de forma segura e performática.Ele também cuida do gerenciamento de schema e facilita a criação e execução de migrations, além de oferecer uma API intuitiva para consultas e manipulação de dados.
-> Prisma: https://www.prisma.io
+### `./src/assets:` Diretório para organizar recursos estáticos adicionais.
 
-> Instalado: `npm i --save-dev prisma`
+### `./src/assets/readme` Pasta que irá armazenar nossas fotos para utilizar na documentação ( README )
 
-> Instalado: `npm i @prisma/client`
-
-> Executado: `npx prisma init`
-
-### `./prisma:` Inserido a pasta prisma que é gerada de forma automática quando executamos o `npx prisma init`, serve para armazenarmos nossos arquivos do prisma, como migrations, schema e etc.
-
-### `./prisma/schema.prisma:` É o arquivo central onde definimos os modelos de dados, relacionamentos e geradores do Prisma Client.
-
-### `./src/modules/prisma:` Pasta que agrupa o PrismaModule (prisma.module.ts) e o PrismaService (prisma.service.ts), centralizando a integração do Prisma no NestJS.
-
-### `./src/modules/prisma/prisma.module.ts`: Define e exporta globalmente o módulo do Prisma no NestJS, registrando o PrismaService como provedor para permitir injeção em qualquer parte da aplicação.
-
-### `./src/modules/prisma/prisma.service.ts`: Estende o PrismaClient, gerenciando automaticamente a conexão ao banco de dados ao inicializar e desconectar no ciclo de vida do módulo.
-
-### `./src/app.module.ts:` Adicionado em imports o PrismaModule para exportação global do Prisma e permitindo a injeção na aplicação.
+### README.md // README.en.md: Adicionado o tutorial de como navegar pelos commits e visualizar todo o processo e criação
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -79,6 +64,9 @@
 
 - `./src/app.module.ts`: Módulo raiz que declara/importa os demais módulos, controladores e provedores da aplicação.  
 - `./src/main.ts`: Ponto de entrada da aplicação, aqui o Nest é inicializado e configurado.
+
+- `./src/assets:` diretório para organizar recursos estáticos adicionais.
+    - `readme:` Pasta que irá armazenar nossas fotos para utilizar na documentação ( README )
 
 - `./src/modules:` A pasta modules reúne todos os módulos da aplicação, cada um em seu próprio diretório para manter lógica, controladores e provedores bem organizados e desacoplados, depois todos importados pelo módulo raiz (AppModule)
   - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
@@ -149,6 +137,40 @@
 
 - Para rodar os teste e2e você deve apenas escrever:
   - `npm run test:e2e`
+
+##
+
+## ⚠️ Informações importantes sobre o projeto ⚠️
+
+### 📝 Todos os commits do projeto possuem um readme detalhado do que foi feito naquele commit como mostrado de exemplo na imagem abaixo, então caso deseje ver o processo de criação do código viaje pelos commits e veja as informações! Exemplo:
+
+## 
+![Exemplo de como é o processo da criação do projeto no readme](./src/assets/readme/example_howToReadTheCommits.jpg)
+##
+
+### ❔ Como fazer isso? 
+
+### 👇🏻 Para você ver o processo de criação e o que foi feito em cada commit siga o passo-a-passo:
+
+##
+
+### 1 - Nesta mesma guia em que você está, suba a tela até encontrar embaixo do botão verde o local em que está circulado da foto abaixo e então clique nele
+![1 passo - Como ver o processo da criação do projeto](./src/assets/readme/firstStep_howToReadTheCommits.png)
+
+##
+
+### 2 - No lado direito dos commits você encontra um simbolo de <> como está circulado na foto abaixo e então você clica neste simbolo e irá encontrar como o código estava naquele momento e o readme detalhado daquele momento!
+![2 passo - Como ver o processo da criação do projeto](./src/assets/readme/secondStep_howToReadTheCommits.png)
+
+##
+
+### 3 - Depois de encontrar tudo que deseja, caso queira voltar o commit atual, você irá clicar no local em que a imagem a baixo circula:
+![3 passo - Como ver o processo da criação do projeto](./src/assets/readme/thirdStep_howToReadTheCommits.png)
+
+##
+
+### 4 - E então clique em main ( onde está circulado na foto abaixo ) e voltará para o último commit realizado!
+![4 passo - Como ver o processo da criação do projeto](./src/assets/readme/fourthStep_howToReadTheCommits.png)
 
 ##
 

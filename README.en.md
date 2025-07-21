@@ -25,26 +25,11 @@
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header"/>
 
 ## 🛎️ Updates to this commit
+### `./src/assets:` Directory for organizing additional static assets.
 
-### `./package.json:` Installed Prisma to allow you to interact with the database securely and efficiently. It also handles schema management and facilitates the creation and execution of migrations, in addition to offering an intuitive API for queries and data manipulation. > Prisma: https://www.prisma.io
+### `./src/assets/readme` Folder that will store our photos for use in the documentation (README)
 
-> Installed: `npm i --save-dev prisma`
-
-> Installed: `npm i @prisma/client`
-
-> Run: `npx prisma init`
-
-### `./prisma:` Inserts the Prisma folder, which is automatically generated when we run `npx prisma init`. It serves to store our Prisma files, such as migrations, schema, etc.
-
-### `./prisma/schema.prisma:` This is the central file where we define the Prisma Client data models, relationships, and generators.
-
-### `./src/modules/prisma:` Folder that groups PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma's integration with NestJS.
-
-### `./src/modules/prisma/prisma.module.ts`: Defines and globally exports the Prisma module in NestJS, registering PrismaService as a provider to allow injection into any part of the application.
-
-### `./src/modules/prisma/prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.
-
-### `./src/app.module.ts`: Added the PrismaModule to imports for global Prisma export and allowing injection into the application.
+### README.md // README.en.md: Added a tutorial on how to navigate through commits and view the entire creation process.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -78,6 +63,9 @@
 
 - `./src/app.module.ts`: Root module that declares/imports the application's other modules, controllers, and providers.
 - `./src/main.ts`: Application entry point, where Nest is initialized and configured.
+
+- `./src/assets:` directory to organize additional static resources.
+    - `readme:` Folder that will store our photos for use in the documentation ( README )
 
 - `./src/modules:` The modules folder brings together all the application's modules, each in its own directory to keep logic, controllers, and providers well-organized and decoupled, all then imported by the root module (AppModule).
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
@@ -144,6 +132,39 @@
 ### E2E tests:
 - To run the e2E tests, just type:
     - `npm run test:e2e`
+
+##
+
+## ⚠️ Important information about the project ⚠️
+
+### 📝 All project commits have a detailed readme detailing what was done in that commit, as shown in the example image below. So if you want to see the code creation process, scroll through the commits and see the information! Example:
+
+##
+![Example of the project creation process in the readme](./src/assets/readme/example_howToReadTheCommits.jpg)
+##
+
+### ❔ How to do this?
+
+### 👇🏻 To see the creation process and what was done in each commit, follow these steps:
+
+##
+
+### 1 - In this same tab you're in, scroll up until you find the circled spot in the photo below below the green button and then click on it.
+![Step 1 - How to see the project creation process](./src/assets/readme/firstStep_howToReadTheCommits.png)
+
+##
+
+### 2 - On the right side of the commits, you'll find a <> symbol, as circled in the photo below. Click on this symbol and you'll find the code at that time and the detailed readme for that moment! ![Step 2 - How to view the project creation process](./src/assets/readme/secondStep_howToReadTheCommits.png)
+
+##
+
+### 3 - After finding everything you need, if you want to return to the current commit, click where the image below is circled:
+![Step 3 - How to view the project creation process](./src/assets/readme/thirdStep_howToReadTheCommits.png)
+
+##
+
+### 4 - Then click on main (where it is circled in the image below) and you will return to the last commit made!
+![Step 4 - How to view the project creation process](./src/assets/readme/fourthStep_howToReadTheCommits.png)
 
 ##
 
