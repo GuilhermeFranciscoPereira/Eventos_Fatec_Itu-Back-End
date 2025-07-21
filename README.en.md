@@ -20,20 +20,52 @@
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&color=40E0D0&height=120&section=footer"/>
 
+##
+
+<img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header"/>
+
+## 🛎️ Updates to this commit
+
+### `./package.json:` Installed Prisma to allow you to interact with the database securely and efficiently. It also handles schema management and facilitates the creation and execution of migrations, in addition to offering an intuitive API for queries and data manipulation. > Prisma: https://www.prisma.io
+
+> Installed: `npm i --save-dev prisma`
+
+> Installed: `npm i @prisma/client`
+
+> Run: `npx prisma init`
+
+### `./prisma:` Inserts the Prisma folder, which is automatically generated when we run `npx prisma init`. It serves to store our Prisma files, such as migrations, schema, etc.
+
+### `./prisma/schema.prisma:` This is the central file where we define the Prisma Client data models, relationships, and generators.
+
+### `./src/modules/prisma:` Folder that groups PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma's integration with NestJS.
+
+### `./src/modules/prisma/prisma.module.ts`: Defines and globally exports the Prisma module in NestJS, registering PrismaService as a provider to allow injection into any part of the application.
+
+### `./src/modules/prisma/prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.
+
+### `./src/app.module.ts`: Added the PrismaModule to imports for global Prisma export and allowing injection into the application.
+
+<img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
+
+##
+
 ## 🖥 Technologies Used
 <div align='center'>
 
 !['NestJSLogo'](https://img.shields.io/badge/nestjs-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
 !['TypescriptLogo'](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-<!-- !['PrismaLogo'](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
+!['PrismaLogo'](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
 !['MySQLLogo'](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-!['DockerLogo'](https://img.shields.io/badge/docker-257bd6?style=for-the-badge&logo=docker&logoColor=white) -->
+<!-- !['DockerLogo'](https://img.shields.io/badge/docker-257bd6?style=for-the-badge&logo=docker&logoColor=white) -->
 
 </div>
 
 ## Versions used: 
-- Nest: 11.0.7 
-- Typescript: 5.7.3
+    - Nest: 11.0.7 
+    - Typescript: 5.7.3
+    - Prisma: 6.12.0
+    - MySQL: 8.0.42
 
 ## 🙋🏻‍♂ How can I locate myself in the project?
 
@@ -41,12 +73,18 @@
 
 ## 🛈 How the project is structured
 
+- `./prisma:` Prisma allows you to interact with the database securely and efficiently. It also handles schema management and facilitates the creation and execution of migrations, in addition to offering an intuitive API for queries and data manipulation.
+    - `schema.prisma:` This is the central file where we define the Prisma Client's data models, relationships, and generators.
+
 - `./src/app.module.ts`: Root module that declares/imports the application's other modules, controllers, and providers.
 - `./src/main.ts`: Application entry point, where Nest is initialized and configured.
 
 - `./src/modules:` The modules folder brings together all the application's modules, each in its own directory to keep logic, controllers, and providers well-organized and decoupled, all then imported by the root module (AppModule).
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
+    - `prisma:` Bundles the PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma integration in NestJS.
+        - `prisma.module.ts`: Defines and globally exports the Prisma module in NestJS, registering the PrismaService as a provider to allow injection into any part of the application.
+        - `prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.
 
 - `./test/` Directory dedicated to end-to-end (e2e) tests:
 - `app.e2e-spec.ts`: Our e2e tests to validate endpoints and main API flows, ensuring that scenarios work as expected. - `jest.e2e-json`: Jest configuration file for running e2e tests (defining recognized file extensions, starting point for test searches, transforms, etc.)
