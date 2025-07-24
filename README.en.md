@@ -14,7 +14,7 @@
 
 ### This system was developed so that events at Fatec Itu - Dom Amaury College can be streamed. Castanho could have a more practical registration method, making it easier for students, outsiders, and event organizers. Clearly, this system is also used by event organizers for management, monitoring, etc.
 
-### 👥 This system is being created by: Guilherme Francisco Pereira // José Lucas Martins Gomes as a final project development / Real system
+### 👥 This system is being created by: Guilherme Francisco Pereira as a final project development / Real system
 
 ### ✨ Interesting fact!! This is the only student-developed system that is implemented and used by the college, both by students and professors, coordinators, and more!
 
@@ -26,14 +26,87 @@
 
 ## 🛎️ Updates to this commit
 
-### `./package.json`: Installed nodemailer for sending emails.
-> Nodemailer: https://nodemailer.com
+### `./Dockerfile:` Defines how the application will be packaged into a Docker image.
 
-> Installed: npm i nodemailer
+### `./dockerignore:` Prevents unnecessary files (node_modules, build, etc.) from entering the image.
 
-### `./src/services:` Brings together injectable classes that encapsulate business logic, utilities, and external integrations.
+### `./docker-compose.yml:` Orchestrates services (Nest app, MySQL database) in a single command, taking care of networking, volumes, and environment variables.
 
-### `./src/services/email.service.ts:` We have the configurations for sending emails and the `send` method that we will actually use to send emails.
+### 🐳 Docker Commands
+
+#### After the 3 files, we generate the Docker image and run it:
+``` bash
+docker-compose up --build -d
+```
+
+#### This will:
+- Start the MySQL container (db)
+- Launch Nest (app)
+
+#### Check that the container is actually up and has the port mapped
+
+```bash
+docker-compose ps
+```
+
+#### Open the port that appears, for example:
+
+```bash
+http://localhost:xxxx
+```
+
+#### To restart the backend when changing the code:
+
+```bash
+docker-compose restart backend_events-fatec-itu
+```
+
+#### To restart the database when changing the code:
+
+```bash
+docker-compose restart db_events-fatec-itu
+```
+
+#### To restart everything at once:
+
+```bash
+docker-compose restart
+```
+
+#### Stop only the db
+
+```bash
+docker-compose stop db_events-fatec-itu
+```
+
+#### Stop only the backend
+
+```bash
+docker-compose stop backend_events-fatec-itu
+```
+
+#### If you want to remove the container (in addition to stopping it), use rm:
+
+```bash
+docker-compose rm db
+```
+
+```bash
+docker-compose rm backend
+```
+#### When you want to stop everything at once:
+
+```bash
+docker-compose down -v
+```
+
+#### If you want to 'hot reload' to always change With changes, you can modify `docker-compose.yml` and add:
+
+```bash
+volumes:
+- ./:/app
+- /app/node_modules
+command: npm run start:dev
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -46,7 +119,7 @@
 !['TypescriptLogo'](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 !['PrismaLogo'](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
 !['MySQLLogo'](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-<!-- !['DockerLogo'](https://img.shields.io/badge/docker-257bd6?style=for-the-badge&logo=docker&logoColor=white) -->
+!['DockerLogo'](https://img.shields.io/badge/docker-257bd6?style=for-the-badge&logo=docker&logoColor=white)
 
 </div>
 
@@ -55,6 +128,7 @@
     - Typescript: 5.7.3
     - Prisma: 6.12.0
     - MySQL: 8.0.42
+    - Docker: 28.3.2
 
 ## 🙋🏻‍♂ How can I locate myself in the project?
 
@@ -76,10 +150,15 @@
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
     - `prisma:` Bundles the PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma integration in NestJS.
         - `prisma.module.ts`: Defines and globally exports the Prisma module in NestJS, registering the PrismaService as a provider to allow injection into any part of the application.
-        - `prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.
-        
+        - `prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.  
 - `./src/services`: Brings together injectable classes that encapsulate business logic, utilities, and external integrations.
     - `email.service.ts:` We have the configurations for sending emails and the send method that we will actually use to send emails.
+
+- `./Dockerfile:` Defines how the application will be packaged into a Docker image.
+
+- `./dockerignore:` Prevents unnecessary files (node_modules, build, etc.) from being included in the image.
+
+- `./docker-compose.yml:` Orchestrates services (Nest app, MySQL database) in a single command, taking care of networking, volumes, and environment variables.
 
 - `./test/` Directory dedicated to end-to-end (e2e) tests:
 - `app.e2e-spec.ts`: Our e2e tests to validate endpoints and main API flows, ensuring that scenarios work as expected. - `jest.e2e-json`: Jest configuration file for running e2e tests (defining recognized file extensions, starting point for test searches, transforms, etc.)
@@ -127,6 +206,87 @@
         ```bash
         npm run start:dev
         ```
+
+##
+
+## 🐳 Docker Commands
+
+### After the 3 files, we generate the Docker image and run it:
+``` bash
+docker-compose up --build -d
+```
+
+### This will:
+- Start the MySQL container (db)
+- Launch Nest (app)
+
+### Check that the container is actually up and has the port mapped
+
+```bash
+docker-compose ps
+```
+
+### Open the port that appears, for example:
+
+```bash
+http://localhost:xxxx
+```
+
+### To restart the backend when changing the code:
+
+```bash
+docker-compose restart backend_events-fatec-itu
+```
+
+### To restart the database when changing the code:
+
+```bash
+docker-compose restart db_events-fatec-itu
+```
+
+### To restart everything at once:
+
+```bash
+docker-compose restart
+```
+
+### Stop only the db
+
+```bash
+docker-compose stop db_events-fatec-itu
+```
+
+### Stop only the backend
+
+```bash
+docker-compose stop backend_events-fatec-itu
+```
+
+### If you want to remove the container (in addition to stopping it), use rm:
+
+```bash
+docker-compose rm db
+```
+
+```bash
+docker-compose rm backend
+```
+### When you want to stop everything at once:
+
+```bash
+docker-compose down -v
+```
+
+### If you want the 'hot reload' to always update with changes, you can change the `docker-compose.yml` and add:
+
+```bash 
+volumes: 
+- ./:/app 
+- /app/node_modules 
+command: npm run start:dev
+```
+
+##
 
 ## 🧪 How to run unit and e2e tests?
 

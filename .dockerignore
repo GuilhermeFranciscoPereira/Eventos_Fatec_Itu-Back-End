@@ -1,0 +1,14 @@
+# Dependências locais
+node_modules
+npm-debug.log
+
+# Build outputs
+dist
+
+# Ambiente local
+.env
+
+# Arquivos de orquestração
+Dockerfile
+docker-compose.yml
+Kubernetes

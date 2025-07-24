@@ -14,7 +14,7 @@
 
 ### Este sistema foi desenvolvido para que os eventos da Faculdade Fatec Itu - Dom Amaury Castanho pudessem ter um método de inscrição mais práticos, gerando facilidade tanto para os alunos, pessoas de fora e para os responsáveis pelos eventos. Claramente este sistema também é utilizado pelos responsáveis dos eventos, para gerenciamento, controle e etc. 
 
-### 👥 Este sistema está sendo criado por: Guilherme Francisco Pereira // José Lucas Martins Gomes como desenvolvimento de TCC / Sistema real
+### 👥 Este sistema está sendo criado por: Guilherme Francisco Pereira como desenvolvimento de TCC / Sistema real
 
 ### ✨ Fato interessante!! Este é o único sistema desenvolvido por alunos que está implementado e em utilizado pela faculdade, tanto por alunos como professores, coordenadores, e etc!
 
@@ -26,14 +26,88 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./package.json`: Instalado o nodemailer para envio de e-mails.
-> Nodemailer: https://nodemailer.com
+### `./Dockerfile:` Define como a aplicação será empacotada em uma imagem Docker.
 
-> Instalado: npm i nodemailer
+### `./dockerignore:` Evita que arquivos desnecessários (node_modules, build, etc.) entrem na imagem.
 
-### `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
+### `./docker-compose.yml:` Orquestra serviços (app Nest, banco MySQL) num único comando, cuidando de rede, volumes, variáveis de ambiente.
 
-### `./src/services/email.service.ts:` Temos as configurações para o envio de email e o método `send` que por onde realmente vamos utilizar para o envio dos e-mails
+### 🐳 Comandos Docker
+
+#### Após os 3 arquivos geramos a imagem do docker e rodamos:
+``` bash
+docker-compose up --build -d
+```
+
+#### Isso vai:
+- Iniciar o container MySQL (db)
+- Subir o Nest (app)
+
+#### Verifique se o container está mesmo up e com a porta mapeada
+
+```bash
+docker-compose ps
+```
+
+#### Abre na porta que estiver aparecendo, por exemplo:
+
+```bash
+http://localhost:xxxx
+```
+
+#### Para reiniciar o backend:
+
+```bash
+docker-compose restart backend_events-fatec-itu
+```
+
+#### Para reiniciar o banco de dados:
+
+```bash
+docker-compose restart db_events-fatec-itu
+```
+
+#### Para reiniciar tudo de uma só vez:
+
+```bash
+docker-compose restart
+```
+
+#### Parar só o db
+
+```bash
+docker-compose stop db_events-fatec-itu
+```
+
+#### Parar só o backend
+
+```bash
+docker-compose stop backend_events-fatec-itu
+```
+
+#### Se você quiser remover o container (além de pará-lo), use rm:
+
+```bash
+docker-compose rm db
+```
+
+```bash
+docker-compose rm backend
+```
+#### Quando quiser parar tudo de uma vez:
+
+```bash
+docker-compose down -v
+```
+
+#### Caso queira o 'hot reload' para sempre alterar com mudanças você pode alterar o `docker-compose.yml` e adicionar:
+
+```bash
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    command: npm run start:dev
+```
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -46,7 +120,7 @@
 !['TypescriptLogo'](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 !['PrismaLogo'](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
 !['MySQLLogo'](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-<!-- !['DockerLogo'](https://img.shields.io/badge/docker-257bd6?style=for-the-badge&logo=docker&logoColor=white) -->
+!['DockerLogo'](https://img.shields.io/badge/docker-257bd6?style=for-the-badge&logo=docker&logoColor=white)
 
 </div>
 
@@ -55,6 +129,7 @@
     - Typescript: 5.7.3
     - Prisma: 6.12.0
     - MySQL: 8.0.42
+    - Docker: 28.3.2
 
 ## 🙋🏻‍♂ Como me localizar no projeto?
 
@@ -79,6 +154,12 @@
     - `prisma.service.ts`: Estende o PrismaClient, gerenciando automaticamente a conexão ao banco de dados ao inicializar e desconectar no ciclo de vida do módulo.
 - `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
   - `email.service.ts:` Temos as configurações para o envio de email e o método send que por onde realmente vamos utilizar para o envio dos e-mails
+
+- `./Dockerfile:` Define como a aplicação será empacotada em uma imagem Docker.
+
+- `./dockerignore:` Evita que arquivos desnecessários (node_modules, build, etc.) entrem na imagem.
+
+- `./docker-compose.yml:` Orquestra serviços (app Nest, banco MySQL) num único comando, cuidando de rede, volumes, variáveis de ambiente.
 
 - `./test/` Diretório dedicado aos testes de ponta a ponta (e2e):  
   - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado.
@@ -129,6 +210,87 @@
       ```bash
       npm run start:dev
       ```
+
+##
+
+## 🐳 Comandos Docker
+
+### Após os 3 arquivos geramos a imagem do docker e rodamos:
+``` bash
+docker-compose up --build -d
+```
+
+### Isso vai:
+- Iniciar o container MySQL (db)
+- Subir o Nest (app)
+
+### Verifique se o container está mesmo up e com a porta mapeada
+
+```bash
+docker-compose ps
+```
+
+### Abre na porta que estiver aparecendo, por exemplo:
+
+```bash
+http://localhost:xxxx
+```
+
+### Para reiniciar o backend quando mudar o código:
+
+```bash
+docker-compose restart backend_events-fatec-itu
+```
+
+### Para reiniciar o banco de dados quando mudar o código:
+
+```bash
+docker-compose restart db_events-fatec-itu
+```
+
+### Para reiniciar tudo de uma só vez:
+
+```bash
+docker-compose restart
+```
+
+### Parar só o db
+
+```bash
+docker-compose stop db_events-fatec-itu
+```
+
+### Parar só o backend
+
+```bash
+docker-compose stop backend_events-fatec-itu
+```
+
+### Se você quiser remover o container (além de pará-lo), use rm:
+
+```bash
+docker-compose rm db
+```
+
+```bash
+docker-compose rm backend
+```
+### Quando quiser parar tudo de uma vez:
+
+```bash
+docker-compose down -v
+```
+
+### Caso queira o 'hot reload' para sempre alterar com mudanças você pode alterar o `docker-compose.yml` e adicionar:
+
+```bash
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    command: npm run start:dev
+```
+
+##
 
 ## 🧪 Como rodar os testes unitários e e2e?
 
