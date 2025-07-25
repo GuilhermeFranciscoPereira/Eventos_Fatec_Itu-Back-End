@@ -26,87 +26,31 @@
 
 ## 🛎️ Updates to this commit
 
-### `./Dockerfile:` Defines how the application will be packaged into a Docker image.
+### `./src/decorators:` Folder for custom decorators.
 
-### `./dockerignore:` Prevents unnecessary files (node_modules, build, etc.) from entering the image.
+### `./src/decorators/roles.decorator.ts:` Defines a decorator to indicate which user profiles are allowed to access each endpoint.
 
-### `./docker-compose.yml:` Orchestrates services (Nest app, MySQL database) in a single command, taking care of networking, volumes, and environment variables.
+### `./src/guards:` Folder for authentication and authorization guards.
 
-### 🐳 Docker Commands
+### `./src/guards/jwt-auth.guard.ts:` Ensures that only authenticated requests with a valid JWT token are accepted and populates user data in the request.
 
-#### After the 3 files, we generate the Docker image and run it:
-``` bash
-docker-compose up --build -d
-```
+### `./src/guards/roles.guard.ts:` Controls access based on the user profile, allowing unrestricted endpoints and blocking them when the profile does not match the allowed ones.
 
-#### This will:
-- Start the MySQL container (db)
-- Launch Nest (app)
+### `./src/modules/auth:` Module dedicated to the entire user authentication and authorization flow.
 
-#### Check that the container is actually up and has the port mapped
+### `./src/modules/auth/dto:` Folder with Data Transfer Objects that define the input and output format of authentication requests. In short, it's our "Typing".
 
-```bash
-docker-compose ps
-```
+### `./src/modules/auth/auth.controller.ts:` Exposes the endpoints for me, register, logout, request-login, login, request-reset-password, and reset-password, manages access cookies, refresh, and 2FA.
 
-#### Open the port that appears, for example:
+### `./src/modules/auth/auth.controller.spec.ts:` Covers controller integration tests, validating scenarios for valid and expired tokens, registration, logout, login with 2FA, and password reset.
 
-```bash
-http://localhost:xxxx
-```
+### `./src/modules/auth/auth.service.ts:` Encapsulates all authentication business logic — user registration with password hashing, access token generation and verification, refresh and 2FA, sending emails, and clearing expired tokens.
 
-#### To restart the backend when changing the code:
+### `./src/modules/auth/auth.service.spec.ts:` Tests the flows of the authentication service, ensuring correct behavior in cases of conflict, invalid credentials, token generation, revocation, and renewal of refresh tokens.
 
-```bash
-docker-compose restart backend_events-fatec-itu
-```
+### `./src/modules/auth/auth.module.ts:` Configures the authentication module, imports PrismaModule, ConfigModule, and JwtModule with RSA keys loaded from environment variables, and registers AuthService, JwtStrategy, and EmailService.
 
-#### To restart the database when changing the code:
-
-```bash
-docker-compose restart db_events-fatec-itu
-```
-
-#### To restart everything at once:
-
-```bash
-docker-compose restart
-```
-
-#### Stop only the db
-
-```bash
-docker-compose stop db_events-fatec-itu
-```
-
-#### Stop only the backend
-
-```bash
-docker-compose stop backend_events-fatec-itu
-```
-
-#### If you want to remove the container (in addition to stopping it), use rm:
-
-```bash
-docker-compose rm db
-```
-
-```bash
-docker-compose rm backend
-```
-#### When you want to stop everything at once:
-
-```bash
-docker-compose down -v
-```
-
-#### If you want to 'hot reload' to always change With changes, you can modify `docker-compose.yml` and add:
-
-```bash
-volumes:
-- ./:/app
-- /app/node_modules
-command: npm run start:dev
+### `./src/modules/auth/jwt.strategy.ts:` Extracts the JWT from the access cookie, validates its signature and expiration using the public key, and provides user data (ID, email, profile) to the guards.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -145,7 +89,22 @@ command: npm run start:dev
 - `./src/assets:` directory to organize additional static resources.
     - `readme:` Folder that will store our photos for use in the documentation ( README )
 
-- `./src/modules:` The modules folder brings together all the application's modules, each in its own directory to keep logic, controllers, and providers well-organized and decoupled, all then imported by the root module (AppModule).
+- `./src/decorators:` Folder for custom decorators.
+    - `roles.decorator.ts:` Defines a decorator to indicate which user profiles are allowed to access each endpoint.
+
+- `./src/guards:` Folder for authentication and authorization guards.
+    - `jwt-auth.guard.ts:` Ensures that only requests authenticated with a valid JWT token are accepted and populates user data in the request.
+    - `roles.guard.ts:` Controls access based on the user profile, allowing unrestricted endpoints and blocking them when the profile does not match the permitted ones.
+
+- `./src/modules:` The modules folder contains all the application modules, each in its own directory to keep logic, controllers, and providers well-organized and decoupled, all then imported by the root module (AppModule).
+    - `auth:` Module dedicated to the entire user authentication and authorization flow.
+        - `dto:` Folder containing Data Transfer Objects that define the input and output format of authentication requests. In short, it's our "Typing." - `auth.controller.ts:` Exposes the endpoints for me, register, logout, request-login, login, request-reset-password, and reset-password, manages access cookies, refresh, and 2FA.
+        - `auth.controller.spec.ts:` Covers controller integration tests, validating scenarios for valid and expired tokens, registration, logout, login with 2FA, and password reset.
+        - `auth.service.ts:` Encapsulates all authentication business logic—user registration with password hashing, access token generation and verification, refresh and 2FA, sending emails, and clearing expired tokens.
+        - `auth.service.spec.ts:` Tests the authentication service flows, ensuring correct behavior in cases of conflict, invalid credentials, token generation, revocation, and renewal of refresh tokens.
+        - `auth.module.ts:` Configures the authentication module, imports PrismaModule, ConfigModule, JwtModule with RSA keys loaded from environment variables, and registers AuthService, JwtStrategy, and EmailService
+        - `jwt.strategy.ts:` Extracts the JWT from the access cookie, validates its signature and expiration using the public key, and provides user data (ID, email, profile) to the guards
+
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
     - `prisma:` Bundles the PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma integration in NestJS.
