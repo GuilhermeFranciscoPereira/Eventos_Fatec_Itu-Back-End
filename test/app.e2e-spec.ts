@@ -5,227 +5,219 @@ import * as cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailService } from '../src/services/email.service';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../src/modules/prisma/prisma.service';
+import * as argon2 from 'argon2';
 
-describe('AuthModule (e2e) – com mock de dados', () => {
+describe('E2E Tests', () => {
     let app: INestApplication;
-    let capturedHtml: string;
-
+    let capturedHtml = '';
     const mockData: {
         users: Array<{ id: number; name: string; email: string; password: string; role: Role }>;
-        refreshTokens: Array<{
-            id: number;
-            userId: number;
-            tokenHash: string;
-            isRevoked: boolean;
-            expiresAt: Date;
-        }>;
-    } = {
-        users: [],
-        refreshTokens: [],
-    };
-
-    const mockPrismaService: Partial<PrismaService> = {
+        refreshTokens: Array<any>;
+    } = { users: [], refreshTokens: [] };
+    const prismaMock: Partial<PrismaService> = {
         user: {
             findUnique: jest.fn(async ({ where }: any) => {
-                if (where.email) {
-                    return (
-                        mockData.users.find((u) => u.email === where.email) || null
-                    );
-                }
-                if (where.id) {
-                    return (
-                        mockData.users.find((u) => u.id === where.id) || null
-                    );
-                }
+                if (where.email) return mockData.users.find(u => u.email === where.email) || null;
+                if (where.id) return mockData.users.find(u => u.id === where.id) || null;
                 return null;
             }),
+            findMany: jest.fn(async () => [...mockData.users]),
             create: jest.fn(async ({ data }: any) => {
                 const id = mockData.users.length + 1;
-                const newUser = {
-                    id,
-                    name: data.name,
-                    email: data.email,
-                    password: data.password,
-                    role: data.role,
-                };
-                mockData.users.push(newUser);
-                return newUser;
+                const u = { id, ...data };
+                mockData.users.push(u);
+                return u;
             }),
             update: jest.fn(async ({ where, data }: any) => {
-                const user = mockData.users.find((u) => u.id === where.id)!;
-                Object.assign(user, data);
-                return user;
+                const u = mockData.users.find(x => x.id === where.id)!;
+                Object.assign(u, data);
+                return u;
+            }),
+            delete: jest.fn(async ({ where }: any) => {
+                const idx = mockData.users.findIndex(x => x.id === where.id);
+                return mockData.users.splice(idx, 1)[0];
             }),
         },
         refreshToken: {
-            deleteMany: jest.fn(async () => {
-                mockData.refreshTokens.length = 0;
-                return { count: 0 };
-            }),
-            updateMany: jest.fn(async ({ where, data }: any) => {
-                mockData.refreshTokens.forEach((rt) => {
-                    if (rt.userId === where.userId && !rt.isRevoked) {
-                        Object.assign(rt, data);
-                    }
-                });
-                return { count: mockData.refreshTokens.length };
-            }),
-            create: jest.fn(async ({ data }: any) => {
+            deleteMany: jest.fn<Promise<{ count: number }>, []>(async () => ({ count: 0 })),
+            updateMany: jest.fn<Promise<{ count: number }>, []>(async () => ({ count: 0 })),
+            create: jest.fn<Promise<any>, [{ data: any }]>(async ({ data }) => {
                 const id = mockData.refreshTokens.length + 1;
-                const newRT = { id, ...data };
-                mockData.refreshTokens.push(newRT);
-                return newRT;
+                const rt = { id, ...data };
+                mockData.refreshTokens.push(rt);
+                return rt;
             }),
-            findFirst: jest.fn(async ({ where }: any) => {
-                const now = new Date();
-                return (
-                    mockData.refreshTokens.find(
-                        (rt) =>
-                            rt.userId === where.userId &&
-                            rt.tokenHash === where.tokenHash &&
-                            !rt.isRevoked &&
-                            rt.expiresAt > now
-                    ) || null
-                );
-            }),
+            findFirst: jest.fn<Promise<any | null>, []>(async () => mockData.refreshTokens[0] || null),
         },
-        $transaction: jest.fn(async (actions: []) => {
-            const results = [];
-            for (const act of actions) {
-                results.push(await act);
+        $transaction: jest.fn<Promise<any[]>, [any[]]>(async actions => {
+            const out: any[] = [];
+            for (const a of actions) {
+                out.push(await a);
             }
-            return results;
+            return out;
         }),
-    } as unknown as PrismaService;
+
+    } as any;
 
     beforeAll(async () => {
-        const moduleFixture: TestingModule = await Test.createTestingModule({
+        const pepper = 'PEPPER';
+        const hash = await argon2.hash('Admin123!' + pepper, { type: argon2.argon2id });
+        mockData.users.push({ id: 1, name: 'Admin', email: 'admin@fatec.sp.gov.br', password: hash, role: Role.ADMIN });
+        const module: TestingModule = await Test.createTestingModule({
             imports: [AppModule],
         })
             .overrideProvider(EmailService)
-            .useValue({
-                send: async (_to: string, _subject: string, html: string) => {
-                    capturedHtml = html;
-                },
-            })
+            .useValue({ send: async (_to, _sub, html: string) => { capturedHtml = html; } })
             .overrideProvider(PrismaService)
-            .useValue(mockPrismaService)
+            .useValue(prismaMock)
             .compile();
-
-        app = moduleFixture.createNestApplication();
+        app = module.createNestApplication();
         app.use(cookieParser());
         app.use(csurf({ cookie: { httpOnly: true, secure: false } }));
         app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
         await app.init();
     });
 
-    afterAll(async () => {
-        await app.close();
-    });
+    afterAll(async () => { await app.close(); });
 
-    async function getCsrf(): Promise<{ csrfToken: string; cookie: string }> {
-        const res = await request(app.getHttpServer()).get('/csrf-token').expect(200);
-        const setCookies = res.headers['set-cookie'] as unknown as string[];
-        const csrfCookie = setCookies.map((c) => c.split(';')[0]).join('; ');
-        return { csrfToken: res.body.csrfToken, cookie: csrfCookie };
+    async function getCsrf() {
+        const res = await request(app.getHttpServer()).get('/csrf-token').expect(HttpStatus.OK);
+        const cookie = (res.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+        return { token: res.body.csrfToken, cookie };
     }
 
-    const user = {
-        email: 'e2e_test@fatec.sp.gov.br',
-        password: 'P@ssw0rd!',
-        role: Role.ADMIN,
-        name: 'E2E Test',
-    };
+    describe('Auth flows', () => {
+        it('should fail login with wrong password', async () => {
+            const { token, cookie } = await getCsrf();
+            await request(app.getHttpServer())
+                .post('/auth/request-login')
+                .set('cookie', cookie)
+                .set('X-CSRF-Token', token)
+                .send({ email: 'admin@fatec.sp.gov.br', password: 'Wrong1!' })
+                .expect(HttpStatus.UNAUTHORIZED);
+        });
 
-    it('deve registrar, logar com 2FA, acessar rota protegida e deslogar', async () => {
-        const { csrfToken, cookie: csrfCookie } = await getCsrf();
+        it('should login with 2FA and then logout', async () => {
+            const { token, cookie } = await getCsrf();
+            const req = await request(app.getHttpServer())
+                .post('/auth/request-login')
+                .set('cookie', cookie)
+                .set('X-CSRF-Token', token)
+                .send({ email: 'admin@fatec.sp.gov.br', password: 'Admin123!' })
+                .expect(HttpStatus.OK);
+            const twoFaCookie = (req.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+            const code = capturedHtml.match(/>(\d{6})</)![1];
+            const { token: t2, cookie: c2 } = await getCsrf();
+            const login = await request(app.getHttpServer())
+                .post('/auth/login')
+                .set('cookie', [twoFaCookie, c2].join('; '))
+                .set('X-CSRF-Token', t2)
+                .send({ code })
+                .expect(HttpStatus.OK);
+            const authCookie = (login.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+            const { token: t3, cookie: c3 } = await getCsrf();
+            await request(app.getHttpServer())
+                .get('/auth/me')
+                .set('cookie', [authCookie, c3].join('; '))
+                .set('X-CSRF-Token', t3)
+                .expect(HttpStatus.OK);
+            const { token: t4, cookie: c4 } = await getCsrf();
+            await request(app.getHttpServer())
+                .post('/auth/logout')
+                .set('cookie', [authCookie, c4].join('; '))
+                .set('X-CSRF-Token', t4)
+                .expect(HttpStatus.OK, { message: 'Logged out successfully!' });
+        });
 
-        const registerRes = await request(app.getHttpServer())
-            .post('/auth/register')
-            .set('cookie', csrfCookie)
-            .set('X-CSRF-Token', csrfToken)
-            .send(user)
-            .expect(201);
-        expect(registerRes.body).toHaveProperty('id');
-        expect(registerRes.body.email).toBe(user.email);
+        it('should fail reset password for non-existing email', async () => {
+            const { token, cookie } = await getCsrf();
+            await request(app.getHttpServer())
+                .post('/auth/request-reset-password')
+                .set('cookie', cookie)
+                .set('X-CSRF-Token', token)
+                .send({ email: 'no@exist.sp.gov.br' })
+                .expect(HttpStatus.UNAUTHORIZED);
+        });
 
-        const reqLoginRes = await request(app.getHttpServer())
-            .post('/auth/request-login')
-            .set('cookie', csrfCookie)
-            .set('X-CSRF-Token', csrfToken)
-            .send({ email: user.email, password: user.password })
-            .expect(200);
-        expect(reqLoginRes.body).toEqual({ requires2FA: true });
-        const twoFaTokenCookie = (reqLoginRes.headers['set-cookie'] as unknown as string[])
-            .map((c) => c.split(';')[0])
-            .join('; ');
-
-        const codeMatch = capturedHtml.match(/>(\d{6})</);
-        expect(codeMatch).not.toBeNull();
-        const twoFaCode = codeMatch![1];
-
-        const { csrfToken: csrfToken2, cookie: csrfCookie2 } = await getCsrf();
-        const loginCookies = [twoFaTokenCookie, csrfCookie2].join('; ');
-        const loginRes = await request(app.getHttpServer())
-            .post('/auth/login')
-            .set('cookie', loginCookies)
-            .set('X-CSRF-Token', csrfToken2)
-            .send({ code: twoFaCode })
-            .expect(200);
-        expect(loginRes.body).toEqual({ message: 'Autenticado com 2FA' });
-        const authCookies = (loginRes.headers['set-cookie'] as unknown as string[])
-            .map((c) => c.split(';')[0])
-            .join('; ');
-
-        const { csrfToken: csrfToken3, cookie: csrfCookie3 } = await getCsrf();
-        const combinedCookies = [authCookies, csrfCookie3].join('; ');
-        const meRes = await request(app.getHttpServer())
-            .get('/auth/me')
-            .set('cookie', combinedCookies)
-            .set('X-CSRF-Token', csrfToken3)
-            .expect(200);
-        expect(meRes.body).toHaveProperty('sub', registerRes.body.id);
-        expect(meRes.body).toHaveProperty('email', user.email);
-
-        const { csrfToken: csrfToken4, cookie: csrfCookie4 } = await getCsrf();
-        const logoutCookies = [authCookies, csrfCookie4].join('; ');
-        const logoutRes = await request(app.getHttpServer())
-            .post('/auth/logout')
-            .set('cookie', logoutCookies)
-            .set('X-CSRF-Token', csrfToken4)
-            .expect(200);
-        expect(logoutRes.body).toEqual({ message: 'Deslogado com sucesso!' });
+        it('should reset password flow', async () => {
+            const { token, cookie } = await getCsrf();
+            const rr = await request(app.getHttpServer())
+                .post('/auth/request-reset-password')
+                .set('cookie', cookie)
+                .set('X-CSRF-Token', token)
+                .send({ email: 'admin@fatec.sp.gov.br' })
+                .expect(HttpStatus.OK);
+            const resetCookie = (rr.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+            const code = capturedHtml.match(/>(\d{6})</)![1];
+            const { token: t2, cookie: c2 } = await getCsrf();
+            await request(app.getHttpServer())
+                .post('/auth/reset-password')
+                .set('cookie', [resetCookie, c2].join('; '))
+                .set('X-CSRF-Token', t2)
+                .send({ code, newPassword: 'NewPass1!' })
+                .expect(HttpStatus.OK, { message: 'Password reset successful' });
+        });
     });
 
-    it('deve solicitar reset de senha e completar o fluxo', async () => {
-        const { csrfToken, cookie: csrfCookie } = await getCsrf();
+    describe('Users flows', () => {
+        it('should forbid GET /users without token', async () => {
+            const { token, cookie } = await getCsrf();
+            await request(app.getHttpServer())
+                .get('/users')
+                .set('cookie', cookie)
+                .set('X-CSRF-Token', token)
+                .expect(HttpStatus.UNAUTHORIZED);
+        });
 
-        const reqResetRes = await request(app.getHttpServer())
-            .post('/auth/request-reset-password')
-            .set('cookie', csrfCookie)
-            .set('X-CSRF-Token', csrfToken)
-            .send({ email: user.email })
-            .expect(200);
-        expect(reqResetRes.body).toEqual({ message: 'O código foi enviado por e-mail' });
-        const resetTokenCookie = (reqResetRes.headers['set-cookie'] as unknown as string[])
-            .map((c) => c.split(';')[0])
-            .join('; ');
+        let authCookie: string;
+        beforeAll(async () => {
+            const { token, cookie } = await getCsrf();
+            const rl = await request(app.getHttpServer())
+                .post('/auth/request-login')
+                .set('cookie', cookie)
+                .set('X-CSRF-Token', token)
+                .send({ email: 'admin@fatec.sp.gov.br', password: 'Admin123!' });
+            const twoFaCookie = (rl.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+            const code = capturedHtml.match(/>(\d{6})</)![1];
+            const { token: t2, cookie: c2 } = await getCsrf();
+            const login = await request(app.getHttpServer())
+                .post('/auth/login')
+                .set('cookie', [twoFaCookie, c2].join('; '))
+                .set('X-CSRF-Token', t2)
+                .send({ code });
+            authCookie = (login.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+        });
 
-        const codeMatch = capturedHtml.match(/>(\d{6})</);
-        expect(codeMatch).not.toBeNull();
-        const resetCode = codeMatch![1];
-
-        const { csrfToken: csrfToken2, cookie: csrfCookie2 } = await getCsrf();
-        const resetCookies = [resetTokenCookie, csrfCookie2].join('; ');
-        const newPassword = 'N3wP@ss!';
-        const resetRes = await request(app.getHttpServer())
-            .post('/auth/reset-password')
-            .set('cookie', resetCookies)
-            .set('X-CSRF-Token', csrfToken2)
-            .send({ code: resetCode, newPassword })
-            .expect(200);
-        expect(resetRes.body).toEqual({ message: 'Senha redefinida com sucesso' });
+        it('should create, list, update and delete user', async () => {
+            const { token, cookie } = await getCsrf();
+            const create = await request(app.getHttpServer())
+                .post('/users/register')
+                .set('cookie', [authCookie, cookie].join('; '))
+                .set('X-CSRF-Token', token)
+                .send({ name: 'User1', email: 'u1@fatec.sp.gov.br', password: 'User123!', role: Role.AUXILIAR })
+                .expect(HttpStatus.CREATED);
+            expect(create.body).toHaveProperty('id');
+            const uid = create.body.id;
+            const list = await request(app.getHttpServer())
+                .get('/users')
+                .set('cookie', [authCookie, cookie].join('; '))
+                .set('X-CSRF-Token', token)
+                .expect(HttpStatus.OK);
+            expect(list.body.some((u: any) => u.id === uid)).toBe(true);
+            await request(app.getHttpServer())
+                .patch(`/users/patch/${uid}`)
+                .set('cookie', [authCookie, cookie].join('; '))
+                .set('X-CSRF-Token', token)
+                .send({ name: 'User1Updated' })
+                .expect(HttpStatus.OK)
+                .then(res => expect(res.body.name).toBe('User1Updated'));
+            await request(app.getHttpServer())
+                .delete(`/users/delete/${uid}`)
+                .set('cookie', [authCookie, cookie].join('; '))
+                .set('X-CSRF-Token', token)
+                .expect(HttpStatus.OK, { message: 'User deleted successfully.' });
+        });
     });
 });

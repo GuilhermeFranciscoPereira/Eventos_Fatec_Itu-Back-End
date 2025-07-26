@@ -26,31 +26,19 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/decorators:` Pasta para decorators customizados.
+### `./src/modules/users:` Módulo responsável por todas as operações de CRUD de usuários.
 
-### `./src/decorators/roles.decorator.ts:` Define um decorator para indicar quais perfis de usuário têm permissão para acessar cada endpoint.
+### `./src/modules/users/dto:` Pasta com os Data Transfer Objects que definem o formato de entrada e saída das requisições de usuários, em resumo, é a nossa "Tipagem".
 
-### `./src/guards:` Pasta para guards de autenticação e autorização.
+### `./src/modules/users/users.controller.ts`: Expõe os endpoints de get, post, patch e delete para o crud de usuários.
 
-### `./src/guards/jwt-auth.guard.ts:` Garante que apenas requisições autenticadas com token JWT válido sejam aceitas e popula os dados do usuário na requisição.
+### `./src/modules/users/users.controller.spec.ts`: Testes de integração do controller, garantindo que cada rota invoque corretamente o UsersService.
 
-### `./src/guards/roles.guard.ts:` Controla acesso a partir do perfil do usuário, liberando endpoints sem restrição e bloqueando quando o perfil não corresponde aos permitidos. 
+### `users.service.ts:` Lógica de negócio do módulo de usuários, tratando as requisições que chegam nas rotas do controller, buscando todos os usuários, registrando, atualizando e removendo.
 
-### `./src/modules/auth:` Módulo dedicado a todo o fluxo de autenticação e autorização do usuário.
+### `./src/modules/users/users.service.spec.ts:` Testes unitários do UsersService, cobrindo cenários de sucesso e erro para cada método.
 
-### `./src/modules/auth/dto:` Pasta com os Data Transfer Objects que definem o formato de entrada e saída das requisições de autenticação, em resumo, é a nossa "Tipagem".
-
-### `./src/modules/auth/auth.controller.ts:` Expõe os endpoints de me, register, logout, request-login, login, request-reset-password e reset-password, gerencia cookies de acesso, refresh e 2FA  
-
-### `./src/modules/auth/auth.controller.spec.ts:` Cobre testes de integração do controller, validando cenários de token válido, expirado, registro, logout, login com 2FA e reset de senha  
-
-### `./src/modules/auth/auth.service.ts:` Encapsula toda a lógica de negócio de autenticação — registro de usuário com hash de senha, geração e verificação de tokens de acesso, refresh e 2FA, envio de e-mails e limpeza de tokens expirados  
-
-### `./src/modules/auth/auth.service.spec.ts:` Testa os fluxos do serviço de autenticação, garantindo comportamento correto em casos de conflito, credenciais inválidas, geração de tokens, revogação e renovação de refresh tokens  
-
-### `./src/modules/auth/auth.module.ts:` Configura o módulo de autenticação, importa PrismaModule, ConfigModule, JwtModule com chaves RSA carregadas de variáveis de ambiente, e registra AuthService, JwtStrategy e EmailService  
-
-### `./src/modules/auth/jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, e fornece os dados de usuário (id, e-mail, perfil) para os guards  
+### `./src/modules/users/users.module.ts:` Configura o UsersModule, importando PrismaModule e ConfigModule, e registrando UsersService e UsersController.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -105,12 +93,23 @@
     - `auth.service.spec.ts:` Testa os fluxos do serviço de autenticação, garantindo comportamento correto em casos de conflito, credenciais inválidas, geração de tokens, revogação e renovação de refresh tokens  
     - `auth.module.ts:` Configura o módulo de autenticação, importa PrismaModule, ConfigModule, JwtModule com chaves RSA carregadas de variáveis de ambiente, e registra AuthService, JwtStrategy e EmailService  
     - `jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, e fornece os dados de usuário (id, e-mail, perfil) para os guards  
+  
   - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
+  
   - `prisma:` Agrupa o PrismaModule (prisma.module.ts) e o PrismaService (prisma.service.ts), centralizando a integração do Prisma no NestJS.
     - `prisma.module.ts`: Define e exporta globalmente o módulo do Prisma no NestJS, registrando o PrismaService como provedor para permitir injeção em qualquer parte da aplicação.
     - `prisma.service.ts`: Estende o PrismaClient, gerenciando automaticamente a conexão ao banco de dados ao inicializar e desconectar no ciclo de vida do módulo.
-- `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
+  
+  - `users:` Módulo responsável por todas as operações de CRUD de usuários.
+    - `dto:` Pasta com os Data Transfer Objects que definem o formato de entrada e saída das requisições de usuários, em resumo, é a nossa "Tipagem".
+    - `users.controller.ts`: Expõe os endpoints de get, post, patch e delete para o crud de usuários.
+    - `users.controller.spec.ts`: Testes de integração do controller, garantindo que cada rota invoque corretamente o UsersService.
+    `users.service.ts:` Lógica de negócio do módulo de usuários, tratando as requisições que chegam nas rotas do controller, buscando todos os usuários, registrando, atualizando e removendo.
+    - `users.service.spec.ts:` Testes unitários do UsersService, cobrindo cenários de sucesso e erro para cada método.
+    - `users.module.ts:` Configura o UsersModule, importando PrismaModule e ConfigModule, e registrando UsersService e UsersController.
+    - `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
+  
   - `email.service.ts:` Temos as configurações para o envio de email e o método send que por onde realmente vamos utilizar para o envio dos e-mails
 
 - `./Dockerfile:` Define como a aplicação será empacotada em uma imagem Docker.
@@ -254,7 +253,11 @@ docker-compose down -v
 
 ### Testes unitários:
 
-- `npx jest` acompanhado do nome do módulo, exemplo: `users` e o nome do arquivo, por exemplo: `users.service.spec.ts` e sempre respeitando a hierarquia de pastas, se os módulos estiverem dentro de uma pasta modules deve conter isso após o src
+- Você possui duas formas, rodar todos os testes unitários deu uma só vez ou um de cada vez.
+
+- Todos: `npm run test`
+
+- Cada um: `npx jest` acompanhado do nome do módulo, exemplo: `users` e o nome do arquivo, por exemplo: `users.service.spec.ts` e sempre respeitando a hierarquia de pastas, se os módulos estiverem dentro de uma pasta modules deve conter isso após o src
   - Ficando desta maneira:
     - `npx jest src/modules/users/users.service.spec.ts --config=jest.config.ts`
 

@@ -2,7 +2,6 @@ import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomInt } from 'crypto';
-import { RegisterDto } from './dto/register-auth.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../../services/email.service';
@@ -11,7 +10,7 @@ import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/co
 
 @Injectable()
 export class AuthService {
-  private pepper: string;
+  private readonly pepper: string;
   private readonly hashSecret: string;
   private readonly refreshSecret: string;
 
@@ -24,18 +23,6 @@ export class AuthService {
     this.pepper = this.config.getOrThrow<string>('PASSWORD_PEPPER');
     this.hashSecret = this.config.getOrThrow<string>('TOKEN_HASH_SECRET');
     this.refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
-  }
-
-  async register(dto: RegisterDto) {
-    const exists = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (exists) throw new ConflictException('E-mail já cadastrado!');
-
-    const hash = await argon2.hash(dto.password + this.pepper, { type: argon2.argon2id });
-    const user = await this.prisma.user.create({
-      data: { email: dto.email, password: hash, role: dto.role, name: dto.name },
-    });
-
-    return { id: user.id, email: user.email };
   }
 
   async logout(userId: number) {

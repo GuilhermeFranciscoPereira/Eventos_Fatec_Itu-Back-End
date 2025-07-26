@@ -26,31 +26,19 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/decorators:` Folder for custom decorators.
+### `./src/modules/users:` Module responsible for all user CRUD operations.
 
-### `./src/decorators/roles.decorator.ts:` Defines a decorator to indicate which user profiles are allowed to access each endpoint.
+### `./src/modules/users/dto:` Folder with Data Transfer Objects that define the input and output format of user requests. In short, it's our "Typing".
 
-### `./src/guards:` Folder for authentication and authorization guards.
+### `./src/modules/users/users.controller.ts`: Exposes the get, post, patch, and delete endpoints for the user CRUD.
 
-### `./src/guards/jwt-auth.guard.ts:` Ensures that only authenticated requests with a valid JWT token are accepted and populates user data in the request.
+### `./src/modules/users/users.controller.spec.ts`: Controller integration tests, ensuring that each route correctly invokes the UsersService.
 
-### `./src/guards/roles.guard.ts:` Controls access based on the user profile, allowing unrestricted endpoints and blocking them when the profile does not match the allowed ones.
+### `users.service.ts:` Business logic of the users module, handling requests that arrive on the controller routes, retrieving all users, registering, updating, and deleting them.
 
-### `./src/modules/auth:` Module dedicated to the entire user authentication and authorization flow.
+### `./src/modules/users/users.service.spec.ts:` Unit tests for UsersService, covering success and error scenarios for each method.
 
-### `./src/modules/auth/dto:` Folder with Data Transfer Objects that define the input and output format of authentication requests. In short, it's our "Typing".
-
-### `./src/modules/auth/auth.controller.ts:` Exposes the endpoints for me, register, logout, request-login, login, request-reset-password, and reset-password, manages access cookies, refresh, and 2FA.
-
-### `./src/modules/auth/auth.controller.spec.ts:` Covers controller integration tests, validating scenarios for valid and expired tokens, registration, logout, login with 2FA, and password reset.
-
-### `./src/modules/auth/auth.service.ts:` Encapsulates all authentication business logic — user registration with password hashing, access token generation and verification, refresh and 2FA, sending emails, and clearing expired tokens.
-
-### `./src/modules/auth/auth.service.spec.ts:` Tests the flows of the authentication service, ensuring correct behavior in cases of conflict, invalid credentials, token generation, revocation, and renewal of refresh tokens.
-
-### `./src/modules/auth/auth.module.ts:` Configures the authentication module, imports PrismaModule, ConfigModule, and JwtModule with RSA keys loaded from environment variables, and registers AuthService, JwtStrategy, and EmailService.
-
-### `./src/modules/auth/jwt.strategy.ts:` Extracts the JWT from the access cookie, validates its signature and expiration using the public key, and provides user data (ID, email, profile) to the guards.
+### `./src/modules/users/users.module.ts:` Configures UsersModule, importing PrismaModule and ConfigModule, and registering UsersService and UsersController.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -107,9 +95,18 @@
 
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
+    
     - `prisma:` Bundles the PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma integration in NestJS.
         - `prisma.module.ts`: Defines and globally exports the Prisma module in NestJS, registering the PrismaService as a provider to allow injection into any part of the application.
-        - `prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.  
+        - `prisma.service.ts`: Extends PrismaClient, automatically managing the database connection during initialization and disconnection during the module lifecycle.
+    - `users:` Module responsible for all user CRUD operations.
+        - `dto:` Folder with Data Transfer Objects that define the input and output format of user requests. In short, it's our "Typing".
+        - `users.controller.ts`: Exposes the get, post, patch, and delete endpoints for the user CRUD.
+        - `users.controller.spec.ts`: Controller integration tests, ensuring that each route correctly invokes the UsersService.
+        `users.service.ts`: Business logic for the users module, handling requests that arrive on the controller routes, searching for all users, registering, updating, and deleting them.
+        - `users.service.spec.ts`: Unit tests for the UsersService, covering success and error scenarios for each method. - `users.module.ts:` Configures the UsersModule, importing PrismaModule and ConfigModule, and registering UsersService and UsersController.
+        - `./src/services:` Brings together injectable classes that encapsulate business logic, utilities, and external integrations.
+          
 - `./src/services`: Brings together injectable classes that encapsulate business logic, utilities, and external integrations.
     - `email.service.ts:` We have the configurations for sending emails and the send method that we will actually use to send emails.
 
@@ -251,7 +248,11 @@ command: npm run start:dev
 
 ### Unit tests:
 
-- `npx jest` followed by the module name, for example: `users` and the file name, for example: `users.service.spec.ts` and always respecting the folder hierarchy. If the modules are inside a modules folder, it must contain this after the src
+- You have two options: run all unit tests at once or one at a time.
+
+- All: `npm run test`
+
+- Each: `npx jest` followed by the module name, for example: `users` and the file name, for example: `users.service.spec.ts` and always respecting the folder hierarchy. If the modules are inside a modules folder, it must contain this after the src
     - It should look like this:
         - `npx jest src/modules/users/users.service.spec.ts --config=jest.config.ts`
 

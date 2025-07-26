@@ -21,7 +21,6 @@ describe('AuthController', () => {
     const authServiceMock = {
       getMe: jest.fn(),
       refreshTokens: jest.fn(),
-      register: jest.fn(),
       logout: jest.fn(),
       requestLogin: jest.fn(),
       login: jest.fn(),
@@ -91,15 +90,6 @@ describe('AuthController', () => {
     });
   });
 
-  describe('register', () => {
-    it('should call authService.register and return its result', async () => {
-      const dto = { email: 'a@b.com', password: 'P@ssw0rd!', role: 'ADMIN', name: 'Teste' };
-      service.register.mockResolvedValue({ id: 1, email: dto.email });
-      await expect(controller.register(dto as any)).resolves.toEqual({ id: 1, email: dto.email });
-      expect(service.register).toHaveBeenCalledWith(dto);
-    });
-  });
-
   describe('logout', () => {
     it('should clear cookies and return message', async () => {
       const result = await controller.logout(req, res as Response);
@@ -119,7 +109,7 @@ describe('AuthController', () => {
       expect(res.cookie).toHaveBeenCalledWith(
         '2fa_token',
         'tmp',
-        expect.objectContaining({ maxAge: 15 * 60 * 1000, path: '/auth' })
+        expect.objectContaining({ maxAge: 15 * 60 * 1000, path: '/' })
       );
       expect(result).toEqual({ requires2FA: true });
     });
@@ -160,7 +150,7 @@ describe('AuthController', () => {
       expect(res.cookie).toHaveBeenCalledWith(
         'reset_token',
         'tmp',
-        expect.objectContaining({ maxAge: 15 * 60 * 1000, path: '/auth' })
+        expect.objectContaining({ maxAge: 15 * 60 * 1000, path: '/' })
       );
       expect(result).toEqual({ message: 'O código foi enviado por e-mail' });
     });

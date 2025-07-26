@@ -4,11 +4,10 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { RegisterDto } from './dto/register-auth.dto';
+import { UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../../services/email.service';
 import { sign as jwtSign, verify as jwtVerify } from 'jsonwebtoken';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
 
 jest.mock('argon2');
 jest.mock('crypto', () => ({
@@ -53,37 +52,6 @@ describe('AuthService', () => {
 
   afterAll(async () => {
     await moduleRef.close();
-  });
-
-  describe('register', () => {
-    it('should throw on existing email', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 1 });
-      await expect(
-        service.register({ email: 'a', password: 'p', role: 'ADMIN', name: 'n' })
-      ).rejects.toBeInstanceOf(ConflictException);
-    });
-
-    it('should hash password and create user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      (argon2.hash as jest.Mock).mockResolvedValue('hash');
-      prisma.user.create.mockResolvedValue({ id: 1, email: 'a' });
-
-      const dto: RegisterDto = { email: 'a', password: 'p', role: 'ADMIN', name: 'n' };
-      const result = await service.register(dto);
-
-      expect(argon2.hash).toHaveBeenCalledWith('p' + service['pepper'], expect.any(Object));
-      expect(prisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: {
-            email: dto.email,
-            password: 'hash',
-            role: dto.role,
-            name: dto.name,
-          },
-        })
-      );
-      expect(result).toEqual({ id: 1, email: 'a' });
-    });
   });
 
   describe('logout', () => {

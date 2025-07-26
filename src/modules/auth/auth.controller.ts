@@ -1,11 +1,7 @@
-import { Role } from '@prisma/client';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-auth.dto';
 import { MeResponseDto } from './dto/me-auth.dto';
-import { RolesGuard } from '../../guards/roles.guard';
-import { RegisterDto } from './dto/register-auth.dto';
-import { Roles } from '../../decorators/roles.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RequestLoginDto } from './dto/request-login-auth.dto';
 import { ResetPasswordDto } from './dto/reset-password-auth.dto';
@@ -42,14 +38,6 @@ export class AuthController {
       }
       throw err;
     }
-  }
-
-  @Post('register')
-  @HttpCode(201)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
   }
 
   @Post('logout')
