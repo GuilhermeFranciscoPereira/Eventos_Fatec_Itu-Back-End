@@ -26,19 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/users:` Módulo responsável por todas as operações de CRUD de usuários.
-
-### `./src/modules/users/dto:` Pasta com os Data Transfer Objects que definem o formato de entrada e saída das requisições de usuários, em resumo, é a nossa "Tipagem".
-
-### `./src/modules/users/users.controller.ts`: Expõe os endpoints de get, post, patch e delete para o crud de usuários.
-
-### `./src/modules/users/users.controller.spec.ts`: Testes de integração do controller, garantindo que cada rota invoque corretamente o UsersService.
-
-### `users.service.ts:` Lógica de negócio do módulo de usuários, tratando as requisições que chegam nas rotas do controller, buscando todos os usuários, registrando, atualizando e removendo.
-
-### `./src/modules/users/users.service.spec.ts:` Testes unitários do UsersService, cobrindo cenários de sucesso e erro para cada método.
-
-### `./src/modules/users/users.module.ts:` Configura o UsersModule, importando PrismaModule e ConfigModule, e registrando UsersService e UsersController.
+### `./src/guards/roles.guard.ts:` Corrigido o roles.guard.ts para realmente bloquear as rotas que os usuários que não possuem certo nivel de hierarquia não acessem.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

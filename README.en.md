@@ -26,19 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/users:` Module responsible for all user CRUD operations.
-
-### `./src/modules/users/dto:` Folder with Data Transfer Objects that define the input and output format of user requests. In short, it's our "Typing".
-
-### `./src/modules/users/users.controller.ts`: Exposes the get, post, patch, and delete endpoints for the user CRUD.
-
-### `./src/modules/users/users.controller.spec.ts`: Controller integration tests, ensuring that each route correctly invokes the UsersService.
-
-### `users.service.ts:` Business logic of the users module, handling requests that arrive on the controller routes, retrieving all users, registering, updating, and deleting them.
-
-### `./src/modules/users/users.service.spec.ts:` Unit tests for UsersService, covering success and error scenarios for each method.
-
-### `./src/modules/users/users.module.ts:` Configures UsersModule, importing PrismaModule and ConfigModule, and registering UsersService and UsersController.
+### `./src/guards/roles.guard.ts:` Fixed roles.guard.ts to actually block routes that users who do not have a certain hierarchy level cannot access.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
