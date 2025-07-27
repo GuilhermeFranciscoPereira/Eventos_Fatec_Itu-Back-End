@@ -26,7 +26,24 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `testes:` Reorganizar e otimizar todos os testes, unitários e de ponta a ponta
+### `./package.json:` Instalado para o Cloudinary: 
+```bash
+npm install cloudinary @nestjs/platform-express multer streamifier
+```
+
+```bash
+npm install --save-dev @types/multer
+```
+
+### `./src/modules/cloudinary:` Exporta a opção de inserir ou remover fotos da cloudinary - ( serviço gratuito para salvar imagens, recomendo: https://cloudinary.com)
+
+### `./src/modules/cloudinary/cloudinary.module.ts:` Importa o nosso provider e service e exporta o service para ser utilizado em outros locais do código
+
+### `./src/modules/cloudinary/cloudinary.provider.ts:` Configura a conexão com a Cloudinary
+
+### `./src/modules/cloudinary/cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto
+
+### `./.env.example:` Adicionado os exemplos de variáveis de ambientes para conexão com a Cloudinary
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -89,6 +106,11 @@
     - `categories.service.ts:` Implementa a lógica de negócio das categorias — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Category.
     - `categories.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CategoriesService.
     - `categories.module.ts:` Arquivo de montagem do módulo de categorias, importando o PrismaModule e registrando o CategoriesService e CategoriesController no contexto do NestJS.
+
+  - `cloudinary:` Exporta a opção de inserir ou remover fotos da cloudinary - ( serviço gratuito para salvar imagens, recomendo: https://cloudinary.com)
+    - `cloudinary.module.ts:` Importa o nosso provider e service e exporta o service para ser utilizado em outros locais do código
+    - `cloudinary.provider.ts:` Configura a conexão com a Cloudinary
+    - `cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto
   
   - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
@@ -321,6 +343,9 @@ Comando: `npx jest` acompanhado do nome do módulo, exemplo: `users` e o nome do
 
 #### Créditos primários à Fatec itu por ceder seu nome, e utilizar o sistema em seu ambiente!
 > <a href="https://fatecitu.cps.sp.gov.br" target="_blank">https://fatecitu.cps.sp.gov.br</a>
+
+#### Créditos à Cloudinary por utilizar os serviços:
+> <a href="https://cloudinary.com" target="_blank">https://cloudinary.com</a>
 
 #### Créditos dos emojis: 
 > <a href="https://emojipedia.org" target="_blank">https://emojipedia.org</a>

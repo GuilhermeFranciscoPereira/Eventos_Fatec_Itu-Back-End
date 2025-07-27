@@ -26,7 +26,24 @@
 
 ## 🛎️ Updates to this commit
 
-### `tests:` Reorganize and optimize all tests, unitary and end-to-end
+### `./package.json:` Installed for Cloudinary:
+```bash
+npm install cloudinary @nestjs/platform-express multer streamifier
+```
+
+```bash
+npm install --save-dev @types/multer
+```
+
+### `./src/modules/cloudinary:` Exports the option to insert or remove photos from Cloudinary - (free service to save images, I recommend: https://cloudinary.com)
+
+### `./src/modules/cloudinary/cloudinary.module.ts:` Imports our provider and service and exports the service to be used elsewhere in the code
+
+### `./src/modules/cloudinary/cloudinary.provider.ts:` Configures the connection to Cloudinary
+
+### `./src/modules/cloudinary/cloudinary.service.ts:` Exports the functions for uploading and deleting a photo
+
+### `./.env.example:` Added examples of environment variables for connecting to Cloudinary
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -87,6 +104,10 @@
         - `categories.controller.spec.ts:` Controller integration tests, ensuring that each route correctly forwards calls to the CategoriesService and returns the expected HTTP codes. - `categories.service.ts:` Implements the business logic of categories — interacts with PrismaClient to search for, insert, modify, and delete records in the Category table.
         - `categories.service.spec.ts:` Unit test suite for the service, covering success and failure scenarios for each method exposed by CategoriesService.
         - `categories.module.ts:` Assembly file for the categories module, importing PrismaModule and registering CategoriesService and CategoriesController in the NestJS context.
+    - `cloudinary:` Exports the option to insert or remove photos from Cloudinary (free service for saving images, I recommend: https://cloudinary.com)
+        - `cloudinary.module.ts:` Imports our provider and service and exports the service for use elsewhere in the code
+        - `cloudinary.provider.ts:` Configures the connection to Cloudinary
+        - `cloudinary.service.ts:` Exports the functions for uploading and deleting a photo
 
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
@@ -313,6 +334,9 @@ npm run test
 
 #### Primary credits to Fatec Itu for providing its name and using the system in its environment! 
 > <a href="https://fatecitu.cps.sp.gov.br" target="_blank">https://fatecitu.cps.sp.gov.br</a>
+
+#### Credits to Cloudinary for using the services:
+> <a href="https://cloudinary.com" target="_blank">https://cloudinary.com</a>
 
 #### Emoji credits:
 > <a href="https://emojipedia.org" target="_blank">https://emojipedia.org</a>
