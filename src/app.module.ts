@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { CsrfController } from './modules/common/csrf.controller';
-import { UsersModule } from './modules/users/users.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { UsersModule } from './modules/users/users.module';
     PrismaModule,
     AuthModule,
     UsersModule,
+    CategoriesModule,
   ],
   controllers: [CsrfController]
 })

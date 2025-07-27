@@ -26,7 +26,19 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/guards/roles.guard.ts:` Corrigido o roles.guard.ts para realmente bloquear as rotas que os usuários que não possuem certo nivel de hierarquia não acessem.
+### `./src/modules/categories:` Pacote dedicado ao gerenciamento completo de categorias, englobando todas as operações de CRUD.
+
+### `./src/modules/categories/dto:` Diretório que contém os Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto e CategoryResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de categorias.
+
+### `./src/modules/categories/categories.controller.ts:` Define os endpoints REST para listagem (GET /categories), criação (POST /categories), atualização (PATCH /categories/:id) e remoção (DELETE /categories/:id) de categorias.
+
+### `./src/modules/categories/categories.controller.spec.ts:` Testes de integração do controller, garantindo que cada rota encaminhe corretamente as chamadas ao CategoriesService e retorne os códigos HTTP esperados.
+
+### `./src/modules/categories/categories.service.ts:` Implementa a lógica de negócio das categorias — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Category.
+
+### `./src/modules/categories/categories.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CategoriesService.
+
+### `./src/modules/categories/categories.module.ts:` Arquivo de montagem do módulo de categorias, importando o PrismaModule e registrando o CategoriesService e CategoriesController no contexto do NestJS.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -82,6 +94,14 @@
     - `auth.module.ts:` Configura o módulo de autenticação, importa PrismaModule, ConfigModule, JwtModule com chaves RSA carregadas de variáveis de ambiente, e registra AuthService, JwtStrategy e EmailService  
     - `jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, e fornece os dados de usuário (id, e-mail, perfil) para os guards  
   
+  - `categories:` Pacote dedicado ao gerenciamento completo de categorias, englobando todas as operações de CRUD.
+    - `dto:` Diretório que contém os Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto e CategoryResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de categorias.
+    - `categories.controller.ts:` Define os endpoints REST para listagem (GET /categories), criação (POST /categories), atualização (PATCH /categories/:id) e remoção (DELETE /categories/:id) de categorias.
+    - `categories.controller.spec.ts:` Testes de integração do controller, garantindo que cada rota encaminhe corretamente as chamadas ao CategoriesService e retorne os códigos HTTP esperados.
+    - `categories.service.ts:` Implementa a lógica de negócio das categorias — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Category.
+    - `categories.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CategoriesService.
+    - `categories.module.ts:` Arquivo de montagem do módulo de categorias, importando o PrismaModule e registrando o CategoriesService e CategoriesController no contexto do NestJS.
+  
   - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
   
@@ -96,7 +116,8 @@
     `users.service.ts:` Lógica de negócio do módulo de usuários, tratando as requisições que chegam nas rotas do controller, buscando todos os usuários, registrando, atualizando e removendo.
     - `users.service.spec.ts:` Testes unitários do UsersService, cobrindo cenários de sucesso e erro para cada método.
     - `users.module.ts:` Configura o UsersModule, importando PrismaModule e ConfigModule, e registrando UsersService e UsersController.
-    - `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
+    
+  - `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
   
   - `email.service.ts:` Temos as configurações para o envio de email e o método send que por onde realmente vamos utilizar para o envio dos e-mails
 
@@ -148,7 +169,12 @@
     ```bash
     npm i   
     ```
-    
+
+- 🚨 Para não ter erros você também deve atualizar o prisma para seu banco de dados, para isso rode o comando abaixo antes de executar o código! 🚨
+    ```bash
+    npx prisma generate
+    ```
+
 - Ao ter o projeto na sua máquina você deve abrir o site. Para isso siga os passos abaixo:
     - Lembre-se de criar o arquivo .env com base em tudo que contem no arquivo: `.env.example`
     - Abra o terminal e escreva o código abaixo para iniciar o site:

@@ -1,7 +1,7 @@
 import { Role } from '@prisma/client';
 import { IsEmail, MinLength, MaxLength, Matches, IsEnum, IsString } from 'class-validator';
 
-export class RegisterDto {
+export class CreateDto {
   @IsEmail({}, { message: 'Formato de e-mail inválido' })
   @Matches(
     /@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br)$/,

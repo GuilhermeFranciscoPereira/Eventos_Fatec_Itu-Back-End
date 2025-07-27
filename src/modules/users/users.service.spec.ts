@@ -54,7 +54,7 @@ describe('UsersService', () => {
       const dto = { name:'n', email:'e', password:'p', role:Role.COORDENADOR };
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({ id:5,email:'e' });
-      const out = await service.register(dto);
+      const out = await service.create(dto);
       expect(out).toEqual({ id:5, email:'e' });
       expect(argon2.hash).toHaveBeenCalledWith('ppepper', expect.any(Object));
     });
@@ -70,7 +70,7 @@ describe('UsersService', () => {
     it('remove → deletes user and tokens', async () => {
       prisma.user.findUnique.mockResolvedValue({ id:1 });
       prisma.$transaction.mockResolvedValue([{},{}]);
-      const out = await service.remove(1);
+      const out = await service.delete(1);
       expect(out).toEqual({ message: 'Usuário removido com sucesso.' });
       expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({ where:{ userId:1 } });
     });
@@ -79,7 +79,7 @@ describe('UsersService', () => {
   describe('Error paths', () => {
     it('register → conflict on existing email', async () => {
       prisma.user.findUnique.mockResolvedValue({ id:1 });
-      await expect(service.register({} as any)).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.create({} as any)).rejects.toBeInstanceOf(ConflictException);
     });
 
     it('update → not found', async () => {
@@ -89,7 +89,7 @@ describe('UsersService', () => {
 
     it('remove → not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.remove(1)).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.delete(1)).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });

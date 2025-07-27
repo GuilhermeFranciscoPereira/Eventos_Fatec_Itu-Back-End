@@ -1,7 +1,7 @@
 import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
 import { RolesGuard } from '../../guards/roles.guard';
-import { RegisterDto } from './dto/register-auth.dto';
+import { CreateDto } from './dto/create-auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from '../../decorators/roles.decorator';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -19,10 +19,10 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  @Post('register')
+  @Post('create')
   @HttpCode(201)
-  async register(@Body() dto: RegisterDto) {
-    return this.usersService.register(dto);
+  async create(@Body() dto: CreateDto) {
+    return this.usersService.create(dto);
   }
 
   @Patch('patch/:id')
@@ -31,7 +31,7 @@ export class UsersController {
   }
 
   @Delete('delete/:id')
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
-    return this.usersService.remove(id);
+  async delete(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
+    return this.usersService.delete(id);
   }
 }

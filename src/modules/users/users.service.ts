@@ -1,8 +1,8 @@
 import * as argon2 from 'argon2';
 import { Role, User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { CreateDto } from './dto/create-auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { RegisterDto } from './dto/register-auth.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserResponseDto } from './dto/user-response.dto';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
@@ -11,10 +11,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 export class UsersService {
   private readonly pepper: string;
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
-  ) {
+  constructor(private readonly prisma: PrismaService, private readonly config: ConfigService) {
     this.pepper = this.config.getOrThrow<string>('PASSWORD_PEPPER');
   }
 
@@ -32,7 +29,7 @@ export class UsersService {
     });
   }
 
-  async register(dto: RegisterDto) {
+  async create(dto: CreateDto) {
     const userExist = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (userExist) throw new ConflictException('E-mail já cadastrado!');
 
@@ -63,7 +60,7 @@ export class UsersService {
     return user;
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async delete(id: number): Promise<{ message: string }> {
     const userExist = await this.prisma.user.findUnique({ where: { id } });
     if (!userExist) { throw new NotFoundException(`Usuário com id ${id} não encontrado.`) };
 

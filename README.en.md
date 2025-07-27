@@ -26,7 +26,19 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/guards/roles.guard.ts:` Fixed roles.guard.ts to actually block routes that users who do not have a certain hierarchy level cannot access.
+### `./src/modules/categories:` Package dedicated to complete category management, encompassing all CRUD operations.
+
+### `./src/modules/categories/dto:` Directory containing the Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto, and CategoryResponseDto) responsible for modeling the input and output data in category requests.
+
+### `./src/modules/categories/categories.controller.ts:` Defines REST endpoints for listing (GET /categories), creating (POST /categories), updating (PATCH /categories/:id), and deleting (DELETE /categories/:id) categories.
+
+### `./src/modules/categories/categories.controller.spec.ts:` Controller integration tests, ensuring that each route correctly forwards calls to the CategoriesService and returns the expected HTTP codes.
+
+### `./src/modules/categories/categories.service.ts:` Implements the business logic of the categories — interacts with the PrismaClient to fetch, insert, modify, and delete records in the Category table.
+
+### `./src/modules/categories/categories.service.spec.ts:` Unit test suite for the service, covering success and failure scenarios for each method exposed by the CategoriesService.
+
+### `./src/modules/categories/categories.module.ts:` Assembly file for the category module, importing PrismaModule and registering CategoriesService and CategoriesController in the NestJS context.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -80,6 +92,13 @@
         - `auth.service.spec.ts:` Tests the authentication service flows, ensuring correct behavior in cases of conflict, invalid credentials, token generation, revocation, and renewal of refresh tokens.
         - `auth.module.ts:` Configures the authentication module, imports PrismaModule, ConfigModule, JwtModule with RSA keys loaded from environment variables, and registers AuthService, JwtStrategy, and EmailService
         - `jwt.strategy.ts:` Extracts the JWT from the access cookie, validates its signature and expiration using the public key, and provides user data (ID, email, profile) to the guards
+
+    - `categories:` Package dedicated to complete category management, encompassing all CRUD operations.
+        - `dto:` Directory containing the Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto, and CategoryResponseDto) responsible for modeling the input and output data in category requests.
+        - `categories.controller.ts:` Defines the REST endpoints for listing (GET /categories), creating (POST /categories), updating (PATCH /categories/:id), and deleting (DELETE /categories/:id) categories.
+        - `categories.controller.spec.ts:` Controller integration tests, ensuring that each route correctly forwards calls to the CategoriesService and returns the expected HTTP codes. - `categories.service.ts:` Implements the business logic of categories — interacts with PrismaClient to search for, insert, modify, and delete records in the Category table.
+        - `categories.service.spec.ts:` Unit test suite for the service, covering success and failure scenarios for each method exposed by CategoriesService.
+        - `categories.module.ts:` Assembly file for the categories module, importing PrismaModule and registering CategoriesService and CategoriesController in the NestJS context.
 
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
@@ -142,6 +161,11 @@
 - 🚨 Don't forget that to avoid errors in the code when cloning it, you must run the command below: 🚨
     ```bash
     npm i
+    ```
+
+- 🚨 To avoid errors, you must also update Prisma for your database. To do this, run the command below before running the code! 🚨
+    ```bash
+    npx prisma generate
     ```
 
 - Once you have the project on your machine, open the website. To do this, follow the steps below:

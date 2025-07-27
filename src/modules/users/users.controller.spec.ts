@@ -3,7 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { RolesGuard } from '../../guards/roles.guard';
 import { UsersController } from './users.controller';
 import { Test, TestingModule } from '@nestjs/testing';
-import { RegisterDto } from './dto/register-auth.dto';
+import { CreateDto } from './dto/create-auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
@@ -45,10 +45,10 @@ describe('UsersController', () => {
     });
 
     it('register → should call service.register and return id/email', async () => {
-      const dto: RegisterDto = { name: 'X', email: 'x@fatec.sp.gov.br', password: 'P@ss1!', role: 'AUXILIAR' };
-      service.register.mockResolvedValue({ id: 42, email: dto.email });
-      await expect(controller.register(dto)).resolves.toEqual({ id: 42, email: dto.email });
-      expect(service.register).toHaveBeenCalledWith(dto);
+      const dto: CreateDto = { name: 'X', email: 'x@fatec.sp.gov.br', password: 'P@ss1!', role: 'AUXILIAR' };
+      service.create.mockResolvedValue({ id: 42, email: dto.email });
+      await expect(controller.create(dto)).resolves.toEqual({ id: 42, email: dto.email });
+      expect(service.create).toHaveBeenCalledWith(dto);
     });
 
     it('update → should update and return updated user', async () => {
@@ -60,9 +60,9 @@ describe('UsersController', () => {
     });
 
     it('remove → should delete and return message', async () => {
-      service.remove.mockResolvedValue({ message: 'ok' });
-      await expect(controller.remove(1)).resolves.toEqual({ message: 'ok' });
-      expect(service.remove).toHaveBeenCalledWith(1);
+      service.delete.mockResolvedValue({ message: 'ok' });
+      await expect(controller.delete(1)).resolves.toEqual({ message: 'ok' });
+      expect(service.delete).toHaveBeenCalledWith(1);
     });
   });
 
@@ -73,8 +73,8 @@ describe('UsersController', () => {
     });
 
     it('remove → NotFoundException bubbles up', async () => {
-      service.remove.mockRejectedValue(new NotFoundException('no'));
-      await expect(controller.remove(999)).rejects.toThrow(NotFoundException);
+      service.delete.mockRejectedValue(new NotFoundException('no'));
+      await expect(controller.delete(999)).rejects.toThrow(NotFoundException);
     });
   });
 });
