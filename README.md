@@ -26,19 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/categories:` Pacote dedicado ao gerenciamento completo de categorias, englobando todas as operações de CRUD.
-
-### `./src/modules/categories/dto:` Diretório que contém os Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto e CategoryResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de categorias.
-
-### `./src/modules/categories/categories.controller.ts:` Define os endpoints REST para listagem (GET /categories), criação (POST /categories), atualização (PATCH /categories/:id) e remoção (DELETE /categories/:id) de categorias.
-
-### `./src/modules/categories/categories.controller.spec.ts:` Testes de integração do controller, garantindo que cada rota encaminhe corretamente as chamadas ao CategoriesService e retorne os códigos HTTP esperados.
-
-### `./src/modules/categories/categories.service.ts:` Implementa a lógica de negócio das categorias — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Category.
-
-### `./src/modules/categories/categories.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CategoriesService.
-
-### `./src/modules/categories/categories.module.ts:` Arquivo de montagem do módulo de categorias, importando o PrismaModule e registrando o CategoriesService e CategoriesController no contexto do NestJS.
+### `testes:` Reorganizar e otimizar todos os testes, unitários e de ponta a ponta
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -128,7 +116,7 @@
 - `./docker-compose.yml:` Orquestra serviços (app Nest, banco MySQL) num único comando, cuidando de rede, volumes, variáveis de ambiente.
 
 - `./test/` Diretório dedicado aos testes de ponta a ponta (e2e):  
-  - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado.
+  - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado, fazendo testes de fluxos de sucesso e fluxos de erros, como validação, autorização e etc.
   - `jest.e2e-json`: Arquivo de configuração do Jest para executar os testes e2e (definição de extensões de arquivo reconhecidas, ponto de partida para busca de testes, transform, e etc.)   
 
 ## ❔ Como rodar o projeto na minha máquina?
@@ -263,22 +251,28 @@ docker-compose down -v
 
 ##
 
-## 🧪 Como rodar os testes unitários e e2e?
+## 🧪 Como rodar os testes unitários e End-To-End (e2e)?
 
-### Testes unitários:
+### Testes unitários: você possui duas formas, rodar todos os testes unitários deu uma só vez ou um de cada vez.
 
-- Você possui duas formas, rodar todos os testes unitários deu uma só vez ou um de cada vez.
+- `Todos os testes unitários de uma só vez:` 
+  ```bash
+  npm run test
+  ```
 
-- Todos: `npm run test`
-
-- Cada um: `npx jest` acompanhado do nome do módulo, exemplo: `users` e o nome do arquivo, por exemplo: `users.service.spec.ts` e sempre respeitando a hierarquia de pastas, se os módulos estiverem dentro de uma pasta modules deve conter isso após o src
+- `Testando um teste unitário especifico:` 
+Comando: `npx jest` acompanhado do nome do módulo, exemplo: `users` e o nome do arquivo, por exemplo: `users.service.spec.ts` e sempre respeitando a hierarquia de pastas, se os módulos estiverem dentro de uma pasta modules deve conter isso após o src
   - Ficando desta maneira:
-    - `npx jest src/modules/users/users.service.spec.ts --config=jest.config.ts`
+    ```bash
+    npx jest src/modules/users/users.service.spec.ts
+    ```
 
-### Testes e2e:
+### Testes End-To-End (e2e):
 
-- Para rodar os teste e2e você deve apenas escrever:
-  - `npm run test:e2e`
+- Para rodar os teste e2e você deve apenas escrever um comando e realizará todo o teste da aplicação com os casos de sucesso e os casos de falha:
+  ```bash
+  npm run test:e2e
+  ```
 
 ##
 

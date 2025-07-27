@@ -26,19 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/categories:` Package dedicated to complete category management, encompassing all CRUD operations.
-
-### `./src/modules/categories/dto:` Directory containing the Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto, and CategoryResponseDto) responsible for modeling the input and output data in category requests.
-
-### `./src/modules/categories/categories.controller.ts:` Defines REST endpoints for listing (GET /categories), creating (POST /categories), updating (PATCH /categories/:id), and deleting (DELETE /categories/:id) categories.
-
-### `./src/modules/categories/categories.controller.spec.ts:` Controller integration tests, ensuring that each route correctly forwards calls to the CategoriesService and returns the expected HTTP codes.
-
-### `./src/modules/categories/categories.service.ts:` Implements the business logic of the categories — interacts with the PrismaClient to fetch, insert, modify, and delete records in the Category table.
-
-### `./src/modules/categories/categories.service.spec.ts:` Unit test suite for the service, covering success and failure scenarios for each method exposed by the CategoriesService.
-
-### `./src/modules/categories/categories.module.ts:` Assembly file for the category module, importing PrismaModule and registering CategoriesService and CategoriesController in the NestJS context.
+### `tests:` Reorganize and optimize all tests, unitary and end-to-end
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -124,7 +112,8 @@
 - `./docker-compose.yml:` Orchestrates services (Nest app, MySQL database) in a single command, taking care of networking, volumes, and environment variables.
 
 - `./test/` Directory dedicated to end-to-end (e2e) tests:
-- `app.e2e-spec.ts`: Our e2e tests to validate endpoints and main API flows, ensuring that scenarios work as expected. - `jest.e2e-json`: Jest configuration file for running e2e tests (defining recognized file extensions, starting point for test searches, transforms, etc.)
+    - `app.e2e-spec.ts`: Our e2e tests to validate endpoints and main API flows ensure that scenarios work as expected, testing success flows and error flows, such as validation, authorization, etc.
+    - `jest.e2e-json`: Jest configuration file for running e2e tests (defining recognized file extensions, starting point for test searches, transforms, etc.)
 
 ## ❔ How do I run the project on my machine?
 
@@ -256,22 +245,28 @@ command: npm run start:dev
 
 ##
 
-## 🧪 How to run unit and e2e tests?
+## 🧪 How to run unit and End-To-End (e2e) tests?
 
-### Unit tests:
+### Unit tests: you have two options: run all unit tests at once or one at a time.
 
-- You have two options: run all unit tests at once or one at a time.
+- `All unit tests at once:`
 
-- All: `npm run test`
+```bash
+npm run test
+```
 
-- Each: `npx jest` followed by the module name, for example: `users` and the file name, for example: `users.service.spec.ts` and always respecting the folder hierarchy. If the modules are inside a modules folder, it must contain this after the src
+- `Testing a specific unit test:` Command: `npx jest` followed by the module name, for example, `users`, and the file name, for example, `users.service.spec.ts`, always respecting the folder hierarchy. If the modules are inside a modules folder, this should be included after src.
     - It should look like this:
-        - `npx jest src/modules/users/users.service.spec.ts --config=jest.config.ts`
+    ```bash
+    npx jest src/modules/users/users.service.spec.ts
+    ```
 
-### E2E tests:
-- To run the e2E tests, just type:
-    - `npm run test:e2e`
+### End-to-End (e2e) Tests:
 
+- To run e2e tests, you just need to write one command, and it will perform the entire application test with success and failure cases:
+    ```bash
+    npm run test:e2e
+    ```
 ##
 
 ## ⚠️ Important information about the project ⚠️

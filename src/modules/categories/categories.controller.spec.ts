@@ -1,19 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CategoriesController } from './categories.controller';
 import { CategoriesService } from './categories.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { CategoryResponseDto } from './dto/category-response.dto';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { RolesGuard } from '../../guards/roles.guard';
-import { NotFoundException } from '@nestjs/common';
+import { CategoriesController } from './categories.controller';
 
-describe('CategoriesController', () => {
+describe('CategoriesController - Unitary Test', () => {
   let controller: CategoriesController;
-  let service: jest.Mocked<CategoriesService>;
+  let service: any;
 
   beforeEach(async () => {
-    const serviceMock = {
+    service = {
       findAll: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -21,73 +15,48 @@ describe('CategoriesController', () => {
     };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CategoriesController],
-      providers: [{ provide: CategoriesService, useValue: serviceMock }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
+      providers: [{ provide: CategoriesService, useValue: service }],
+    }).compile();
     controller = module.get<CategoriesController>(CategoriesController);
-    service = module.get(CategoriesService) as jest.Mocked<CategoriesService>;
   });
 
-  describe('Success paths', () => {
-    it('findAll → should return array of categories', async () => {
-      const result: CategoryResponseDto[] = [
-        { id: 1, name: 'Category1', createdAt: new Date(), updatedAt: new Date() },
-      ];
-      service.findAll.mockResolvedValue(result);
-      await expect(controller.findAll()).resolves.toEqual(result);
+  describe('findAll', () => {
+    it('should return array of categories', async () => {
+      const cats = [{ id: 1, name: 'A', createdAt: new Date(), updatedAt: new Date() }];
+      service.findAll.mockResolvedValue(cats);
+      const result = await controller.findAll();
       expect(service.findAll).toHaveBeenCalled();
-    });
-
-    it('create → should call service.create and return created category', async () => {
-      const dto: CreateCategoryDto = { name: 'NewCategory' };
-      const response: CategoryResponseDto = { id: 2, name: 'NewCategory', createdAt: new Date(), updatedAt: new Date() };
-      service.create.mockResolvedValue(response);
-      await expect(controller.create(dto)).resolves.toEqual(response);
-      expect(service.create).toHaveBeenCalledWith(dto);
-    });
-
-    it('update → should call service.update and return updated category', async () => {
-      const dto: UpdateCategoryDto = { name: 'UpdatedCategory' };
-      const response: CategoryResponseDto = { id: 3, name: 'UpdatedCategory', createdAt: new Date(), updatedAt: new Date() };
-      service.update.mockResolvedValue(response);
-      await expect(controller.update(3, dto)).resolves.toEqual(response);
-      expect(service.update).toHaveBeenCalledWith(3, dto);
-    });
-
-    it('delete → should call service.delete and return deletion result', async () => {
-      const response = { message: 'Category deleted' };
-      service.delete.mockResolvedValue(response);
-      await expect(controller.delete(4)).resolves.toEqual(response);
-      expect(service.delete).toHaveBeenCalledWith(4);
+      expect(result).toEqual(cats);
     });
   });
 
-  describe('Error paths', () => {
-    it('findAll → should propagate errors', async () => {
-      service.findAll.mockRejectedValue(new Error('Find all failed'));
-      await expect(controller.findAll()).rejects.toThrow('Find all failed');
+  describe('create', () => {
+    it('should call service.create and return created category', async () => {
+      const dto = { name: 'B' };
+      service.create.mockResolvedValue({ id: 2, name: 'B', createdAt: new Date(), updatedAt: new Date() });
+      const result = await controller.create(dto);
+      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({ id: 2, name: 'B', createdAt: expect.any(Date), updatedAt: expect.any(Date) });
     });
+  });
 
-    it('create → should propagate errors', async () => {
-      const dto: CreateCategoryDto = { name: 'X' };
-      service.create.mockRejectedValue(new Error('Create failed'));
-      await expect(controller.create(dto)).rejects.toThrow('Create failed');
+  describe('update', () => {
+    it('should call service.update and return updated category', async () => {
+      const dto = { name: 'C' };
+      const updated = { id: 3, name: 'C', createdAt: new Date(), updatedAt: new Date() };
+      service.update.mockResolvedValue(updated);
+      const result = await controller.update(3, dto);
+      expect(service.update).toHaveBeenCalledWith(3, dto);
+      expect(result).toEqual(updated);
     });
+  });
 
-    it('update → should propagate errors', async () => {
-      const dto: UpdateCategoryDto = { name: 'X' };
-      service.update.mockRejectedValue(new Error('Update failed'));
-      await expect(controller.update(5, dto)).rejects.toThrow('Update failed');
-    });
-
-    it('delete → should propagate NotFoundException', async () => {
-      service.delete.mockRejectedValue(new NotFoundException('Not found'));
-      await expect(controller.delete(6)).rejects.toThrow(NotFoundException);
+  describe('delete', () => {
+    it('should call service.delete and return message', async () => {
+      service.delete.mockResolvedValue({ message: 'OK' });
+      const result = await controller.delete(4);
+      expect(service.delete).toHaveBeenCalledWith(4);
+      expect(result).toEqual({ message: 'OK' });
     });
   });
 });

@@ -47,7 +47,11 @@ export class UsersService {
 
     const data: Partial<User> = {};
     if (dto.name) data.name = dto.name;
-    if (dto.email) data.email = dto.email;
+    if (dto.email && dto.email !== userExist.email) {
+      const clash = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (clash) throw new ConflictException(`E-mail "${dto.email}" já está em uso por outro usuário.`);
+      data.email = dto.email;
+    }
     if (dto.role) data.role = dto.role as Role;
     if (dto.password) data.password = await argon2.hash(dto.password + this.pepper, { type: argon2.argon2id });
 

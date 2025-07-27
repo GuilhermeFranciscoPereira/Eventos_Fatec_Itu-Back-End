@@ -19,18 +19,18 @@ export class CategoriesController {
     return this.categoriesService.findAll();
   }
 
-  @Post()
+  @Post('create')
   @HttpCode(201)
   async create(@Body() dto: CreateCategoryDto): Promise<CategoryResponseDto> {
     return this.categoriesService.create(dto);
   }
 
-  @Patch(':id')
+  @Patch('patch/:id')
   async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCategoryDto): Promise<CategoryResponseDto> {
     return this.categoriesService.update(id, dto);
   }
 
-  @Delete(':id')
+  @Delete('delete/:id')
   @HttpCode(200)
   async delete(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.delete(id);

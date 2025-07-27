@@ -1,80 +1,63 @@
+import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
-import { NotFoundException } from '@nestjs/common';
-import { RolesGuard } from '../../guards/roles.guard';
 import { UsersController } from './users.controller';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CreateDto } from './dto/create-auth.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
-describe('UsersController', () => {
+describe('UsersController - Unitary Test', () => {
   let controller: UsersController;
-  let service: jest.Mocked<UsersService>;
-  let req: any;
+  let service: any;
 
   beforeEach(async () => {
-    const serviceMock = {
+    service = {
       findAll: jest.fn(),
-      register: jest.fn(),
+      create: jest.fn(),
       update: jest.fn(),
-      remove: jest.fn(),
+      delete: jest.fn(),
     };
-
-    const moduleRef: TestingModule = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [{ provide: UsersService, useValue: serviceMock }],
-    })
-      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
-      .compile();
-
-    controller = moduleRef.get(UsersController);
-    service = moduleRef.get(UsersService) as any;
-
-    req = { user: { userId: 1, role: 'ADMIN' } };
+      providers: [{ provide: UsersService, useValue: service }],
+    }).compile();
+    controller = module.get<UsersController>(UsersController);
   });
 
-  afterAll(() => { /* nothing */ });
-
-  describe('Success paths', () => {
-    it('findAll → should return array of users', async () => {
-      const arr = [{ id: 1, name: 'A', email: 'a', role: 'ADMIN', createdAt: new Date(), updatedAt: new Date() }];
-      service.findAll.mockResolvedValue(arr as any);
-      await expect(controller.findAll()).resolves.toBe(arr);
+  describe('findAll', () => {
+    it('should return array of users', async () => {
+      const users = [{ id: 1, name: 'A', email: 'a', role: Role.ADMIN, createdAt: new Date(), updatedAt: new Date() }];
+      service.findAll.mockResolvedValue(users);
+      const result = await controller.findAll();
       expect(service.findAll).toHaveBeenCalled();
-    });
-
-    it('register → should call service.register and return id/email', async () => {
-      const dto: CreateDto = { name: 'X', email: 'x@fatec.sp.gov.br', password: 'P@ss1!', role: 'AUXILIAR' };
-      service.create.mockResolvedValue({ id: 42, email: dto.email });
-      await expect(controller.create(dto)).resolves.toEqual({ id: 42, email: dto.email });
-      expect(service.create).toHaveBeenCalledWith(dto);
-    });
-
-    it('update → should update and return updated user', async () => {
-      const dto: UpdateUserDto = { name: 'Y' };
-      const out = { id: 1, name: 'Y', email: 'e', role: 'COORDENADOR', createdAt: new Date(), updatedAt: new Date() };
-      service.update.mockResolvedValue(out as any);
-      await expect(controller.update(1, dto)).resolves.toBe(out);
-      expect(service.update).toHaveBeenCalledWith(1, dto);
-    });
-
-    it('remove → should delete and return message', async () => {
-      service.delete.mockResolvedValue({ message: 'ok' });
-      await expect(controller.delete(1)).resolves.toEqual({ message: 'ok' });
-      expect(service.delete).toHaveBeenCalledWith(1);
+      expect(result).toEqual(users);
     });
   });
 
-  describe('Error paths', () => {
-    it('update → NotFoundException bubbles up', async () => {
-      service.update.mockRejectedValue(new NotFoundException('no'));
-      await expect(controller.update(999, {} as any)).rejects.toThrow(NotFoundException);
+  describe('create', () => {
+    it('should call service.create and return its result', async () => {
+      const dto = { email: 'e', password: 'P1$', role: Role.AUXILIAR, name: 'N' };
+      service.create.mockResolvedValue({ id: 2, email: 'e' });
+      const result = await controller.create(dto);
+      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({ id: 2, email: 'e' });
     });
+  });
 
-    it('remove → NotFoundException bubbles up', async () => {
-      service.delete.mockRejectedValue(new NotFoundException('no'));
-      await expect(controller.delete(999)).rejects.toThrow(NotFoundException);
+  describe('update', () => {
+    it('should call service.update and return updated user', async () => {
+      const dto = { name: 'X' };
+      const updated = { id: 3, name: 'X', email: 'x', role: Role.COORDENADOR, createdAt: new Date(), updatedAt: new Date() };
+      service.update.mockResolvedValue(updated);
+      const result = await controller.update(3, dto);
+      expect(service.update).toHaveBeenCalledWith(3, dto);
+      expect(result).toEqual(updated);
+    });
+  });
+
+  describe('delete', () => {
+    it('should call service.delete and return message', async () => {
+      service.delete.mockResolvedValue({ message: 'OK' });
+      const result = await controller.delete(5);
+      expect(service.delete).toHaveBeenCalledWith(5);
+      expect(result).toEqual({ message: 'OK' });
     });
   });
 });

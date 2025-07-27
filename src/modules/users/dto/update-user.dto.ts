@@ -1,9 +1,14 @@
 import { Role } from '@prisma/client';
-import { IsOptional, IsString, IsEmail, MinLength, IsEnum, Matches, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsOptional, IsString, IsEmail, MinLength, IsEnum, Matches, MaxLength, IsNotEmpty } from 'class-validator';
 
 export class UpdateUserDto {
     @IsOptional()
-    @IsString()
+    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+    @IsString({ message: 'Nome deve ser uma string' })
+    @IsNotEmpty({ message: 'Nome não pode ser vazio ou apenas espaços' })
+    @MinLength(3, { message: 'Nome deve ter ao menos 3 caracteres' })
+    @MaxLength(50, { message: 'Nome deve ter no máximo 50 caracteres' })
     name?: string;
 
     @IsOptional()
@@ -17,10 +22,10 @@ export class UpdateUserDto {
     @IsOptional()
     @MinLength(6, { message: 'Senha deve ter ao menos 6 caracteres' })
     @MaxLength(10, { message: 'Senha deve ter no máximo 10 caracteres' })
-    @Matches(/(?=.*[A-Z])/, { message: 'Deve conter ao menos uma letra maiúscula' })
-    @Matches(/(?=.*[a-z])/, { message: 'Deve conter ao menos uma letra minúscula' })
-    @Matches(/(?=.*\d)/, { message: 'Deve conter ao menos um número' })
-    @Matches(/(?=.*[^A-Za-z0-9])/, { message: 'Deve conter ao menos um caractere especial' })
+    @Matches(/(?=.*[A-Z])/, { message: 'Senha deve conter ao menos uma letra maiúscula' })
+    @Matches(/(?=.*[a-z])/, { message: 'Senha deve conter ao menos uma letra minúscula' })
+    @Matches(/(?=.*\d)/, { message: 'Senha deve conter ao menos um número' })
+    @Matches(/(?=.*[^A-Za-z0-9])/, { message: 'Senha deve conter ao menos um caractere especial' })
     password?: string;
 
     @IsOptional()

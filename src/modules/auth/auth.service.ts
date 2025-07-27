@@ -37,7 +37,6 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('Senha inválida');
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    console.log(code)
     const tmpToken = this.jwtService.sign({ sub: user.id, code }, { expiresIn: '15m' });
     const emailBodyMessage = this.tokenMessageEmail(user.name, code, '2fa');
     await this.emailService.send(user.email, 'Seu código de autenticação em dois fatores', emailBodyMessage);

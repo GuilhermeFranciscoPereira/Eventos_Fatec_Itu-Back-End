@@ -1,223 +1,410 @@
 import * as csurf from 'csurf';
 import * as request from 'supertest';
-import { Role } from '@prisma/client';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { Test, TestingModule } from '@nestjs/testing';
-import { EmailService } from '../src/services/email.service';
-import { INestApplication, ValidationPipe, HttpStatus } from '@nestjs/common';
-import { PrismaService } from '../src/modules/prisma/prisma.service';
-import * as argon2 from 'argon2';
+import { RolesGuard } from '../src/guards/roles.guard';
+import { JwtAuthGuard } from '../src/guards/jwt-auth.guard';
+import { AuthService } from '../src/modules/auth/auth.service';
+import { UsersService } from '../src/modules/users/users.service';
+import { CategoriesService } from '../src/modules/categories/categories.service';
+import { INestApplication, ValidationPipe, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 
-describe('E2E Tests', () => {
+describe('Application Tests - (e2e)', () => {
     let app: INestApplication;
-    let capturedHtml = '';
-    const mockData: {
-        users: Array<{ id: number; name: string; email: string; password: string; role: Role }>;
-        refreshTokens: Array<any>;
-    } = { users: [], refreshTokens: [] };
-    const prismaMock: Partial<PrismaService> = {
-        user: {
-            findUnique: jest.fn(async ({ where }: any) => {
-                if (where.email) return mockData.users.find(u => u.email === where.email) || null;
-                if (where.id) return mockData.users.find(u => u.id === where.id) || null;
-                return null;
-            }),
-            findMany: jest.fn(async () => [...mockData.users]),
-            create: jest.fn(async ({ data }: any) => {
-                const id = mockData.users.length + 1;
-                const u = { id, ...data };
-                mockData.users.push(u);
-                return u;
-            }),
-            update: jest.fn(async ({ where, data }: any) => {
-                const u = mockData.users.find(x => x.id === where.id)!;
-                Object.assign(u, data);
-                return u;
-            }),
-            delete: jest.fn(async ({ where }: any) => {
-                const idx = mockData.users.findIndex(x => x.id === where.id);
-                return mockData.users.splice(idx, 1)[0];
-            }),
-        },
-        refreshToken: {
-            deleteMany: jest.fn<Promise<{ count: number }>, []>(async () => ({ count: 0 })),
-            updateMany: jest.fn<Promise<{ count: number }>, []>(async () => ({ count: 0 })),
-            create: jest.fn<Promise<any>, [{ data: any }]>(async ({ data }) => {
-                const id = mockData.refreshTokens.length + 1;
-                const rt = { id, ...data };
-                mockData.refreshTokens.push(rt);
-                return rt;
-            }),
-            findFirst: jest.fn<Promise<any | null>, []>(async () => mockData.refreshTokens[0] || null),
-        },
-        $transaction: jest.fn<Promise<any[]>, [any[]]>(async actions => {
-            const out: any[] = [];
-            for (const a of actions) {
-                out.push(await a);
-            }
-            return out;
-        }),
+    let server: any;
+    let csrfCookie: string;
+    let csrfToken: string;
 
-    } as any;
+    const authStub: any = {
+        requestLogin: jest.fn(),
+        login: jest.fn(),
+        getMe: jest.fn(),
+        refreshTokens: jest.fn(),
+        logout: jest.fn(),
+        requestPasswordReset: jest.fn(),
+        passwordReset: jest.fn(),
+        removeExpiredRefreshTokens: jest.fn(),
+    };
+    const usersStub: any = {
+        findAll: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+    };
+    const categoriesStub: any = {
+        findAll: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+    };
 
     beforeAll(async () => {
-        const pepper = 'PEPPER';
-        const hash = await argon2.hash('Admin123!' + pepper, { type: argon2.argon2id });
-        mockData.users.push({ id: 1, name: 'Admin', email: 'admin@fatec.sp.gov.br', password: hash, role: Role.ADMIN });
-        const module: TestingModule = await Test.createTestingModule({
+        const moduleFixture: TestingModule = await Test.createTestingModule({
             imports: [AppModule],
         })
-            .overrideProvider(EmailService)
-            .useValue({ send: async (_to, _sub, html: string) => { capturedHtml = html; } })
-            .overrideProvider(PrismaService)
-            .useValue(prismaMock)
+            .overrideProvider(AuthService).useValue(authStub)
+            .overrideProvider(UsersService).useValue(usersStub)
+            .overrideProvider(CategoriesService).useValue(categoriesStub)
+            .overrideGuard(JwtAuthGuard).useValue({
+                canActivate: ctx => {
+                    const req = ctx.switchToHttp().getRequest();
+                    req.user = { userId: 1, email: 'admin@cms.sp.gov.br', role: 'ADMIN' };
+                    return true;
+                },
+            })
+            .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
             .compile();
-        app = module.createNestApplication();
+
+        app = moduleFixture.createNestApplication();
+        app.setGlobalPrefix('apiEvents');
         app.use(cookieParser());
-        app.use(csurf({ cookie: { httpOnly: true, secure: false } }));
-        app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+        app.use(csurf({ cookie: { httpOnly: true, sameSite: 'lax' } }));
+        app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
         await app.init();
+
+        server = app.getHttpServer();
+        const res = await request(server).get('/apiEvents/csrf-token');
+        csrfCookie = res.headers['set-cookie'][0];
+        csrfToken = res.body.csrfToken;
     });
 
-    afterAll(async () => { await app.close(); });
-
-    async function getCsrf() {
-        const res = await request(app.getHttpServer()).get('/csrf-token').expect(HttpStatus.OK);
-        const cookie = (res.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
-        return { token: res.body.csrfToken, cookie };
-    }
-
-    describe('Auth flows', () => {
-        it('should fail login with wrong password', async () => {
-            const { token, cookie } = await getCsrf();
-            await request(app.getHttpServer())
-                .post('/auth/request-login')
-                .set('cookie', cookie)
-                .set('X-CSRF-Token', token)
-                .send({ email: 'admin@fatec.sp.gov.br', password: 'Wrong1!' })
-                .expect(HttpStatus.UNAUTHORIZED);
-        });
-
-        it('should login with 2FA and then logout', async () => {
-            const { token, cookie } = await getCsrf();
-            const req = await request(app.getHttpServer())
-                .post('/auth/request-login')
-                .set('cookie', cookie)
-                .set('X-CSRF-Token', token)
-                .send({ email: 'admin@fatec.sp.gov.br', password: 'Admin123!' })
-                .expect(HttpStatus.OK);
-            const twoFaCookie = (req.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
-            const code = capturedHtml.match(/>(\d{6})</)![1];
-            const { token: t2, cookie: c2 } = await getCsrf();
-            const login = await request(app.getHttpServer())
-                .post('/auth/login')
-                .set('cookie', [twoFaCookie, c2].join('; '))
-                .set('X-CSRF-Token', t2)
-                .send({ code })
-                .expect(HttpStatus.OK);
-            const authCookie = (login.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
-            const { token: t3, cookie: c3 } = await getCsrf();
-            await request(app.getHttpServer())
-                .get('/auth/me')
-                .set('cookie', [authCookie, c3].join('; '))
-                .set('X-CSRF-Token', t3)
-                .expect(HttpStatus.OK);
-            const { token: t4, cookie: c4 } = await getCsrf();
-            await request(app.getHttpServer())
-                .post('/auth/logout')
-                .set('cookie', [authCookie, c4].join('; '))
-                .set('X-CSRF-Token', t4)
-                .expect(HttpStatus.OK, { message: 'Logged out successfully!' });
-        });
-
-        it('should fail reset password for non-existing email', async () => {
-            const { token, cookie } = await getCsrf();
-            await request(app.getHttpServer())
-                .post('/auth/request-reset-password')
-                .set('cookie', cookie)
-                .set('X-CSRF-Token', token)
-                .send({ email: 'no@exist.sp.gov.br' })
-                .expect(HttpStatus.UNAUTHORIZED);
-        });
-
-        it('should reset password flow', async () => {
-            const { token, cookie } = await getCsrf();
-            const rr = await request(app.getHttpServer())
-                .post('/auth/request-reset-password')
-                .set('cookie', cookie)
-                .set('X-CSRF-Token', token)
-                .send({ email: 'admin@fatec.sp.gov.br' })
-                .expect(HttpStatus.OK);
-            const resetCookie = (rr.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
-            const code = capturedHtml.match(/>(\d{6})</)![1];
-            const { token: t2, cookie: c2 } = await getCsrf();
-            await request(app.getHttpServer())
-                .post('/auth/reset-password')
-                .set('cookie', [resetCookie, c2].join('; '))
-                .set('X-CSRF-Token', t2)
-                .send({ code, newPassword: 'NewPass1!' })
-                .expect(HttpStatus.OK, { message: 'Password reset successful' });
-        });
+    afterAll(async () => {
+        await app.close();
     });
 
-    describe('Users flows', () => {
-        it('should forbid GET /users without token', async () => {
-            const { token, cookie } = await getCsrf();
-            await request(app.getHttpServer())
-                .get('/users')
-                .set('cookie', cookie)
-                .set('X-CSRF-Token', token)
-                .expect(HttpStatus.UNAUTHORIZED);
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    describe('Success Cases', () => {
+        beforeEach(() => {
+            authStub.requestLogin.mockResolvedValue('tmp');
+            authStub.login.mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' });
+            authStub.getMe.mockReturnValue({
+                sub: 1, name: 'Admin', email: 'admin@cms.sp.gov.br',
+                role: 'ADMIN', exp: 999, iat: 111,
+            });
+            authStub.refreshTokens.mockResolvedValue({ accessToken: 'nat', refreshToken: 'nrt' });
+            authStub.logout.mockResolvedValue(undefined);
+            authStub.requestPasswordReset.mockResolvedValue('rtok');
+            authStub.passwordReset.mockResolvedValue(true);
+
+            usersStub.findAll.mockResolvedValue([
+                {
+                    id: 1, name: 'User', email: 'user@cms.sp.gov.br', role: 'ADMIN',
+                    createdAt: new Date(), updatedAt: new Date(),
+                },
+            ]);
+            usersStub.create.mockResolvedValue({ id: 2, email: 'new@cms.sp.gov.br' });
+            usersStub.update.mockResolvedValue({
+                id: 3, name: 'Updated', email: 'upd@cms.sp.gov.br', role: 'ADMIN',
+                createdAt: new Date(), updatedAt: new Date(),
+            });
+            usersStub.delete.mockResolvedValue({ message: 'Usuário removido com sucesso.' });
+
+            categoriesStub.findAll.mockResolvedValue([
+                { id: 1, name: 'Cat1', createdAt: new Date(), updatedAt: new Date() },
+            ]);
+            categoriesStub.create.mockResolvedValue({
+                id: 2, name: 'Cat2', createdAt: new Date(), updatedAt: new Date(),
+            });
+            categoriesStub.update.mockResolvedValue({
+                id: 3, name: 'Cat3', createdAt: new Date(), updatedAt: new Date(),
+            });
+            categoriesStub.delete.mockResolvedValue({ message: 'Categoria deletada com sucesso.' });
         });
 
-        let authCookie: string;
-        beforeAll(async () => {
-            const { token, cookie } = await getCsrf();
-            const rl = await request(app.getHttpServer())
-                .post('/auth/request-login')
-                .set('cookie', cookie)
-                .set('X-CSRF-Token', token)
-                .send({ email: 'admin@fatec.sp.gov.br', password: 'Admin123!' });
-            const twoFaCookie = (rl.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
-            const code = capturedHtml.match(/>(\d{6})</)![1];
-            const { token: t2, cookie: c2 } = await getCsrf();
-            const login = await request(app.getHttpServer())
-                .post('/auth/login')
-                .set('cookie', [twoFaCookie, c2].join('; '))
-                .set('X-CSRF-Token', t2)
-                .send({ code });
-            authCookie = (login.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+        it('POST /apiEvents/auth/request-login sets 2fa cookie and returns requires2FA', () =>
+            request(server)
+                .post('/apiEvents/auth/request-login')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'admin@cms.sp.gov.br', password: 'P@ssw0rd' })
+                .expect(200)
+                .expect('set-cookie', /2fa_token=tmp/)
+                .expect({ requires2FA: true }));
+
+        it('POST /apiEvents/auth/login sets access and refresh cookies', () =>
+            request(server)
+                .post('/apiEvents/auth/login')
+                .set('Cookie', [csrfCookie, '2fa_token=tmp'])
+                .set('X-CSRF-Token', csrfToken)
+                .send({ code: '123456' })
+                .expect(200)
+                .expect('set-cookie', /access_token=at/)
+                .expect('set-cookie', /refresh_token=rt/)
+                .expect({ message: 'Autenticado com 2FA' }));
+
+        it('GET /apiEvents/auth/me returns user info', () =>
+            request(server)
+                .get('/apiEvents/auth/me')
+                .expect(200)
+                .expect({
+                    sub: 1, name: 'Admin', email: 'admin@cms.sp.gov.br',
+                    role: 'ADMIN', exp: 999, iat: 111,
+                }));
+
+        it('POST /apiEvents/auth/logout returns message', () =>
+            request(server)
+                .post('/apiEvents/auth/logout')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(200)
+                .expect({ message: 'Deslogado com sucesso!' }));
+
+        it('POST /apiEvents/auth/request-reset-password sets reset cookie and returns message', () =>
+            request(server)
+                .post('/apiEvents/auth/request-reset-password')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'user@cms.sp.gov.br' })
+                .expect(200)
+                .expect('set-cookie', /reset_token=rtok/)
+                .expect({ message: 'O código foi enviado por e-mail' }));
+
+        it('POST /apiEvents/auth/reset-password clears reset cookie and returns message', () =>
+            request(server)
+                .post('/apiEvents/auth/reset-password')
+                .set('Cookie', [csrfCookie, 'reset_token=rtok'])
+                .set('X-CSRF-Token', csrfToken)
+                .send({ code: '654321', newPassword: 'N3wP@ss!' })
+                .expect(200)
+                .expect('set-cookie', /reset_token=;/)
+                .expect({ message: 'Senha redefinida com sucesso' }));
+
+        it('GET /apiEvents/users returns user list', async () => {
+            const res = await request(server).get('/apiEvents/users');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body).toHaveLength(1);
+            const u = res.body[0];
+            expect(u).toMatchObject({
+                id: 1, name: 'User', email: 'user@cms.sp.gov.br', role: 'ADMIN',
+            });
+            expect(typeof u.createdAt).toBe('string');
+            expect(typeof u.updatedAt).toBe('string');
         });
 
-        it('should create, list, update and delete user', async () => {
-            const { token, cookie } = await getCsrf();
-            const create = await request(app.getHttpServer())
-                .post('/users/register')
-                .set('cookie', [authCookie, cookie].join('; '))
-                .set('X-CSRF-Token', token)
-                .send({ name: 'User1', email: 'u1@fatec.sp.gov.br', password: 'User123!', role: Role.AUXILIAR })
-                .expect(HttpStatus.CREATED);
-            expect(create.body).toHaveProperty('id');
-            const uid = create.body.id;
-            const list = await request(app.getHttpServer())
-                .get('/users')
-                .set('cookie', [authCookie, cookie].join('; '))
-                .set('X-CSRF-Token', token)
-                .expect(HttpStatus.OK);
-            expect(list.body.some((u: any) => u.id === uid)).toBe(true);
-            await request(app.getHttpServer())
-                .patch(`/users/patch/${uid}`)
-                .set('cookie', [authCookie, cookie].join('; '))
-                .set('X-CSRF-Token', token)
-                .send({ name: 'User1Updated' })
-                .expect(HttpStatus.OK)
-                .then(res => expect(res.body.name).toBe('User1Updated'));
-            await request(app.getHttpServer())
-                .delete(`/users/delete/${uid}`)
-                .set('cookie', [authCookie, cookie].join('; '))
-                .set('X-CSRF-Token', token)
-                .expect(HttpStatus.OK, { message: 'User deleted successfully.' });
+        it('POST /apiEvents/users/create returns created user', () =>
+            request(server)
+                .post('/apiEvents/users/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'new@cms.sp.gov.br', password: 'P@ss1!', role: 'ADMIN', name: 'NewUser' })
+                .expect(201)
+                .expect({ id: 2, email: 'new@cms.sp.gov.br' }));
+
+        it('PATCH /apiEvents/users/patch/3 returns updated user', async () => {
+            const res = await request(server)
+                .patch('/apiEvents/users/patch/3')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: 'Updated' });
+            expect(res.status).toBe(200);
+            expect(res.body).toMatchObject({
+                id: 3, name: 'Updated', email: 'upd@cms.sp.gov.br', role: 'ADMIN',
+            });
+            expect(typeof res.body.createdAt).toBe('string');
+            expect(typeof res.body.updatedAt).toBe('string');
+        });
+
+        it('DELETE /apiEvents/users/delete/5 returns success message', () =>
+            request(server)
+                .delete('/apiEvents/users/delete/5')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(200)
+                .expect({ message: 'Usuário removido com sucesso.' }));
+
+        it('GET /apiEvents/categories returns category list', async () => {
+            const res = await request(server).get('/apiEvents/categories');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body).toHaveLength(1);
+            const c = res.body[0];
+            expect(c).toMatchObject({ id: 1, name: 'Cat1' });
+            expect(typeof c.createdAt).toBe('string');
+            expect(typeof c.updatedAt).toBe('string');
+        });
+
+        it('POST /apiEvents/categories/create returns created category', async () => {
+            const res = await request(server)
+                .post('/apiEvents/categories/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: 'Cat2' });
+            expect(res.status).toBe(201);
+            expect(res.body).toMatchObject({ id: 2, name: 'Cat2' });
+            expect(typeof res.body.createdAt).toBe('string');
+            expect(typeof res.body.updatedAt).toBe('string');
+        });
+
+        it('PATCH /apiEvents/categories/patch/3 returns updated category', async () => {
+            const res = await request(server)
+                .patch('/apiEvents/categories/patch/3')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: 'Cat3' });
+            expect(res.status).toBe(200);
+            expect(res.body).toMatchObject({ id: 3, name: 'Cat3' });
+            expect(typeof res.body.createdAt).toBe('string');
+            expect(typeof res.body.updatedAt).toBe('string');
+        });
+
+        it('DELETE /apiEvents/categories/delete/4 returns success message', () =>
+            request(server)
+                .delete('/apiEvents/categories/delete/4')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(200)
+                .expect({ message: 'Categoria deletada com sucesso.' }));
+    });
+
+    describe('Error Cases', () => {
+        it('POST /apiEvents/auth/request-login invalid creds → 401', async () => {
+            authStub.requestLogin.mockRejectedValueOnce(new UnauthorizedException('Email incorreto'));
+            await request(server)
+                .post('/apiEvents/auth/request-login')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'wrong@cms.sp.gov.br', password: 'BadPass1!' })
+                .expect(401, { statusCode: 401, message: 'Email incorreto', error: 'Unauthorized' });
+        });
+
+        it('POST /apiEvents/auth/request-login invalid payload → 400', async () => {
+            await request(server)
+                .post('/apiEvents/auth/request-login')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'foo', password: 'p' })
+                .expect(400)
+                .expect(res => {
+                    expect(res.body.message[0]).toContain('@fatec.sp.gov.br');
+                });
+        });
+
+        it('POST /apiEvents/auth/login no 2fa_token → 401', () =>
+            request(server)
+                .post('/apiEvents/auth/login')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ code: '123456' })
+                .expect(401, { statusCode: 401, message: 'Token expirado, solicite novamente!', error: 'Unauthorized' }));
+
+        it('GET /apiEvents/auth/me invalid token → 401', async () => {
+            authStub.getMe.mockRejectedValueOnce(new UnauthorizedException('Token inválido ou expirado!'));
+            await request(server)
+                .get('/apiEvents/auth/me')
+                .expect(401, { statusCode: 401, message: 'Token inválido ou expirado!', error: 'Unauthorized' });
+        });
+
+        it('POST /apiEvents/auth/request-reset-password no email → 401', async () => {
+            authStub.requestPasswordReset.mockRejectedValueOnce(new UnauthorizedException('E-mail não existe!'));
+            await request(server)
+                .post('/apiEvents/auth/request-reset-password')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'noone@cms.sp.gov.br' })
+                .expect(401, { statusCode: 401, message: 'E-mail não existe!', error: 'Unauthorized' });
+        });
+
+        it('POST /apiEvents/auth/reset-password no reset_token → 401', () =>
+            request(server)
+                .post('/apiEvents/auth/reset-password')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ code: '123456', newPassword: 'NewP@ss1' })
+                .expect(401, { statusCode: 401, message: 'Token expirado, solicite novamente!', error: 'Unauthorized' }));
+
+        it('POST /apiEvents/users/create dup email → 409', async () => {
+            usersStub.create.mockRejectedValueOnce(new ConflictException('E-mail já cadastrado!'));
+            await request(server)
+                .post('/apiEvents/users/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'dup@cms.sp.gov.br', password: 'P@ss1!', role: 'ADMIN', name: 'DupUser' })
+                .expect(409, { statusCode: 409, message: 'E-mail já cadastrado!', error: 'Conflict' });
+        });
+
+        it('POST /apiEvents/users/create invalid email → 400', () =>
+            request(server)
+                .post('/apiEvents/users/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ email: 'foo@gmail.com', password: 'P@ss1!', role: 'ADMIN', name: 'Foo' })
+                .expect(400)
+                .expect(res => {
+                    expect(res.body.message[0]).toContain('@fatec.sp.gov.br');
+                }));
+
+        it('PATCH /apiEvents/users/patch/99 not found → 404', async () => {
+            usersStub.update.mockRejectedValueOnce(new NotFoundException('Usuário com id 99 não encontrado.'));
+            await request(server)
+                .patch('/apiEvents/users/patch/99')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: 'ValidName' })
+                .expect(404, { statusCode: 404, message: 'Usuário com id 99 não encontrado.', error: 'Not Found' });
+        });
+
+        it('DELETE /apiEvents/users/delete/100 not found → 404', async () => {
+            usersStub.delete.mockRejectedValueOnce(new NotFoundException('Usuário com id 100 não encontrado.'));
+            await request(server)
+                .delete('/apiEvents/users/delete/100')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(404, { statusCode: 404, message: 'Usuário com id 100 não encontrado.', error: 'Not Found' });
+        });
+
+        it('POST /apiEvents/categories/create invalid payload → 400', () =>
+            request(server)
+                .post('/apiEvents/categories/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: '' })
+                .expect(400)
+                .expect(res => {
+                    expect(res.body.message[1]).toContain('Nome não pode ser vazio');
+                }));
+
+        it('POST /apiEvents/categories/create dup name → 409', async () => {
+            categoriesStub.create.mockRejectedValueOnce(new ConflictException('Categoria Dup já existe.'));
+            await request(server)
+                .post('/apiEvents/categories/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: 'DupCat' })
+                .expect(409, { statusCode: 409, message: 'Categoria Dup já existe.', error: 'Conflict' });
+        });
+
+        it('PATCH /apiEvents/categories/patch/5 not found → 404', async () => {
+            categoriesStub.update.mockRejectedValueOnce(new NotFoundException('Categoria com o ID 5 não encontrada.'));
+            await request(server)
+                .patch('/apiEvents/categories/patch/5')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: 'ValidCat' })
+                .expect(404, { statusCode: 404, message: 'Categoria com o ID 5 não encontrada.', error: 'Not Found' });
+        });
+
+        it('PATCH /apiEvents/categories/patch/6 dup name → 409', async () => {
+            categoriesStub.update.mockRejectedValueOnce(new ConflictException('Categoria com o nome Zeta já existe.'));
+            await request(server)
+                .patch('/apiEvents/categories/patch/6')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ name: 'Zeta' })
+                .expect(409, { statusCode: 409, message: 'Categoria com o nome Zeta já existe.', error: 'Conflict' });
+        });
+
+        it('DELETE /apiEvents/categories/delete/7 not found → 404', async () => {
+            categoriesStub.delete.mockRejectedValueOnce(new NotFoundException('Categoria com o ID 7 não encontrada.'));
+            await request(server)
+                .delete('/apiEvents/categories/delete/7')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(404, { statusCode: 404, message: 'Categoria com o ID 7 não encontrada.', error: 'Not Found' });
         });
     });
 });

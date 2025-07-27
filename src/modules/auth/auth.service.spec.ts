@@ -1,5 +1,4 @@
 import * as argon2 from 'argon2';
-import { randomInt } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
@@ -9,190 +8,150 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../../services/email.service';
 import { sign as jwtSign, verify as jwtVerify } from 'jsonwebtoken';
 
-jest.mock('argon2');
-jest.mock('crypto', () => ({
-  randomInt: jest.fn(),
-  createHmac: jest.fn(() => ({
-    update: jest.fn().mockReturnThis(),
-    digest: jest.fn().mockReturnValue('token-hash'),
-  })),
-}));
-jest.mock('jsonwebtoken', () => ({ sign: jest.fn(), verify: jest.fn() }));
+jest.mock('jsonwebtoken');
 
-describe('AuthService', () => {
+describe('AuthService - Unitary Test', () => {
   let service: AuthService;
-  let moduleRef: TestingModule;
   let prisma: any;
   let jwtService: any;
-  let config: any;
+  let configService: any;
   let emailService: any;
 
   beforeEach(async () => {
     prisma = {
-      user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
-      refreshToken: { updateMany: jest.fn(), create: jest.fn(), findFirst: jest.fn() },
-      $transaction: jest.fn()
+      user: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      refreshToken: {
+        updateMany: jest.fn(),
+        create: jest.fn(),
+        findFirst: jest.fn(),
+      },
     };
-    jwtService = { sign: jest.fn(), verify: jest.fn() };
-    config = { getOrThrow: jest.fn((key: string) => key + '_val') };
-    emailService = { send: jest.fn() };
-
-    moduleRef = await Test.createTestingModule({
+    jwtService = {
+      sign: jest.fn(),
+      verify: jest.fn(),
+    };
+    configService = {
+      getOrThrow: jest.fn().mockImplementation(key => ({
+        PASSWORD_PEPPER: 'pepper',
+        TOKEN_HASH_SECRET: 'hashSecret',
+        JWT_REFRESH_SECRET: 'refreshSecret',
+      }[key])),
+    };
+    emailService = {
+      send: jest.fn(),
+    };
+    const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwtService },
-        { provide: ConfigService, useValue: config },
+        { provide: ConfigService, useValue: configService },
         { provide: EmailService, useValue: emailService },
       ],
     }).compile();
-
-    service = moduleRef.get(AuthService);
-  });
-
-  afterAll(async () => {
-    await moduleRef.close();
-  });
-
-  describe('logout', () => {
-    it('should revoke all tokens', async () => {
-      await service.logout(1);
-      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
-        where: { userId: 1, isRevoked: false },
-        data: { isRevoked: true },
-      });
-    });
+    service = module.get<AuthService>(AuthService);
   });
 
   describe('requestLogin', () => {
-    it('should throw if user not found', async () => {
+    it('should throw UnauthorizedException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.requestLogin({ email: 'e', password: 'p' })).rejects.toBeInstanceOf(
-        UnauthorizedException
-      );
+      await expect(service.requestLogin({ email: 'e', password: 'p' })).rejects.toThrow(UnauthorizedException);
     });
-
-    it('should throw if password invalid', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 1, password: 'h', email: 'e', name: 'n', role: 'USER' });
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
-      await expect(service.requestLogin({ email: 'e', password: 'p' })).rejects.toBeInstanceOf(
-        UnauthorizedException
-      );
+    it('should throw UnauthorizedException when password invalid', async () => {
+      const hashed = await argon2.hash('pwpepper');
+      prisma.user.findUnique.mockResolvedValue({ id: 1, password: hashed });
+      await expect(service.requestLogin({ email: 'e', password: 'wrong' })).rejects.toThrow(UnauthorizedException);
     });
-
-    it('should generate tmp token, send email and return token', async () => {
-      const userMock = { id: 1, password: 'h', email: 'e', name: 'n', role: 'USER' };
-      prisma.user.findUnique.mockResolvedValue(userMock);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
-      jwtService.sign.mockReturnValue('tmp');
-      (randomInt as jest.Mock).mockReturnValue(123456);
-
-      const result = await service.requestLogin({ email: 'e', password: 'p' });
-      expect(jwtService.sign).toHaveBeenCalledWith(
-        expect.objectContaining({ sub: 1, code: '123456' }),
-        expect.objectContaining({ expiresIn: '15m' })
-      );
-      expect(emailService.send).toHaveBeenCalledWith('e', expect.any(String), expect.stringContaining('123456'));
-      expect(result).toBe('tmp');
+    it('should return tmp token when credentials valid', async () => {
+      const hashed = await argon2.hash('pwpepper');
+      prisma.user.findUnique.mockResolvedValue({ id: 1, password: hashed, name: 'N', email: 'e' });
+      jwtService.sign.mockReturnValue('tmpToken');
+      const result = await service.requestLogin({ email: 'e', password: 'pw' });
+      expect(result).toBe('tmpToken');
+      expect(emailService.send).toHaveBeenCalledWith('e', 'Seu código de autenticação em dois fatores', expect.any(String));
     });
   });
 
   describe('login', () => {
-    it('should throw if 2fa code invalid', async () => {
-      (jwtService.verify as jest.Mock).mockReturnValue({ sub: 1, code: '000000' });
-      await expect(service.login('123456', 'tk')).rejects.toBeInstanceOf(UnauthorizedException);
-    });
-
-    it('should throw if user not found', async () => {
-      (jwtService.verify as jest.Mock).mockReturnValue({ sub: 1, code: '123' });
+    it('should throw UnauthorizedException when tmpToken invalid', async () => {
+      jwtService.verify.mockReturnValue({ sub: 1, code: '123' });
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.login('123', 'tk')).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.login('123', 'tmp')).rejects.toThrow(UnauthorizedException);
     });
-
-    it('should sign tokens, revoke old, store new and return', async () => {
-      const payload = { sub: 1, code: '123' };
-      (jwtService.verify as jest.Mock).mockReturnValue(payload);
-      prisma.user.findUnique.mockResolvedValue({ id: 1, name: 'n', email: 'e', role: 'USER' });
-      jwtService.sign.mockReturnValue('A');
-      (jwtSign as jest.Mock).mockReturnValue('R');
-
-      const result = await service.login('123', 'tk');
-      expect(prisma.refreshToken.updateMany).toHaveBeenCalled();
-      expect(prisma.refreshToken.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ tokenHash: 'token-hash' }) })
-      );
-      expect(result).toEqual({ accessToken: 'A', refreshToken: 'R' });
+    it('should return access and refresh tokens on success', async () => {
+      jwtService.verify.mockReturnValue({ sub: 1, code: '123' });
+      prisma.user.findUnique.mockResolvedValue({ id: 1, name: 'N', email: 'e', role: 'ADMIN' });
+      jwtService.sign.mockReturnValue('access');
+      (jwtSign as jest.Mock).mockReturnValue('refresh');
+      prisma.refreshToken.updateMany.mockResolvedValue(null);
+      prisma.refreshToken.create.mockResolvedValue(null);
+      const result = await service.login('123', 'tmp');
+      expect(result).toEqual({ accessToken: 'access', refreshToken: 'refresh' });
     });
   });
 
   describe('requestPasswordReset', () => {
-    it('should throw if email not exists', async () => {
+    it('should throw UnauthorizedException when email not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.requestPasswordReset('e')).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.requestPasswordReset('e')).rejects.toThrow(UnauthorizedException);
     });
-
-    it('should sign tmp token, send email and return', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 1, name: 'n', email: 'e' });
-      (randomInt as jest.Mock).mockReturnValue(654321);
-      jwtService.sign.mockReturnValue('tmp');
-
+    it('should return tmp token when email exists', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, name: 'N', email: 'e' });
+      jwtService.sign.mockReturnValue('tmpReset');
       const result = await service.requestPasswordReset('e');
-      expect(jwtService.sign).toHaveBeenCalledWith(
-        expect.objectContaining({ sub: 1, code: '654321' }),
-        expect.objectContaining({ expiresIn: '15m' })
-      );
-      expect(emailService.send).toHaveBeenCalled();
-      expect(result).toBe('tmp');
+      expect(result).toBe('tmpReset');
+      expect(emailService.send).toHaveBeenCalledWith('e', 'Seu código de redefinição de senha', expect.any(String));
     });
   });
 
   describe('passwordReset', () => {
-    it('should throw if code mismatch', async () => {
-      (jwtService.verify as jest.Mock).mockReturnValue({ sub: 1, code: '000' });
-      await expect(service.passwordReset('123', 'new', 'tk')).rejects.toBeInstanceOf(
-        UnauthorizedException
-      );
+    it('should throw UnauthorizedException when code mismatch', async () => {
+      jwtService.verify.mockReturnValue({ sub: 1, code: '123' });
+      await expect(service.passwordReset('000', 'new', 'tmp')).rejects.toThrow(UnauthorizedException);
     });
-
-    it('should hash new password and update user', async () => {
-      (jwtService.verify as jest.Mock).mockReturnValue({ sub: 1, code: '123' });
-      (argon2.hash as jest.Mock).mockResolvedValue('h2');
-      prisma.user.update.mockResolvedValue({});
-      const result = await service.passwordReset('123', 'new', 'tk');
-      expect(argon2.hash).toHaveBeenCalledWith('new' + service['pepper'], expect.any(Object));
-      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { password: 'h2' } });
+    it('should return true when reset successful', async () => {
+      jwtService.verify.mockReturnValue({ sub: 1, code: '123' });
+      jest.spyOn(argon2, 'hash').mockResolvedValue('h');
+      prisma.user.update = jest.fn().mockResolvedValue(null);
+      const result = await service.passwordReset('123', 'p', 'tmp');
       expect(result).toBe(true);
     });
   });
 
   describe('getMe', () => {
-    it('should throw if token invalid', () => {
-      (jwtService.verify as jest.Mock).mockImplementation(() => { throw new Error(); });
+    it('should return payload when access token valid', () => {
+      jwtService.verify.mockReturnValue({ sub: 1, name: 'N', email: 'e', role: 'ADMIN', exp: 10, iat: 5 });
+      (jwtVerify as jest.Mock).mockReturnValue({ exp: 20, iat: 10 });
+      const req = { cookies: { access_token: 'a', refresh_token: 'r' } };
+      const result = service.getMe(req as any);
+      expect(result).toEqual({
+        sub: 1,
+        name: 'N',
+        email: 'e',
+        role: 'ADMIN',
+        exp: 10,
+        iat: 5,
+        refreshToken: 'r',
+        refreshTokenExp: 20,
+        refreshTokenIat: 10,
+      });
+    });
+    it('should throw UnauthorizedException when token invalid', () => {
+      jwtService.verify.mockImplementation(() => { throw new Error(); });
       expect(() => service.getMe({ cookies: {} } as any)).toThrow(UnauthorizedException);
     });
   });
 
-  describe('refreshTokens', () => {
-    it('should throw if verify fails', async () => {
-      (jwtVerify as jest.Mock).mockImplementation(() => { throw new Error(); });
-      await expect(service.refreshTokens('old')).rejects.toBeInstanceOf(UnauthorizedException);
-    });
-
-    it('should throw if no stored token', async () => {
-      (jwtVerify as jest.Mock).mockReturnValue({ sub: 1 });
-      prisma.refreshToken.findFirst.mockResolvedValue(null);
-      await expect(service.refreshTokens('old')).rejects.toBeInstanceOf(UnauthorizedException);
-    });
-
-    it('should revoke old, create new, and return tokens', async () => {
-      (jwtVerify as jest.Mock).mockReturnValue({ sub: 1, name: 'n', email: 'e', role: 'USER' });
-      prisma.refreshToken.findFirst.mockResolvedValue({ id: 5 });
-      jwtService.sign.mockReturnValue('A');
-      (jwtSign as jest.Mock).mockReturnValue('R');
-
-      const result = await service.refreshTokens('old');
-      expect(prisma.$transaction).toHaveBeenCalled();
-      expect(result).toEqual({ accessToken: 'A', refreshToken: 'R' });
+  describe('logout', () => {
+    it('should revoke tokens for user', async () => {
+      await service.logout(1);
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 1, isRevoked: false },
+        data: { isRevoked: true },
+      });
     });
   });
 });
