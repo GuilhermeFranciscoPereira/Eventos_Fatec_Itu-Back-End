@@ -1,7 +1,7 @@
 import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
-import { RolesGuard } from '../../guards/roles.guard';
 import { CreateDto } from './dto/create-auth.dto';
+import { RolesGuard } from '../../guards/roles.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from '../../decorators/roles.decorator';
 import { UserResponseDto } from './dto/user-response.dto';

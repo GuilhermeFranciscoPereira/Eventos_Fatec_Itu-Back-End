@@ -7,6 +7,7 @@ import { RolesGuard } from '../src/guards/roles.guard';
 import { JwtAuthGuard } from '../src/guards/jwt-auth.guard';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { UsersService } from '../src/modules/users/users.service';
+import { CarouselService } from '../src/modules/carousel/carousel.service';
 import { CategoriesService } from '../src/modules/categories/categories.service';
 import { INestApplication, ValidationPipe, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 
@@ -38,6 +39,13 @@ describe('Application Tests - (e2e)', () => {
         update: jest.fn(),
         delete: jest.fn(),
     };
+    const carouselStub: any = {
+        findAll: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        toggleActive: jest.fn(),
+        delete: jest.fn(),
+    };
 
     beforeAll(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -46,6 +54,7 @@ describe('Application Tests - (e2e)', () => {
             .overrideProvider(AuthService).useValue(authStub)
             .overrideProvider(UsersService).useValue(usersStub)
             .overrideProvider(CategoriesService).useValue(categoriesStub)
+            .overrideProvider(CarouselService).useValue(carouselStub)
             .overrideGuard(JwtAuthGuard).useValue({
                 canActivate: ctx => {
                     const req = ctx.switchToHttp().getRequest();
@@ -60,7 +69,14 @@ describe('Application Tests - (e2e)', () => {
         app.setGlobalPrefix('apiEvents');
         app.use(cookieParser());
         app.use(csurf({ cookie: { httpOnly: true, sameSite: 'lax' } }));
-        app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+        app.useGlobalPipes(
+            new ValidationPipe({
+                whitelist: true,
+                forbidNonWhitelisted: true,
+                transform: true,
+                transformOptions: { enableImplicitConversion: true },
+            }),
+        );
         await app.init();
 
         server = app.getHttpServer();
@@ -113,6 +129,12 @@ describe('Application Tests - (e2e)', () => {
                 id: 3, name: 'Cat3', createdAt: new Date(), updatedAt: new Date(),
             });
             categoriesStub.delete.mockResolvedValue({ message: 'Categoria deletada com sucesso.' });
+
+            carouselStub.findAll.mockResolvedValue([{ id: 1, name: 'Slide1', imageUrl: 'url1', isActive: true, order: 1, createdAt: new Date(), updatedAt: new Date() }]);
+            carouselStub.create.mockResolvedValue({ id: 2, name: 'Slide2', imageUrl: 'url2', isActive: false, order: 2, createdAt: new Date(), updatedAt: new Date() });
+            carouselStub.update.mockResolvedValue({ id: 3, name: 'Slide3', imageUrl: 'url3', isActive: true, order: 3, createdAt: new Date(), updatedAt: new Date() });
+            carouselStub.toggleActive.mockResolvedValue({ id: 1, name: 'Slide1', imageUrl: 'url1', isActive: false, order: 1, createdAt: new Date(), updatedAt: new Date() });
+            carouselStub.delete.mockResolvedValue({ message: 'Item do carrossel deletado com sucesso.' });
         });
 
         it('POST /apiEvents/auth/request-login sets 2fa cookie and returns requires2FA', () =>
@@ -259,6 +281,58 @@ describe('Application Tests - (e2e)', () => {
                 .set('X-CSRF-Token', csrfToken)
                 .expect(200)
                 .expect({ message: 'Categoria deletada com sucesso.' }));
+
+        it('GET /apiEvents/carousel returns carousel list', async () => {
+            const res = await request(server).get('/apiEvents/carousel');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body[0]).toMatchObject({ id: 1, name: 'Slide1', isActive: true, order: 1 });
+        });
+
+        it('POST /apiEvents/carousel/create returns created slide', () =>
+            request(server)
+                .post('/apiEvents/carousel/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .attach('image', Buffer.from('img'), 'test.png')
+                .field('name', 'Slide2')
+                .field('isActive', 'false')
+                .field('order', '2')
+                .expect(201)
+                .expect(res => {
+                    expect(res.body).toMatchObject({ id: 2, name: 'Slide2', isActive: false, order: 2 });
+                }));
+
+        it('PATCH /apiEvents/carousel/patch/3 returns updated slide', () =>
+            request(server)
+                .patch('/apiEvents/carousel/patch/3')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .attach('image', Buffer.from('img'), 'upd.png')
+                .field('name', 'Slide3')
+                .expect(200)
+                .expect(res => {
+                    expect(res.body).toMatchObject({ id: 3, name: 'Slide3' });
+                }));
+
+        it('PATCH /apiEvents/carousel/patch/toggle/1 toggles active', () =>
+            request(server)
+                .patch('/apiEvents/carousel/patch/toggle/1')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ isActive: false })
+                .expect(200)
+                .expect(res => {
+                    expect(res.body).toMatchObject({ id: 1, isActive: false });
+                }));
+
+        it('DELETE /apiEvents/carousel/delete/1 returns message', () =>
+            request(server)
+                .delete('/apiEvents/carousel/delete/1')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(200)
+                .expect({ message: 'Item do carrossel deletado com sucesso.' }));
     });
 
     describe('Error Cases', () => {
@@ -405,6 +479,61 @@ describe('Application Tests - (e2e)', () => {
                 .set('Cookie', csrfCookie)
                 .set('X-CSRF-Token', csrfToken)
                 .expect(404, { statusCode: 404, message: 'Categoria com o ID 7 não encontrada.', error: 'Not Found' });
+        });
+
+        it('POST /apiEvents/carousel/create no file → 409', async () => {
+            carouselStub.create.mockRejectedValueOnce(new ConflictException('Imagem obrigatória.'));
+            await request(server)
+                .post('/apiEvents/carousel/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .field('name', 'NoFile')
+                .field('isActive', 'true')
+                .field('order', '1')
+                .expect(409)
+                .expect({ statusCode: 409, message: 'Imagem obrigatória.', error: 'Conflict' });
+        });
+
+        it('POST /apiEvents/carousel/create dup name → 409', async () => {
+            carouselStub.create.mockRejectedValueOnce(new ConflictException(`Já existe uma imagem com o nome "Slide2".`));
+            await request(server)
+                .post('/apiEvents/carousel/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .attach('image', Buffer.from('img'), 'dup.png')
+                .field('name', 'Slide2')
+                .field('isActive', 'true')
+                .field('order', '2')
+                .expect(409, { statusCode: 409, message: `Já existe uma imagem com o nome "Slide2".`, error: 'Conflict' });
+        });
+
+        it('PATCH /apiEvents/carousel/patch/99 not found → 404', async () => {
+            carouselStub.update.mockRejectedValueOnce(new NotFoundException('Imagem com id 99 não encontrado.'));
+            await request(server)
+                .patch('/apiEvents/carousel/patch/99')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .field('name', 'Abc')
+                .expect(404, { statusCode: 404, message: 'Imagem com id 99 não encontrado.', error: 'Not Found' });
+        });
+
+        it('PATCH /apiEvents/carousel/patch/toggle/99 not found → 404', async () => {
+            carouselStub.toggleActive.mockRejectedValueOnce(new NotFoundException('Slide com id 99 não encontrado.'));
+            await request(server)
+                .patch('/apiEvents/carousel/patch/toggle/99')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ isActive: false })
+                .expect(404, { statusCode: 404, message: 'Slide com id 99 não encontrado.', error: 'Not Found' });
+        });
+
+        it('DELETE /apiEvents/carousel/delete/99 not found → 404', async () => {
+            carouselStub.delete.mockRejectedValueOnce(new NotFoundException('Carrossel com id 99 não encontrado.'));
+            await request(server)
+                .delete('/apiEvents/carousel/delete/99')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(404, { statusCode: 404, message: 'Carrossel com id 99 não encontrado.', error: 'Not Found' });
         });
     });
 });

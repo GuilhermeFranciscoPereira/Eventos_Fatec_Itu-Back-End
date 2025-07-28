@@ -26,24 +26,23 @@
 
 ## 🛎️ Updates to this commit
 
-### `./package.json:` Installed for Cloudinary:
-```bash
-npm install cloudinary @nestjs/platform-express multer streamifier
-```
+### `./prisma/schema.prisma:` New table created in the database called: Carousel to store data related to the carousel.
 
-```bash
-npm install --save-dev @types/multer
-```
+### `./prisma/migrations:` With the addition of this new table, a new migration was created to save it, called: add_carousel_model.
 
-### `./src/modules/cloudinary:` Exports the option to insert or remove photos from Cloudinary - (free service to save images, I recommend: https://cloudinary.com)
+### `./src/modules/carousel:` Package dedicated to the complete management of image collections displayed in carousels in the system, encompassing all CRUD operations and photo presentation.
 
-### `./src/modules/cloudinary/cloudinary.module.ts:` Imports our provider and service and exports the service to be used elsewhere in the code
+### `./src/modules/carousel/dto:` Directory containing the Data Transfer Objects (CreateCarouselDto, UpdateCarouselDto, and CarouselResponseDto) responsible for defining the format of the input and output data in carousel requests.
 
-### `./src/modules/cloudinary/cloudinary.provider.ts:` Configures the connection to Cloudinary
+### `./src/modules/carousel/carousel.controller.ts:` Defines the REST endpoints for listing (GET /carousel), creating (POST /carousel/post), updating (PATCH /carousel/patch/:id), updating only the isActive field (PATCH patch/toggle/:id), and removing (DELETE /carousel/delete/:id) image items in the carousel.
 
-### `./src/modules/cloudinary/cloudinary.service.ts:` Exports the functions for uploading and deleting a photo
+### `./src/modules/carousel/carousel.controller.spec.ts:` Controller integration tests, ensuring that each route correctly forwards calls to the CarouselService and returns the expected HTTP codes.
 
-### `./.env.example:` Added examples of environment variables for connecting to Cloudinary
+### `./src/modules/carousel/carousel.service.ts:` Implements the carousel business logic — interacts with PrismaClient to fetch, insert, modify, and delete records in the Carousel table, and integrates with the Cloudinary module to save and delete images in the Cloudinary.
+
+### `./src/modules/carousel/carousel.service.spec.ts:` Unit test suite for the service, covering success and failure scenarios for each method exposed by CarouselService.
+
+### `./src/modules/carousel/carousel.module.ts:` Configuration file for the carousel module, importing PrismaModule, MulterModule, and CloudinaryModule, registering CarouselService and CarouselController in the NestJS context.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -97,6 +96,13 @@ npm install --save-dev @types/multer
         - `auth.service.spec.ts:` Tests the authentication service flows, ensuring correct behavior in cases of conflict, invalid credentials, token generation, revocation, and renewal of refresh tokens.
         - `auth.module.ts:` Configures the authentication module, imports PrismaModule, ConfigModule, JwtModule with RSA keys loaded from environment variables, and registers AuthService, JwtStrategy, and EmailService
         - `jwt.strategy.ts:` Extracts the JWT from the access cookie, validates its signature and expiration using the public key, and provides user data (ID, email, profile) to the guards
+
+    - `carousel:` Package dedicated to the complete management of image collections displayed in a carousel in the system, encompassing all CRUD operations and photo presentation.
+        - `dto:` Directory containing the Data Transfer Objects (CreateCarouselDto, UpdateCarouselDto, and CarouselResponseDto) responsible for defining the format of the input and output data in carousel requests.
+        - `carousel.controller.ts:` Defines the REST endpoints for listing (GET /carousel), creating (POST /carousel/post), updating (PATCH /carousel/patch/:id), updating only the isActive field (PATCH patch/toggle/:id), and removing (DELETE /carousel/delete/:id) image items in the carousel. - `carousel.controller.spec.ts:` Controller integration tests, ensuring that each route correctly forwards calls to the CarouselService and returns the expected HTTP codes.
+        - `carousel.service.ts:` Implements the carousel's business logic — interacts with PrismaClient to retrieve, insert, modify, and delete records in the Carousel table, and integrates with the Cloudinary module to save and delete images in the Cloudinary.
+        - `carousel.service.spec.ts:` Unit test suite for the service, covering success and failure scenarios for each method exposed by CarouselService.
+        - `carousel.module.ts:` Carousel module configuration file, importing PrismaModule, MulterModule, and CloudinaryModule, registering CarouselService and CarouselController in the NestJS context.
 
     - `categories:` Package dedicated to complete category management, encompassing all CRUD operations.
         - `dto:` Directory containing the Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto, and CategoryResponseDto) responsible for modeling the input and output data in category requests.

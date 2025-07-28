@@ -5,7 +5,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(PrismaService.name);
 
-    //IF WANT SEE LOGGER ABOUT THE PRISMA!
+    //IF WANT SEE LOGGER ABOUT THE PRISMA QUERIES!
     // constructor() {
     //     super({
     //         log: [

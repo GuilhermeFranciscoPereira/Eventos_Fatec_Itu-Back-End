@@ -4,6 +4,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { CsrfController } from './modules/common/csrf.controller';
+import { CarouselModule } from './modules/carousel/carousel.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 
@@ -15,6 +16,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
     UsersModule,
     CategoriesModule,
     CloudinaryModule,
+    CarouselModule,
   ],
   controllers: [CsrfController]
 })

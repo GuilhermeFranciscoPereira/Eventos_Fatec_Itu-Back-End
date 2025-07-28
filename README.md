@@ -26,24 +26,23 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./package.json:` Instalado para o Cloudinary: 
-```bash
-npm install cloudinary @nestjs/platform-express multer streamifier
-```
+### `./prisma/schema.prisma:` Criado nova tabela no banco chamada: Carousel para armazenar os dados referente ao carrossel
 
-```bash
-npm install --save-dev @types/multer
-```
+### `./prisma/migrations:` Com a adição desta nova tabela foi criado uma nova migration para salvar isso, chamada de: add_carousel_model
 
-### `./src/modules/cloudinary:` Exporta a opção de inserir ou remover fotos da cloudinary - ( serviço gratuito para salvar imagens, recomendo: https://cloudinary.com)
+### `./src/modules/carousel:` Pacote dedicado ao gerenciamento completo das coleções de imagens exibidas em carrossel no sistema, englobando todas as operações de CRUD e apresentação das fotos.
 
-### `./src/modules/cloudinary/cloudinary.module.ts:` Importa o nosso provider e service e exporta o service para ser utilizado em outros locais do código
+### `./src/modules/carousel/dto:` Diretório que contém os Data Transfer Objects (CreateCarouselDto, UpdateCarouselDto e CarouselResponseDto) responsáveis por definir a forma dos dados de entrada e saída nas requisições de carrossel.
 
-### `./src/modules/cloudinary/cloudinary.provider.ts:` Configura a conexão com a Cloudinary
+### `./src/modules/carousel/carousel.controller.ts:` Define os endpoints REST para listagem (GET /carousel), criação (POST /carousel/post), atualização (PATCH /carousel/patch/:id), atualização apenas do campo de isActive (PATCH patch/toggle/:id) e remoção (DELETE /carousel/delete/:id) dos itens de imagem no carrossel.
 
-### `./src/modules/cloudinary/cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto
+### `./src/modules/carousel/carousel.controller.spec.ts:` Testes de integração do controller, assegurando que cada rota encaminhe corretamente as chamadas ao CarouselService e retorne os códigos HTTP esperados.
 
-### `./.env.example:` Adicionado os exemplos de variáveis de ambientes para conexão com a Cloudinary
+### `./src/modules/carousel/carousel.service.ts:` Implementa a lógica de negócio do carrossel — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Carousel, e integração com o módulo de Cloudinary para salvar e excluir as imagens na claudinary.
+
+### `./src/modules/carousel/carousel.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto por CarouselService.
+
+### `./src/modules/carousel/carousel.module.ts:` Arquivo de configuração do módulo de carrossel, importando PrismaModule, MulterModule, e CloudinaryModule, registrando CarouselService e CarouselController no contexto do NestJS.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -97,8 +96,16 @@ npm install --save-dev @types/multer
     - `auth.service.ts:` Encapsula toda a lógica de negócio de autenticação — registro de usuário com hash de senha, geração e verificação de tokens de acesso, refresh e 2FA, envio de e-mails e limpeza de tokens expirados  
     - `auth.service.spec.ts:` Testa os fluxos do serviço de autenticação, garantindo comportamento correto em casos de conflito, credenciais inválidas, geração de tokens, revogação e renovação de refresh tokens  
     - `auth.module.ts:` Configura o módulo de autenticação, importa PrismaModule, ConfigModule, JwtModule com chaves RSA carregadas de variáveis de ambiente, e registra AuthService, JwtStrategy e EmailService  
-    - `jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, e fornece os dados de usuário (id, e-mail, perfil) para os guards  
+    - `jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, e fornece os dados de usuário (id, e-mail, perfil) para os guards
   
+  - `carousel:` Pacote dedicado ao gerenciamento completo das coleções de imagens exibidas em carrossel no sistema, englobando todas as operações de CRUD e apresentação das fotos.
+    - `dto:` Diretório que contém os Data Transfer Objects (CreateCarouselDto, UpdateCarouselDto e CarouselResponseDto) responsáveis por definir a forma dos dados de entrada e saída nas requisições de carrossel.
+    - `carousel.controller.ts:` Define os endpoints REST para listagem (GET /carousel), criação (POST /carousel/post), atualização (PATCH /carousel/patch/:id), atualização apenas do campo de isActive (PATCH patch/toggle/:id) e remoção (DELETE /carousel/delete/:id) dos itens de imagem no carrossel.
+    - `carousel.controller.spec.ts:` Testes de integração do controller, assegurando que cada rota encaminhe corretamente as chamadas ao CarouselService e retorne os códigos HTTP esperados.
+    - `carousel.service.ts:` Implementa a lógica de negócio do carrossel — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Carousel, e integração com o módulo de Cloudinary para salvar e excluir as imagens na claudinary.
+    - `carousel.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto por CarouselService.
+    - `carousel.module.ts:` Arquivo de configuração do módulo de carrossel, importando PrismaModule, MulterModule, e CloudinaryModule, registrando CarouselService e CarouselController no contexto do NestJS.
+
   - `categories:` Pacote dedicado ao gerenciamento completo de categorias, englobando todas as operações de CRUD.
     - `dto:` Diretório que contém os Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto e CategoryResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de categorias.
     - `categories.controller.ts:` Define os endpoints REST para listagem (GET /categories), criação (POST /categories), atualização (PATCH /categories/:id) e remoção (DELETE /categories/:id) de categorias.
