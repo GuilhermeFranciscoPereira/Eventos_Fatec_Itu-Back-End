@@ -3,6 +3,7 @@ import { UpdateCarouselDto } from './dto/update-carousel.dto';
 import { CreateCarouselDto } from './dto/create-carousel.dto';
 import { CarouselResponseDto } from './dto/carousel-response.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CarouselPublicResponseDto } from './dto/carousel-public-response.dto';
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 
 @Injectable()
@@ -11,6 +12,19 @@ export class CarouselService {
     private readonly prisma: PrismaService,
     private readonly cloudinary: CloudinaryService,
   ) { }
+
+  async findAllPublic(): Promise<CarouselPublicResponseDto[]> {
+    return this.prisma.carousel.findMany({
+      where: { isActive: true },
+      select: {
+        name: true,
+        imageUrl: true,
+        order: true,
+        isActive: true,
+      },
+      orderBy: { order: 'asc' },
+    });
+  }
 
   async findAll(): Promise<CarouselResponseDto[]> {
     return this.prisma.carousel.findMany({ orderBy: { order: 'asc' } });

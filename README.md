@@ -26,23 +26,11 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Criado nova tabela no banco chamada: Carousel para armazenar os dados referente ao carrossel
+### `./src/modules/carousel/dto/carousel-public-response.dto.ts:` Define as tipagens e o que é liberado para a rota publica
 
-### `./prisma/migrations:` Com a adição desta nova tabela foi criado uma nova migration para salvar isso, chamada de: add_carousel_model
+### `./src/modules/carousel/carousel.controller.ts:` Adicionado o que permite uma rota publica para pegar as imagens e mostrar no carrossel para os usuários não autenticados.
 
-### `./src/modules/carousel:` Pacote dedicado ao gerenciamento completo das coleções de imagens exibidas em carrossel no sistema, englobando todas as operações de CRUD e apresentação das fotos.
-
-### `./src/modules/carousel/dto:` Diretório que contém os Data Transfer Objects (CreateCarouselDto, UpdateCarouselDto e CarouselResponseDto) responsáveis por definir a forma dos dados de entrada e saída nas requisições de carrossel.
-
-### `./src/modules/carousel/carousel.controller.ts:` Define os endpoints REST para listagem (GET /carousel), criação (POST /carousel/post), atualização (PATCH /carousel/patch/:id), atualização apenas do campo de isActive (PATCH patch/toggle/:id) e remoção (DELETE /carousel/delete/:id) dos itens de imagem no carrossel.
-
-### `./src/modules/carousel/carousel.controller.spec.ts:` Testes de integração do controller, assegurando que cada rota encaminhe corretamente as chamadas ao CarouselService e retorne os códigos HTTP esperados.
-
-### `./src/modules/carousel/carousel.service.ts:` Implementa a lógica de negócio do carrossel — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Carousel, e integração com o módulo de Cloudinary para salvar e excluir as imagens na claudinary.
-
-### `./src/modules/carousel/carousel.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto por CarouselService.
-
-### `./src/modules/carousel/carousel.module.ts:` Arquivo de configuração do módulo de carrossel, importando PrismaModule, MulterModule, e CloudinaryModule, registrando CarouselService e CarouselController no contexto do NestJS.
+### `./src/modules/carousel/carousel.service.ts:` Retorna para a requisição todas as imagens, liberando somente o necessário: Nome; Se está ativo ou não; Url da imagem; E a ordem da imagem.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
