@@ -26,13 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/decorators/public.decorator.ts:` Defines a decorator to allow public routes to unauthenticated users.
-
-### `./src/modules/carousel/carousel.controller.ts:` Added @public above the `publicAllCarousel` route to allow them to be used by unauthenticated users.
-
-### Small changes to route validation files to validate unauthenticated users for routes that use @Public at the top of the route:
-- `./src/guards/jwt-auth.guard.ts`
-- `./src/guards/roles.guard.ts`
+### `./src/modules/events:` Created public route: `publicAllEvents` to show current events to unauthenticated users
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -111,7 +105,7 @@
 
     - `events:` Package dedicated to complete event management, encompassing CRUD operations, image uploads, and date and time availability queries.
         - `dto:` Directory containing Data Transfer Objects (CreateEventDto, UpdateEventDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
-        - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creating (POST /events/create), partially updating (PATCH /events/patch/:id), deleting (DELETE /events/delete/:id), date availability (GET /events/availability/dates), and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with a @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image uploads, and appropriate HTTP codes (201 for creation, 200 for deletion).
+       - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creation (POST /events/create), partial update (PATCH /events/patch/:id), removal (DELETE /events/delete/:id), date availability (GET /events/availability/dates) and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image upload and appropriate HTTP codes (201 for creation, 200 for removal), only the route (GET /publicAllEvents) does not require authentication, this route is used to show events to unauthenticated users.
         - `events.service.ts:` Implements all event business logic — interacts with PrismaClient for CRUD operations, validates schedule conflicts to avoid overlap, uses CloudinaryService for image upload and deletion, and dynamically calculates free date and time slots based on the specified location and date.
         - `events.service.spec.ts:` Unit test suite for EventsService, covering creation scenarios without a file, detecting schedule overlaps, successful creation with image upload, updating with and without a new file (including deletion and upload to Cloudinary), calculating availability for times and dates for different locations, deleting an event with image deletion, and handling ConflictException and NotFoundException exceptions. - `events.module.ts:` Events module configuration file, importing PrismaModule and CloudinaryModule, and registering EventsService and EventsController in the NestJS context.
     

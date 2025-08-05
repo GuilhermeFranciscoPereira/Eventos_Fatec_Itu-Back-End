@@ -3,6 +3,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { EventPublicResponseDto } from './dto/event-public-response.dto';
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 
 @Injectable()
@@ -18,6 +19,26 @@ export class EventsService {
 
   private fromMinutes(min: number): string {
     return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  }
+
+  async findAllPublic(): Promise<EventPublicResponseDto[]> {
+    return this.prisma.event.findMany({
+      where: { startTime: { gt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000) } },
+      select: { id: true, name: true, description: true, imageUrl: true, course: true, semester: true, maxParticipants: true, currentParticipants: true, isRestricted: true, location: true, customLocation: true, speakerName: true, startDate: true, startTime: true, endTime: true, duration: true, categoryId: true },
+      orderBy: {
+        startTime: 'asc',
+      },
+    });
+  }
+
+  async findAll() {
+    return this.prisma.event.findMany({ orderBy: { startTime: 'asc' } });
+  }
+
+  async findOne(id: number) {
+    const e = await this.prisma.event.findUnique({ where: { id } });
+    if (!e) throw new NotFoundException(`Evento ${id} não encontrado.`);
+    return e;
   }
 
   async create(dto: CreateEventDto, file: Express.Multer.File) {
@@ -150,16 +171,6 @@ export class EventsService {
     });
 
     return filtered;
-  }
-
-  async findAll() {
-    return this.prisma.event.findMany({ orderBy: { startDate: 'asc' } });
-  }
-
-  async findOne(id: number) {
-    const e = await this.prisma.event.findUnique({ where: { id } });
-    if (!e) throw new NotFoundException(`Evento ${id} não encontrado.`);
-    return e;
   }
 
   async remove(id: number) {
