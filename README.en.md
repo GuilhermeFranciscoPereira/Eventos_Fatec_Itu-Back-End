@@ -26,19 +26,13 @@
 
 ## 🛎️ Updates to this commit
 
-### `./prisma/schema.prisma:` Created the table for events (Event) and Enums for typing.
+### `./src/decorators/public.decorator.ts:` Defines a decorator to allow public routes to unauthenticated users.
 
-### `./src/modules/events:` Package dedicated to complete event management, including CRUD operations, image uploads, and date and time availability queries.
+### `./src/modules/carousel/carousel.controller.ts:` Added @public above the `publicAllCarousel` route to allow them to be used by unauthenticated users.
 
-### `./src/modules/events/dto:` Directory containing the Data Transfer Objects (CreateEventDto, UpdateEventDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
-
-### `./src/modules/events/events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creating (POST /events/create), partially updating (PATCH /events/patch/:id), deleting (DELETE /events/delete/:id), date availability (GET /events/availability/dates), and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with a @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image uploads, and appropriate HTTP codes (201 for creation, 200 for deletion).
-
-### `./src/modules/events/events.service.ts:` Implements all event business logic — interacts with PrismaClient for CRUD operations, validates schedule conflicts to avoid overlap, uses CloudinaryService for image upload and deletion, and dynamically calculates free date and time slots based on the specified location and date.
-
-### `./src/modules/events/events.service.spec.ts:` Unit test suite for EventsService, covering creation scenarios without a file, detecting schedule overlap, successful creation with image upload, updating with and without a new file (including deletion and upload to Cloudinary), calculating availability for different locations, deleting an event with image deletion, and handling ConflictException and NotFoundException exceptions.
-
-### `./src/modules/events/events.module.ts:` Events module configuration file, importing PrismaModule and CloudinaryModule, and registering EventsService and EventsController in the NestJS context.
+### Small changes to route validation files to validate unauthenticated users for routes that use @Public at the top of the route:
+- `./src/guards/jwt-auth.guard.ts`
+- `./src/guards/roles.guard.ts`
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -78,6 +72,7 @@
     - `readme:` Folder that will store our photos for use in the documentation ( README )
 
 - `./src/decorators:` Folder for custom decorators.
+    - `public.decorator.ts:` Defines a decorator to allow public routes to unauthenticated users.
     - `roles.decorator.ts:` Defines a decorator to indicate which user profiles are allowed to access each endpoint.
 
 - `./src/guards:` Folder for authentication and authorization guards.

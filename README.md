@@ -26,19 +26,13 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Criado a tabela para os eventos (Event) e os Enums para tipagens
+### `./src/decorators/public.decorator.ts:` Define um decorator para liberar rotas publicas para usuários não autenticados.
 
-### `./src/modules/events:` Pacote dedicado ao gerenciamento completo de eventos, englobando operações de CRUD, upload de imagem e consulta de disponibilidade de datas e horários.
+### `./src/modules/carousel/carousel.controller.ts:` Adicionado o @public em cima da rota `publicAllCarousel` para liberar para usuários não autenticados
 
-### `./src/modules/events/dto:` Diretório com os Data Transfer Objects (CreateEventDto, UpdateEventDto e EventResponseDto) responsáveis por definir o formato dos dados de entrada e saída nas requisições de eventos.
-
-### `./src/modules/events/events.controller.ts:` Define os endpoints REST para listagem (GET /events), busca por ID (GET /events/:id), criação (POST /events/create), atualização parcial (PATCH /events/patch/:id), remoção (DELETE /events/delete/:id), disponibilidade de datas (GET /events/availability/dates) e disponibilidade de horários (GET /events/availability/times). Todos protegidos por JwtAuthGuard e RolesGuard, com decorator @Roles para perfis ADMIN e COORDENADOR, interceptação de arquivo para upload de imagem e códigos HTTP apropriados (201 para criação, 200 para remoção).
-
-### `./src/modules/events/events.service.ts:` Implementa toda a lógica de negócio de eventos — interage com o PrismaClient para operações de CRUD, valida conflitos de horários para evitar sobreposição, utiliza o CloudinaryService para upload e exclusão de imagens, e calcula dinamicamente os slots livres de datas e horários conforme o local e data informados.
-
-### `./src/modules/events/events.service.spec.ts:` Conjunto de testes unitários do EventsService, cobrindo cenários de criação sem arquivo, detecção de sobreposição de horários, criação bem-sucedida com upload de imagem, atualização com e sem novo arquivo (incluindo exclusão e upload no Cloudinary), cálculo de disponibilidade de horários e datas para diferentes locais, remoção de evento com exclusão de imagem, e tratamento de exceções ConflictException e NotFoundException.
-
-### `./src/modules/events/events.module.ts:` Arquivo de configuração do módulo de eventos, importando PrismaModule e CloudinaryModule, e registrando EventsService e EventsController no contexto do NestJS.
+### Pequenas trocas em arquivos de validações de rotas para validar usuários não autenticados para rotas que usam o @Public no topo da rota:
+- `./src/guards/jwt-auth.guard.ts`
+- `./src/guards/roles.guard.ts`
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -78,6 +72,7 @@
   - `readme:` Pasta que irá armazenar nossas fotos para utilizar na documentação ( README )
 
 - `./src/decorators:` Pasta para decorators customizados.
+  - `public.decorator.ts:` Define um decorator para liberar rotas publicas para usuários não autenticados.
   - `roles.decorator.ts:` Define um decorator para indicar quais perfis de usuário têm permissão para acessar cada endpoint.
 
 - `./src/guards:` Pasta para guards de autenticação e autorização.
