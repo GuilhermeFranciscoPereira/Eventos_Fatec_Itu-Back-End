@@ -13,6 +13,57 @@ enum Role {
   AUXILIAR
 }
 
+enum Course {
+  ADS
+  GE
+  GTI
+  GEMP
+  MEC
+}
+
+enum Semester {
+  SEMESTER1
+  SEMESTER2
+  SEMESTER3
+  SEMESTER4
+  SEMESTER5
+  SEMESTER6
+  ESPECIAL
+}
+
+enum Location {
+  AUDITORIO
+  BIBLIOTECA
+  SALA_MAKER
+  LAB_MECANICA_METROLOGIA
+  LAB_SISTEMAS_INTEGRADOS
+  LAB_HIDRAULICA_PNEUMATICA
+  LAB_ENSAIOS_METALOGRAFICOS
+  LAB_ELETRONICA_POTENCIA
+  LAB_COMANDOS_ELETRICOS
+  LAB_CONTROLE_PROCESSOS
+  LAB_INFORMATICA_1
+  LAB_INFORMATICA_2
+  LAB_INFORMATICA_3
+  LAB_INFORMATICA_4
+  LAB_INFORMATICA_5
+  LAB_INFORMATICA_6
+  SALA_1
+  SALA_2
+  SALA_3
+  SALA_4
+  SALA_5
+  SALA_6
+  SALA_7
+  SALA_8
+  SALA_9
+  SALA_9_3_4
+  SALA_10
+  SALA_11
+  SALA_12
+  OUTROS
+}
+
 model User {
   id           Int            @id @default(autoincrement())
   name         String
@@ -37,6 +88,7 @@ model RefreshToken {
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  Event     Event[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -49,4 +101,27 @@ model Carousel {
   order     Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id                  Int       @id @default(autoincrement())
+  name                String
+  description         String
+  imageUrl            String
+  course              Course
+  semester            Semester?
+  maxParticipants     Int
+  currentParticipants Int       @default(0)
+  isRestricted        Boolean
+  location            Location
+  customLocation      String?
+  speakerName         String
+  startDate           DateTime
+  startTime           DateTime
+  endTime             DateTime
+  duration            Int?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  categoryId          Int?
+  category            Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 }

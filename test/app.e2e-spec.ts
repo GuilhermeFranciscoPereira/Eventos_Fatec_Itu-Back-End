@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RolesGuard } from '../src/guards/roles.guard';
 import { JwtAuthGuard } from '../src/guards/jwt-auth.guard';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { EventsService } from '../src/modules/events/events.service';
 import { UsersService } from '../src/modules/users/users.service';
 import { CarouselService } from '../src/modules/carousel/carousel.service';
 import { CategoriesService } from '../src/modules/categories/categories.service';
@@ -46,6 +47,15 @@ describe('Application Tests - (e2e)', () => {
         toggleActive: jest.fn(),
         delete: jest.fn(),
     };
+    const eventsStub: any = {
+        findAll: jest.fn(),
+        findOne: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        remove: jest.fn(),
+        getAvailableDates: jest.fn(),
+        getAvailableTimes: jest.fn(),
+    };
 
     beforeAll(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -55,6 +65,7 @@ describe('Application Tests - (e2e)', () => {
             .overrideProvider(UsersService).useValue(usersStub)
             .overrideProvider(CategoriesService).useValue(categoriesStub)
             .overrideProvider(CarouselService).useValue(carouselStub)
+            .overrideProvider(EventsService).useValue(eventsStub)
             .overrideGuard(JwtAuthGuard).useValue({
                 canActivate: ctx => {
                     const req = ctx.switchToHttp().getRequest();
@@ -135,6 +146,14 @@ describe('Application Tests - (e2e)', () => {
             carouselStub.update.mockResolvedValue({ id: 3, name: 'Slide3', imageUrl: 'url3', isActive: true, order: 3, createdAt: new Date(), updatedAt: new Date() });
             carouselStub.toggleActive.mockResolvedValue({ id: 1, name: 'Slide1', imageUrl: 'url1', isActive: false, order: 1, createdAt: new Date(), updatedAt: new Date() });
             carouselStub.delete.mockResolvedValue({ message: 'Item do carrossel deletado com sucesso.' });
+
+            eventsStub.findAll.mockResolvedValue([{ id: 1, name: 'Evento1' }]);
+            eventsStub.findOne.mockResolvedValue({ id: 1, name: 'Evento1' });
+            eventsStub.create.mockResolvedValue({ id: 2, name: 'Novo Evento' });
+            eventsStub.update.mockResolvedValue({ id: 2, name: 'Evento Atualizado' });
+            eventsStub.remove.mockResolvedValue({ message: 'Evento deletado com sucesso.' });
+            eventsStub.getAvailableDates.mockResolvedValue(['2025-01-01']);
+            eventsStub.getAvailableTimes.mockResolvedValue([{ start: '07:00', end: '22:00' }]);
         });
 
         it('POST /apiEvents/auth/request-login sets 2fa cookie and returns requires2FA', () =>
@@ -333,6 +352,83 @@ describe('Application Tests - (e2e)', () => {
                 .set('X-CSRF-Token', csrfToken)
                 .expect(200)
                 .expect({ message: 'Item do carrossel deletado com sucesso.' }));
+
+        it('GET /apiEvents/events → 200 & lista', () =>
+            request(server)
+                .get('/apiEvents/events')
+                .expect(200)
+                .expect(res => {
+                    expect(eventsStub.findAll).toHaveBeenCalled();
+                    expect(Array.isArray(res.body)).toBe(true);
+                }));
+
+        it('GET /apiEvents/events/:id → 200 & único', () =>
+            request(server)
+                .get('/apiEvents/events/1')
+                .expect(200)
+                .expect(res => {
+                    expect(eventsStub.findOne).toHaveBeenCalledWith(1);
+                    expect(res.body.id).toBe(1);
+                }));
+
+        it('POST /apiEvents/events/create → 201 & create', () =>
+            request(server)
+                .post('/apiEvents/events/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .field('name', 'Novo Evento')
+                .field('description', 'Uma descrição válida...')
+                .field('course', 'ADS')
+                .field('maxParticipants', '10')
+                .field('isRestricted', 'false')
+                .field('location', 'AUDITORIO')
+                .field('speakerName', 'Fulano')
+                .field('startDate', '2025-01-01')
+                .field('startTime', '2025-01-01T09:00:00Z')
+                .field('endTime', '2025-01-01T10:00:00Z')
+                .attach('image', Buffer.from(''), 'img.png')
+                .expect(201)
+                .expect(() => {
+                    expect(eventsStub.create).toHaveBeenCalled();
+                }));
+
+        it('PATCH /apiEvents/events/patch/2 → 200 & update', () =>
+            request(server)
+                .patch('/apiEvents/events/patch/2')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .field('name', 'Atualizado')
+                .attach('image', Buffer.from(''), 'upd.png')
+                .expect(200)
+                .expect(() => {
+                    expect(eventsStub.update).toHaveBeenCalledWith(
+                        2,
+                        expect.objectContaining({ name: 'Atualizado' }),
+                        expect.any(Object),
+                    );
+                }));
+
+        it('DELETE /apiEvents/events/delete/2 → 200 & remove', () =>
+            request(server)
+                .delete('/apiEvents/events/delete/2')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(200)
+                .expect({ message: 'Evento deletado com sucesso.' }));
+
+        it('GET /apiEvents/events/availability/dates?location=AUDITORIO → 200 & dates', () =>
+            request(server)
+                .get('/apiEvents/events/availability/dates')
+                .query({ location: 'AUDITORIO' })
+                .expect(200)
+                .expect(['2025-01-01']));
+
+        it('GET /apiEvents/events/availability/times?location=AUDITORIO&date=2025-01-01 → 200 & times', () =>
+            request(server)
+                .get('/apiEvents/events/availability/times')
+                .query({ location: 'AUDITORIO', date: '2025-01-01' })
+                .expect(200)
+                .expect([{ start: '07:00', end: '22:00' }]));
     });
 
     describe('Error Cases', () => {
@@ -535,5 +631,70 @@ describe('Application Tests - (e2e)', () => {
                 .set('X-CSRF-Token', csrfToken)
                 .expect(404, { statusCode: 404, message: 'Carrossel com id 99 não encontrado.', error: 'Not Found' });
         });
+
+        it('POST /apiEvents/events/create no file → 409', () => {
+            eventsStub.create.mockRejectedValueOnce(new ConflictException('Imagem obrigatória.'))
+            return request(server)
+                .post('/apiEvents/events/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .field('name', 'Sem Imagem')
+                .field('description', 'Descrição válida para teste')
+                .field('course', 'ADS')
+                .field('maxParticipants', '10')
+                .field('isRestricted', 'false')
+                .field('location', 'AUDITORIO')
+                .field('speakerName', 'Fulano Teste')
+                .field('startDate', '2025-01-01')
+                .field('startTime', '2025-01-01T09:00:00Z')
+                .field('endTime', '2025-01-01T10:00:00Z')
+                .expect(409, {
+                    statusCode: 409,
+                    message: 'Imagem obrigatória.',
+                    error: 'Conflict',
+                })
+        })
+
+        it('PATCH /apiEvents/events/patch/99 not found → 404', () => {
+            eventsStub.update.mockRejectedValueOnce(new NotFoundException('Evento 99 não encontrado.'))
+            return request(server)
+                .patch('/apiEvents/events/patch/99')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .field('name', 'Abc')
+                .expect(404, {
+                    statusCode: 404,
+                    message: 'Evento 99 não encontrado.',
+                    error: 'Not Found',
+                })
+        })
+
+        it('DELETE /apiEvents/events/delete/99 not found → 404', () => {
+            eventsStub.remove.mockRejectedValueOnce(new NotFoundException('Evento 99 não encontrado.'));
+            return request(server)
+                .delete('/apiEvents/events/delete/99')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .expect(404, {
+                    statusCode: 404,
+                    message: 'Evento 99 não encontrado.',
+                    error: 'Not Found',
+                });
+        });
+
+        it('GET /apiEvents/events/availability/dates invalid enum → 400', () =>
+            request(server)
+                .get('/apiEvents/events/availability/dates')
+                .query({ location: 'INVALID' })
+                .expect(400));
+
+        it('GET /apiEvents/events/availability/times missing date → 200', () =>
+            request(server)
+                .get('/apiEvents/events/availability/times')
+                .query({ location: 'AUDITORIO' })
+                .expect(200)
+                .expect(() => {
+                    expect(eventsStub.getAvailableTimes).toHaveBeenCalledWith('AUDITORIO', undefined, undefined);
+                }));
     });
 });

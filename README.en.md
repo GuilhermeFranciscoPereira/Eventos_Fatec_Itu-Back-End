@@ -26,11 +26,19 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/carousel/dto/carousel-public-response.dto.ts:` Defines the typings and what is released for the public route.
+### `./prisma/schema.prisma:` Created the table for events (Event) and Enums for typing.
 
-### `./src/modules/carousel/carousel.controller.ts:` Added a function that allows a public route to retrieve images and display them in the carousel for unauthenticated users.
+### `./src/modules/events:` Package dedicated to complete event management, including CRUD operations, image uploads, and date and time availability queries.
 
-### `./src/modules/carousel/carousel.service.ts:` Returns all images to the request, releasing only what is necessary: Name; Whether it is active or not; Image URL; and the image order.
+### `./src/modules/events/dto:` Directory containing the Data Transfer Objects (CreateEventDto, UpdateEventDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
+
+### `./src/modules/events/events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creating (POST /events/create), partially updating (PATCH /events/patch/:id), deleting (DELETE /events/delete/:id), date availability (GET /events/availability/dates), and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with a @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image uploads, and appropriate HTTP codes (201 for creation, 200 for deletion).
+
+### `./src/modules/events/events.service.ts:` Implements all event business logic — interacts with PrismaClient for CRUD operations, validates schedule conflicts to avoid overlap, uses CloudinaryService for image upload and deletion, and dynamically calculates free date and time slots based on the specified location and date.
+
+### `./src/modules/events/events.service.spec.ts:` Unit test suite for EventsService, covering creation scenarios without a file, detecting schedule overlap, successful creation with image upload, updating with and without a new file (including deletion and upload to Cloudinary), calculating availability for different locations, deleting an event with image deletion, and handling ConflictException and NotFoundException exceptions.
+
+### `./src/modules/events/events.module.ts:` Events module configuration file, importing PrismaModule and CloudinaryModule, and registering EventsService and EventsController in the NestJS context.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -105,6 +113,12 @@
 
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
+
+    - `events:` Package dedicated to complete event management, encompassing CRUD operations, image uploads, and date and time availability queries.
+        - `dto:` Directory containing Data Transfer Objects (CreateEventDto, UpdateEventDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
+        - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creating (POST /events/create), partially updating (PATCH /events/patch/:id), deleting (DELETE /events/delete/:id), date availability (GET /events/availability/dates), and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with a @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image uploads, and appropriate HTTP codes (201 for creation, 200 for deletion).
+        - `events.service.ts:` Implements all event business logic — interacts with PrismaClient for CRUD operations, validates schedule conflicts to avoid overlap, uses CloudinaryService for image upload and deletion, and dynamically calculates free date and time slots based on the specified location and date.
+        - `events.service.spec.ts:` Unit test suite for EventsService, covering creation scenarios without a file, detecting schedule overlaps, successful creation with image upload, updating with and without a new file (including deletion and upload to Cloudinary), calculating availability for times and dates for different locations, deleting an event with image deletion, and handling ConflictException and NotFoundException exceptions. - `events.module.ts:` Events module configuration file, importing PrismaModule and CloudinaryModule, and registering EventsService and EventsController in the NestJS context.
     
     - `prisma:` Bundles the PrismaModule (prisma.module.ts) and PrismaService (prisma.service.ts), centralizing Prisma integration in NestJS.
         - `prisma.module.ts`: Defines and globally exports the Prisma module in NestJS, registering the PrismaService as a provider to allow injection into any part of the application.
