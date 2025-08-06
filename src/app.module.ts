@@ -8,6 +8,7 @@ import { CsrfController } from './modules/common/csrf.controller';
 import { CarouselModule } from './modules/carousel/carousel.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { ParticipantsModule } from './modules/participants/participants.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
     CloudinaryModule,
     CarouselModule,
     EventsModule,
+    ParticipantsModule,
   ],
   controllers: [CsrfController]
 })

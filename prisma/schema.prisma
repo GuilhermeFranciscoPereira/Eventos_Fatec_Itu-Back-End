@@ -104,14 +104,14 @@ model Carousel {
 }
 
 model Event {
-  id                  Int       @id @default(autoincrement())
+  id                  Int           @id @default(autoincrement())
   name                String
   description         String
   imageUrl            String
   course              Course
   semester            Semester?
   maxParticipants     Int
-  currentParticipants Int       @default(0)
+  currentParticipants Int           @default(0)
   isRestricted        Boolean
   location            Location
   customLocation      String?
@@ -120,8 +120,23 @@ model Event {
   startTime           DateTime
   endTime             DateTime
   duration            Int?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
   categoryId          Int?
-  category            Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category            Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  participants        Participant[]
+}
+
+model Participant {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String
+  course    Course?
+  semester  Semester?
+  ra        String?
+  isPresent Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  eventId   Int
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

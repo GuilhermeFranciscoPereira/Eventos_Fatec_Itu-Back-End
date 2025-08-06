@@ -26,7 +26,14 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/events:` Criado a rota pública: `publicAllEvents` para mostrar para usuários não autenticados os eventos atuais
+### `./prisma/schema.prisma:` Criado a tabela de Participant 
+### `./src/modules/participants:` Módulo dedicado ao fluxo completo de inscrição e controle de presença de participantes em eventos
+### `./src/modules/participants/dto:` Contém os Data Transfer Objects (CreateParticipantDto, UpdateParticipantDto e ParticipantResponseDto) que definem a forma dos dados de entrada e saída nas operações de participantes
+### `./src/modules/participants/participants.controller.ts:` Expõe os endpoints de cadastro (POST /participants/create) e de atualização de presença (PATCH /participants/patch/:id), aplica JwtAuthGuard e RolesGuard para ADMIN, COORDENADOR e AUXILIAR, e marca a rota de criação como pública
+### `./src/modules/participants/participants.controller.spec.ts:` Conjunto de testes de integração que valida cadastro público, tentativas de acesso sem autenticação e atualização de presença autorizada
+### `./src/modules/participants/participants.service.ts:` Encapsula toda a lógica de negócio de inscrição e presença, incluindo verificação de e-mail e RA duplicados por evento, validação de domínio institucional, incremento do contador de participantes, persistência do registro e envio de e-mail de confirmação
+### `./src/modules/participants/participants.service.spec.ts:` Testes unitários do serviço, cobrindo cenários de conflito de e-mail/RA, criação de participante, atualização de presença e disparo de e-mail de confirmação
+### `./src/modules/participants/participants.module.ts:` Configura o módulo de participantes importando PrismaModule, declarando ParticipantsService e EmailService como providers, e registrando ParticipantsController como controller
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -113,6 +120,14 @@
     - `events.service.ts:` Implementa toda a lógica de negócio de eventos — interage com o PrismaClient para operações de CRUD, valida conflitos de horários para evitar sobreposição, utiliza o CloudinaryService para upload e exclusão de imagens, e calcula dinamicamente os slots livres de datas e horários conforme o local e data informados.
     - `events.service.spec.ts:` Conjunto de testes unitários do EventsService, cobrindo cenários de criação sem arquivo, detecção de sobreposição de horários, criação bem-sucedida com upload de imagem, atualização com e sem novo arquivo (incluindo exclusão e upload no Cloudinary), cálculo de disponibilidade de horários e datas para diferentes locais, remoção de evento com exclusão de imagem, e tratamento de exceções ConflictException e NotFoundException.
     - `events.module.ts:` Arquivo de configuração do módulo de eventos, importando PrismaModule e CloudinaryModule, e registrando EventsService e EventsController no contexto do NestJS.
+
+  - `participants:` Módulo dedicado ao fluxo completo de inscrição e controle de presença de participantes em eventos
+    - `dto:` Contém os Data Transfer Objects (CreateParticipantDto, UpdateParticipantDto e ParticipantResponseDto) que definem a forma dos dados de entrada e saída nas operações de participantes
+    - `participants.controller.ts:` Expõe os endpoints de cadastro (POST /participants/create) e de atualização de presença (PATCH /participants/patch/:id), aplica JwtAuthGuard e RolesGuard para ADMIN, COORDENADOR e AUXILIAR, e marca a rota de criação como pública
+    - `participants.controller.spec.ts:` Conjunto de testes de integração que valida cadastro público, tentativas de acesso sem autenticação e atualização de presença autorizada
+    - `participants.service.ts:` Encapsula toda a lógica de negócio de inscrição e presença, incluindo verificação de e-mail e RA duplicados por evento, validação de domínio institucional, incremento do contador de participantes, persistência do registro e envio de e-mail de confirmação
+    - `participants.service.spec.ts:` Testes unitários do serviço, cobrindo cenários de conflito de e-mail/RA, criação de participante, atualização de presença e disparo de e-mail de confirmação
+    - `participants.module.ts:` Configura o módulo de participantes importando PrismaModule, declarando ParticipantsService e EmailService como providers, e registrando ParticipantsController como controller
 
   - `prisma:` Agrupa o PrismaModule (prisma.module.ts) e o PrismaService (prisma.service.ts), centralizando a integração do Prisma no NestJS.
     - `prisma.module.ts`: Define e exporta globalmente o módulo do Prisma no NestJS, registrando o PrismaService como provedor para permitir injeção em qualquer parte da aplicação.

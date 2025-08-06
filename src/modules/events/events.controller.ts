@@ -28,6 +28,7 @@ export class EventsController {
     return this.eventService.findAll();
   }
 
+  @Public()
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<EventResponseDto> {
     return this.eventService.findOne(id);

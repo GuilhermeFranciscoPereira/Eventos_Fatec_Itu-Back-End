@@ -1,4 +1,5 @@
 import { Course, Semester, Location } from '@prisma/client';
+import { ParticipantResponseDto } from 'src/modules/participants/dto/participant-response.dto';
 
 export class EventResponseDto {
     id!: number;
@@ -20,4 +21,5 @@ export class EventResponseDto {
     categoryId: number | null;
     createdAt!: Date;
     updatedAt!: Date;
+    participants?: ParticipantResponseDto[]
 }

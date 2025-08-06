@@ -10,6 +10,7 @@ import { EventsService } from '../src/modules/events/events.service';
 import { UsersService } from '../src/modules/users/users.service';
 import { CarouselService } from '../src/modules/carousel/carousel.service';
 import { CategoriesService } from '../src/modules/categories/categories.service';
+import { ParticipantsService } from '../src/modules/participants/participants.service';
 import { INestApplication, ValidationPipe, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 
 describe('Application Tests - (e2e)', () => {
@@ -56,6 +57,10 @@ describe('Application Tests - (e2e)', () => {
         getAvailableDates: jest.fn(),
         getAvailableTimes: jest.fn(),
     };
+    const participantsStub: any = {
+        create: jest.fn(),
+        update: jest.fn(),
+    }
 
     beforeAll(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -66,6 +71,7 @@ describe('Application Tests - (e2e)', () => {
             .overrideProvider(CategoriesService).useValue(categoriesStub)
             .overrideProvider(CarouselService).useValue(carouselStub)
             .overrideProvider(EventsService).useValue(eventsStub)
+            .overrideProvider(ParticipantsService).useValue(participantsStub)
             .overrideGuard(JwtAuthGuard).useValue({
                 canActivate: ctx => {
                     const req = ctx.switchToHttp().getRequest();
@@ -154,6 +160,31 @@ describe('Application Tests - (e2e)', () => {
             eventsStub.remove.mockResolvedValue({ message: 'Evento deletado com sucesso.' });
             eventsStub.getAvailableDates.mockResolvedValue(['2025-01-01']);
             eventsStub.getAvailableTimes.mockResolvedValue([{ start: '07:00', end: '22:00' }]);
+
+            participantsStub.create.mockResolvedValue({
+                id: 1,
+                name: 'Fulano',
+                email: 'fulano@cms.sp.gov.br',
+                course: null,
+                semester: null,
+                ra: null,
+                isPresent: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                eventId: 1,
+            })
+            participantsStub.update.mockResolvedValue({
+                id: 1,
+                name: 'Fulano',
+                email: 'fulano@cms.sp.gov.br',
+                course: null,
+                semester: null,
+                ra: null,
+                isPresent: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                eventId: 1,
+            })
         });
 
         it('POST /apiEvents/auth/request-login sets 2fa cookie and returns requires2FA', () =>
@@ -429,6 +460,42 @@ describe('Application Tests - (e2e)', () => {
                 .query({ location: 'AUDITORIO', date: '2025-01-01' })
                 .expect(200)
                 .expect([{ start: '07:00', end: '22:00' }]));
+
+        it('POST /apiEvents/participants/create → 201 & create', () =>
+            request(server)
+                .post('/apiEvents/participants/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({
+                    name: 'Fulano',
+                    email: 'fulano@cms.sp.gov.br',
+                    course: null,
+                    semester: null,
+                    ra: null,
+                    eventId: 1,
+                })
+                .expect(201)
+                .expect(res => {
+                    expect(participantsStub.create).toHaveBeenCalledWith({
+                        name: 'Fulano',
+                        email: 'fulano@cms.sp.gov.br',
+                        course: null,
+                        semester: null,
+                        ra: null,
+                        eventId: 1,
+                    })
+                }))
+
+        it('PATCH /apiEvents/participants/patch/1 → 200 & update', () =>
+            request(server)
+                .patch('/apiEvents/participants/patch/1')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ isPresent: true })
+                .expect(200)
+                .expect(res => {
+                    expect(participantsStub.update).toHaveBeenCalledWith(1, { isPresent: true })
+                }))
     });
 
     describe('Error Cases', () => {
@@ -696,5 +763,44 @@ describe('Application Tests - (e2e)', () => {
                 .expect(() => {
                     expect(eventsStub.getAvailableTimes).toHaveBeenCalledWith('AUDITORIO', undefined, undefined);
                 }));
+
+        it('POST /apiEvents/participants/create dup → 409', () => {
+            participantsStub.create.mockRejectedValueOnce(
+                new ConflictException('Participante duplicado'),
+            )
+            return request(server)
+                .post('/apiEvents/participants/create')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({
+                    name: 'Fulano',
+                    email: 'fulano@cms.sp.gov.br',
+                    course: null,
+                    semester: null,
+                    ra: null,
+                    eventId: 1,
+                })
+                .expect(409, {
+                    statusCode: 409,
+                    message: 'Participante duplicado',
+                    error: 'Conflict',
+                })
+        })
+
+        it('PATCH /apiEvents/participants/patch/99 not found → 404', () => {
+            participantsStub.update.mockRejectedValueOnce(
+                new NotFoundException('Participante 99 não encontrado.'),
+            )
+            return request(server)
+                .patch('/apiEvents/participants/patch/99')
+                .set('Cookie', csrfCookie)
+                .set('X-CSRF-Token', csrfToken)
+                .send({ isPresent: true })
+                .expect(404, {
+                    statusCode: 404,
+                    message: 'Participante 99 não encontrado.',
+                    error: 'Not Found',
+                })
+        })
     });
 });
