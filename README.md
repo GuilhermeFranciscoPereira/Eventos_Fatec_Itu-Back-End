@@ -26,14 +26,9 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Criado a tabela de Participant 
-### `./src/modules/participants:` Módulo dedicado ao fluxo completo de inscrição e controle de presença de participantes em eventos
-### `./src/modules/participants/dto:` Contém os Data Transfer Objects (CreateParticipantDto, UpdateParticipantDto e ParticipantResponseDto) que definem a forma dos dados de entrada e saída nas operações de participantes
-### `./src/modules/participants/participants.controller.ts:` Expõe os endpoints de cadastro (POST /participants/create) e de atualização de presença (PATCH /participants/patch/:id), aplica JwtAuthGuard e RolesGuard para ADMIN, COORDENADOR e AUXILIAR, e marca a rota de criação como pública
-### `./src/modules/participants/participants.controller.spec.ts:` Conjunto de testes de integração que valida cadastro público, tentativas de acesso sem autenticação e atualização de presença autorizada
-### `./src/modules/participants/participants.service.ts:` Encapsula toda a lógica de negócio de inscrição e presença, incluindo verificação de e-mail e RA duplicados por evento, validação de domínio institucional, incremento do contador de participantes, persistência do registro e envio de e-mail de confirmação
-### `./src/modules/participants/participants.service.spec.ts:` Testes unitários do serviço, cobrindo cenários de conflito de e-mail/RA, criação de participante, atualização de presença e disparo de e-mail de confirmação
-### `./src/modules/participants/participants.module.ts:` Configura o módulo de participantes importando PrismaModule, declarando ParticipantsService e EmailService como providers, e registrando ParticipantsController como controller
+### `./src/modules/participants/participants.controller.ts:` Criado a rota GET `event/:id` para possibilitar pegar todos os participantes de um determinado evento
+
+### `./src/modules/participants/participants.service.ts:` Parte lógica para trazer os participantes de um determinado evento
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

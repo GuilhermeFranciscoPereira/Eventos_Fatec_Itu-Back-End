@@ -15,6 +15,11 @@ import { Controller, Post, Body, Get, Param, Patch, UseGuards, HttpCode, ParseIn
 export class ParticipantsController {
   constructor(private readonly participantsService: ParticipantsService) { }
 
+  @Get('event/:id')
+  async findByEvent(@Param('id', ParseIntPipe) eventId: number): Promise<ParticipantResponseDto[]> {
+    return this.participantsService.findByEvent(eventId);
+  }
+
   @Public()
   @Post('create')
   @HttpCode(201)

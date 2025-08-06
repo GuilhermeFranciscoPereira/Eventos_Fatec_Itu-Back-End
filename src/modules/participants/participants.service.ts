@@ -12,6 +12,13 @@ export class ParticipantsService {
     private readonly emailService: EmailService,
   ) { }
 
+  async findByEvent(eventId: number): Promise<Participant[]> {
+    return this.prisma.participant.findMany({
+      where: { eventId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async create(dto: CreateParticipantDto): Promise<Participant> {
     const existsByEmail = await this.prisma.participant.findFirst({ where: { eventId: dto.eventId, email: dto.email } });
     if (existsByEmail) throw new ConflictException('Participante com este e-mail já inscrito neste evento.');

@@ -26,22 +26,9 @@
 
 ## 🛎️ Updates to this commit
 
+### `./src/modules/participants/participants.controller.ts:` Created the GET `event/:id` route to allow retrieving all participants of a given event
 
-### `./prisma/schema.prisma:` Created the Participant table
-
-### `./src/modules/participants:` Module dedicated to the complete flow of participant registration and attendance control in events
-
-### `./src/modules/participants/dto:` Contains the Data Transfer Objects (CreateParticipantDto, UpdateParticipantDto, and ParticipantResponseDto) that define the format of input and output data in participant operations
-
-### `./src/modules/participants/participants.controller.ts:` Exposes the registration (POST /participants/create) and attendance update (PATCH /participants/patch/:id) endpoints, applies JwtAuthGuard and RolesGuard for ADMIN, COORDINATOR, and AUXILIARY, and marks the creation route as public
-
-### `./src/modules/participants/participants.controller.spec.ts:` Integration test suite that validates public registration, access attempts without authentication, and authorized attendance updates
-
-### `./src/modules/participants/participants.service.ts:` Encapsulates all registration and attendance business logic, including checking for duplicate email and RA per event, institutional domain validation, incrementing the participant counter, registration persistence, and sending confirmation emails
-
-### `./src/modules/participants/participants.service.spec.ts:` Unit tests of the service, covering email/RA conflict scenarios, participant creation, attendance updates, and sending confirmation emails
-
-### `./src/modules/participants/participants.module.ts:` Configures the participants module by importing PrismaModule, declaring ParticipantsService and EmailService as providers, and registering ParticipantsController as controller
+### `./src/modules/participants/participants.service.ts:` Logical part to retrieve the participants of a given event
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
