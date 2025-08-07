@@ -26,9 +26,11 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/participants/participants.controller.ts:` Criado a rota GET `event/:id` para possibilitar pegar todos os participantes de um determinado evento
+### `./prisma/schema.prisma:` Adicionado o campo "imageUrl" para a tabela de User, campo opcional que libera a url da cloudinary para a imagem do usuário
 
-### `./src/modules/participants/participants.service.ts:` Parte lógica para trazer os participantes de um determinado evento
+### `./src/modules/Auth:` Pequenas alterações na dto response, no controller e no service para permitir que retorne também o imageUrl para o front e que traga o nome, email e a imagem atualizados do back-end.
+
+### `./src/modules/Users:` Importado o Cloudinary para permitir excluir e adicionar a imagem do perfil do usuário, criado uma nova rota: `/users/profile` que é uma rota PATCH que permite trocar o nome e a foto de perfil do usuário.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

@@ -27,14 +27,14 @@ export class AuthController {
   @HttpCode(200)
   async me(@Req() req: any & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response): Promise<MeResponseDto> {
     try {
-      return this.authService.getMe(req) as MeResponseDto;
+      return this.authService.getMe(req) as Promise<MeResponseDto>;
     } catch (err: any) {
       if (err.message.includes('expirado') && req.cookies['refresh_token']) {
         const { accessToken, refreshToken } = await this.authService.refreshTokens(req.cookies['refresh_token']);
         setCookie(res, 'access_token', accessToken, 15 * 60 * 1000);
         setCookie(res, 'refresh_token', refreshToken, 24 * 60 * 60 * 1000);
         req.cookies['access_token'] = accessToken; req.cookies['refresh_token'] = refreshToken;
-        return this.authService.getMe(req) as MeResponseDto;
+        return this.authService.getMe(req) as Promise<MeResponseDto>;
       }
       throw err;
     }

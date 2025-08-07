@@ -5,13 +5,18 @@ import { CreateDto } from './dto/create-auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserResponseDto } from './dto/user-response.dto';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
   private readonly pepper: string;
 
-  constructor(private readonly prisma: PrismaService, private readonly config: ConfigService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinary: CloudinaryService,
+    private readonly config: ConfigService
+  ) {
     this.pepper = this.config.getOrThrow<string>('PASSWORD_PEPPER');
   }
 
@@ -26,6 +31,30 @@ export class UsersService {
       const diffRole = ROLE_PRIORITY[a.role] - ROLE_PRIORITY[b.role];
       if (diffRole !== 0) return diffRole;
       return b.createdAt.getTime() - a.createdAt.getTime();
+    });
+  }
+
+  async updatePersonalProfile(id: number, dto: UpdateUserDto, file?: Express.Multer.File) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Usuário não encontrado.');
+
+    let imageUrl = user.imageUrl;
+
+    if (file) {
+      if (user.imageUrl) {
+        const parts = user.imageUrl.split('/');
+        const publicId = parts.slice(-2).join('/').split('.')[0];
+        await this.cloudinary.deleteFile(publicId);
+      }
+
+      const uploadResult = await this.cloudinary.uploadFile(file);
+      imageUrl = uploadResult.secure_url
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { name: dto.name ?? user.name, imageUrl },
+      select: { id: true, name: true, email: true, role: true, imageUrl: true, createdAt: true, updatedAt: true },
     });
   }
 

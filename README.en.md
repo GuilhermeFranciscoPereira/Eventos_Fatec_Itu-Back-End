@@ -26,9 +26,11 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/participants/participants.controller.ts:` Created the GET `event/:id` route to allow retrieving all participants of a given event
+### `./prisma/schema.prisma:` Added the "imageUrl" field to the User table, an optional field that returns the Cloudinary URL for the user's image.
 
-### `./src/modules/participants/participants.service.ts:` Logical part to retrieve the participants of a given event
+### `./src/modules/Auth:` Minor changes to the dto response, controller, and service to allow it to also return the imageUrl to the frontend and bring the updated name, email, and image from the backend.
+
+### `./src/modules/Users:` Imported Cloudinary to allow deleting and adding the user's profile image. Created a new route: `/users/profile`, which is a PATCH route that allows changing the user's name and profile picture.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

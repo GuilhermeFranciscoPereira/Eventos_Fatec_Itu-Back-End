@@ -94,14 +94,15 @@ export class AuthService {
     return true;
   }
 
-  getMe(req: Request & { cookies: Record<string, string> }) {
+  async getMe(req: Request & { cookies: Record<string, string> }) {
     try {
       const accessToken = req.cookies['access_token'];
       const refreshToken = req.cookies['refresh_token'];
 
-      const payload = this.jwtService.verify(accessToken) as JwtPayload & {
+      const payload = await this.jwtService.verify(accessToken) as JwtPayload & {
         sub: number;
         email: string;
+        imageUrl: string;
         name: string;
         role: string;
         exp: number;
@@ -116,10 +117,17 @@ export class AuthService {
         if (r.iat) { refreshTokenIat = r.iat };
       }
 
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { name: true, email: true, imageUrl: true },
+      });
+      if (!user) throw new UnauthorizedException('Usuário não encontrado');
+
       return {
         sub: payload.sub,
-        name: payload.name,
-        email: payload.email,
+        name: user.name,
+        imageUrl: user.imageUrl,
+        email: user.email,
         role: payload.role,
         exp: payload.exp,
         iat: payload.iat,
