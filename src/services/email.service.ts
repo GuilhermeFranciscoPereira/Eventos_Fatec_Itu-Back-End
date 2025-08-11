@@ -25,9 +25,9 @@ export class EmailService implements OnModuleInit {
     } as SMTPTransport.Options);
   }
 
-  async send(to: string, subject: string, html: string) {
+  async send(to: string, subject: string, html: string, attachments?: Array<{ filename: string; content: Buffer; contentType?: string }>) {
     try {
-      await this.transporter.sendMail({ from: this.config.get<string>('MAIL_FROM'), to, subject, html });
+      await this.transporter.sendMail({ from: this.config.get<string>('MAIL_FROM'), to, subject, html, attachments });
     } catch (err: any) {
       throw new InternalServerErrorException(`Falha ao enviar e-mail! \nErro: ${err.message}`);
     }

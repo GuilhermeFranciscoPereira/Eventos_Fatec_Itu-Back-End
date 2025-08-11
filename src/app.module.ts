@@ -9,6 +9,7 @@ import { CarouselModule } from './modules/carousel/carousel.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ParticipantsModule } from './modules/participants/participants.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ParticipantsModule } from './modules/participants/participants.module';
     CarouselModule,
     EventsModule,
     ParticipantsModule,
+    CertificatesModule,
   ],
   controllers: [CsrfController]
 })

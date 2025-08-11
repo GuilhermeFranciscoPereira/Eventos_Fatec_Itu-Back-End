@@ -26,11 +26,21 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Adicionado o campo "imageUrl" para a tabela de User, campo opcional que libera a url da cloudinary para a imagem do usuário
+### `./prisma/schema.prisma:` Criado o campo certificateSent para rastrear quem já recebeu o certificado em PDF.
 
-### `./src/modules/Auth:` Pequenas alterações na dto response, no controller e no service para permitir que retorne também o imageUrl para o front e que traga o nome, email e a imagem atualizados do back-end.
+### `./package.json:` Adicionado a biblioteca pdfkit para gerar o PDF de certificado dos alunos
+### Comando utilizado:
+```bash
+npm i pdfkit @types/pdfkit
+```
 
-### `./src/modules/Users:` Importado o Cloudinary para permitir excluir e adicionar a imagem do perfil do usuário, criado uma nova rota: `/users/profile` que é uma rota PATCH que permite trocar o nome e a foto de perfil do usuário.
+### `./src/modules/certificates:` Módulo responsável por armazenar e exportar a lógica de envio de certificado para os alunos que estão como presentes no evento.
+
+### `./src/modules/certificates/certificates.module.ts:` Importa o ScheduleModule.forRoot() e o PrismaModule e exporta o service para ser utilizado em outros locais do código
+
+### `./src/modules/certificates/certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior
+
+### `./src/services/email.service.ts:` Adicionado a opção de ao enviar e-mail receber um aexo, adicionado no momento para o PDF de certificado ao aluno.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -102,6 +112,10 @@
     - `categories.service.ts:` Implementa a lógica de negócio das categorias — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Category.
     - `categories.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CategoriesService.
     - `categories.module.ts:` Arquivo de montagem do módulo de categorias, importando o PrismaModule e registrando o CategoriesService e CategoriesController no contexto do NestJS.
+
+  - `certificates:` Módulo responsável por armazenar e exportar a lógica de envio de certificado para os alunos que estão como presentes no evento.
+    - `certificates.module.ts:` Importa o ScheduleModule.forRoot() e o PrismaModule e exporta o service para ser utilizado em outros locais do código
+    - `certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior
 
   - `cloudinary:` Exporta a opção de inserir ou remover fotos da cloudinary - ( serviço gratuito para salvar imagens, recomendo: https://cloudinary.com)
     - `cloudinary.module.ts:` Importa o nosso provider e service e exporta o service para ser utilizado em outros locais do código

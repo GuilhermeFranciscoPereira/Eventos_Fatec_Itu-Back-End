@@ -26,11 +26,23 @@
 
 ## 🛎️ Updates to this commit
 
-### `./prisma/schema.prisma:` Added the "imageUrl" field to the User table, an optional field that returns the Cloudinary URL for the user's image.
+### `./prisma/schema.prisma:` Created the certificateSent field to track who has already received the PDF certificate.
 
-### `./src/modules/Auth:` Minor changes to the dto response, controller, and service to allow it to also return the imageUrl to the frontend and bring the updated name, email, and image from the backend.
+### `./package.json:` Added the pdfkit library to generate PDF certificates for students.
+### Command used:
+```bash
+npm i pdfkit @types/pdfkit
+```
 
-### `./src/modules/Users:` Imported Cloudinary to allow deleting and adding the user's profile image. Created a new route: `/users/profile`, which is a PATCH route that allows changing the user's name and profile picture.
+### `./src/modules/certificates:` Module responsible for storing and exporting the logic for sending certificates to students attending the event.
+
+### `./src/modules/certificates/certificates.module.ts:` Imports ScheduleModule.forRoot() and PrismaModule and exports the service for use elsewhere in the code
+
+### `./src/modules/certificates/certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events
+
+### `./src/services/email.service.ts:` Added the option to receive an attachment when sending an email, currently added for the PDF certificate to the student.
+
+git commit -m "feat(modules/certificates): responsible for storing and exporting the logic for sending certificates to students attending the event"
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -99,6 +111,11 @@
         - `categories.controller.spec.ts:` Controller integration tests, ensuring that each route correctly forwards calls to the CategoriesService and returns the expected HTTP codes. - `categories.service.ts:` Implements the business logic of categories — interacts with PrismaClient to search for, insert, modify, and delete records in the Category table.
         - `categories.service.spec.ts:` Unit test suite for the service, covering success and failure scenarios for each method exposed by CategoriesService.
         - `categories.module.ts:` Assembly file for the categories module, importing PrismaModule and registering CategoriesService and CategoriesController in the NestJS context.
+    
+    - `certificates:` Module responsible for storing and exporting the logic for sending certificates to students who attended the event.
+        - `certificates.module.ts:` Imports ScheduleModule.forRoot() and PrismaModule and exports the service for use elsewhere in the code.
+        - `certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events.
+    
     - `cloudinary:` Exports the option to insert or remove photos from Cloudinary (free service for saving images, I recommend: https://cloudinary.com)
         - `cloudinary.module.ts:` Imports our provider and service and exports the service for use elsewhere in the code
         - `cloudinary.provider.ts:` Configures the connection to Cloudinary
