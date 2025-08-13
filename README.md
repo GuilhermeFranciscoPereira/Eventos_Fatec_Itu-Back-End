@@ -26,21 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Criado o campo certificateSent para rastrear quem já recebeu o certificado em PDF.
-
-### `./package.json:` Adicionado a biblioteca pdfkit para gerar o PDF de certificado dos alunos
-### Comando utilizado:
-```bash
-npm i pdfkit @types/pdfkit
-```
-
-### `./src/modules/certificates:` Módulo responsável por armazenar e exportar a lógica de envio de certificado para os alunos que estão como presentes no evento.
-
-### `./src/modules/certificates/certificates.module.ts:` Importa o ScheduleModule.forRoot() e o PrismaModule e exporta o service para ser utilizado em outros locais do código
-
-### `./src/modules/certificates/certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior
-
-### `./src/services/email.service.ts:` Adicionado a opção de ao enviar e-mail receber um aexo, adicionado no momento para o PDF de certificado ao aluno.
+### `./src/modules/auth:` Alterado nas rotas de me para corrigir o fato de que não estava fazendo o refresh do usuário após esgotar o tempo de acesso
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

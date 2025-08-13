@@ -8,7 +8,4 @@ export class MeResponseDto {
     role: Role;
     exp: number;
     iat: number;
-    refreshToken?: string;
-    refreshTokenExp?: number;
-    refreshTokenIat?: number;
 }

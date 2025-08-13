@@ -19,6 +19,9 @@ function setCookie(res: Response, name: string, value: string, maxAge: number): 
   });
 }
 
+const ACCESS_COOKIE = process.env.ACCESS_COOKIE_NAME || '';
+const REFRESH_COOKIE = process.env.REFRESH_COOKIE_NAME || '';
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) { }
@@ -27,14 +30,15 @@ export class AuthController {
   @HttpCode(200)
   async me(@Req() req: any & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response): Promise<MeResponseDto> {
     try {
-      return this.authService.getMe(req) as Promise<MeResponseDto>;
+      return await this.authService.getMe(req) as unknown as Promise<MeResponseDto>;
     } catch (err: any) {
-      if (err.message.includes('expirado') && req.cookies['refresh_token']) {
-        const { accessToken, refreshToken } = await this.authService.refreshTokens(req.cookies['refresh_token']);
-        setCookie(res, 'access_token', accessToken, 15 * 60 * 1000);
-        setCookie(res, 'refresh_token', refreshToken, 24 * 60 * 60 * 1000);
-        req.cookies['access_token'] = accessToken; req.cookies['refresh_token'] = refreshToken;
-        return this.authService.getMe(req) as Promise<MeResponseDto>;
+      if (err.message.includes('expirado') && req.cookies[REFRESH_COOKIE]) {
+        const { accessToken, refreshToken } = await this.authService.refreshTokens(req.cookies[REFRESH_COOKIE]);
+        setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000); // 15 Minutes
+        setCookie(res, REFRESH_COOKIE, refreshToken, 3 * 24 * 60 * 60 * 1000); // 3 Days
+        req.cookies[ACCESS_COOKIE] = accessToken;
+        req.cookies[REFRESH_COOKIE] = refreshToken;
+        return await this.authService.getMe(req) as unknown as Promise<MeResponseDto>;
       }
       throw err;
     }
@@ -43,10 +47,10 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: any & {user: {userId: number}}, @Res({ passthrough: true }) res: Response) {
+  async logout(@Req() req: any & { user: { userId: number } }, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(req.user.userId);
-    res.clearCookie('access_token', { path: '/', domain: process.env.COOKIE_DOMAIN, sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const) });
-    res.clearCookie('refresh_token', { path: '/', domain: process.env.COOKIE_DOMAIN, sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const) });
+    res.clearCookie(ACCESS_COOKIE, { path: '/', domain: process.env.COOKIE_DOMAIN, sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const) });
+    res.clearCookie(REFRESH_COOKIE, { path: '/', domain: process.env.COOKIE_DOMAIN, sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const) });
     return { message: 'Deslogado com sucesso!' };
   }
 
@@ -64,8 +68,8 @@ export class AuthController {
     const tmpToken = req.cookies['2fa_token']; if (!tmpToken) throw new UnauthorizedException('Token expirado, solicite novamente!');
     const { accessToken, refreshToken } = await this.authService.login(dto.code, tmpToken);
     if (accessToken) res.clearCookie('2fa_token', { path: '/auth' });
-    setCookie(res, 'access_token', accessToken, 15 * 60 * 1000);
-    setCookie(res, 'refresh_token', refreshToken, 24 * 60 * 60 * 1000);
+    setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000); // 15 Minutes
+    setCookie(res, REFRESH_COOKIE, refreshToken, 3 * 24 * 60 * 60 * 1000); // 3 Days
     return { message: 'Autenticado com 2FA' };
   }
 

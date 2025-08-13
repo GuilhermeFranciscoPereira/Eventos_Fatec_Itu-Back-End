@@ -26,23 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./prisma/schema.prisma:` Created the certificateSent field to track who has already received the PDF certificate.
-
-### `./package.json:` Added the pdfkit library to generate PDF certificates for students.
-### Command used:
-```bash
-npm i pdfkit @types/pdfkit
-```
-
-### `./src/modules/certificates:` Module responsible for storing and exporting the logic for sending certificates to students attending the event.
-
-### `./src/modules/certificates/certificates.module.ts:` Imports ScheduleModule.forRoot() and PrismaModule and exports the service for use elsewhere in the code
-
-### `./src/modules/certificates/certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events
-
-### `./src/services/email.service.ts:` Added the option to receive an attachment when sending an email, currently added for the PDF certificate to the student.
-
-git commit -m "feat(modules/certificates): responsible for storing and exporting the logic for sending certificates to students attending the event"
+### `./src/modules/auth:` Changed in me routes to fix the fact that it was not refreshing the user after the access timed out
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

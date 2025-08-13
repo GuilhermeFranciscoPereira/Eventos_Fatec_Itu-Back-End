@@ -5,14 +5,16 @@ import { createHmac, randomInt } from 'crypto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../../services/email.service';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtPayload, sign as jwtSign, verify as jwtVerify } from 'jsonwebtoken';
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
   private readonly pepper: string;
   private readonly hashSecret: string;
   private readonly refreshSecret: string;
+  private readonly ACCESS_COOKIE: string;
+  private readonly REFRESH_COOKIE: string;
 
   constructor(
     private prisma: PrismaService,
@@ -23,6 +25,8 @@ export class AuthService {
     this.pepper = this.config.getOrThrow<string>('PASSWORD_PEPPER');
     this.hashSecret = this.config.getOrThrow<string>('TOKEN_HASH_SECRET');
     this.refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
+    this.ACCESS_COOKIE = this.config.getOrThrow<string>('ACCESS_COOKIE_NAME');
+    this.REFRESH_COOKIE = this.config.getOrThrow<string>('REFRESH_COOKIE_NAME');
   }
 
   async logout(userId: number) {
@@ -37,10 +41,9 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('Senha inválida');
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    console.log(code)
     const tmpToken = this.jwtService.sign({ sub: user.id, code }, { expiresIn: '15m' });
     const emailBodyMessage = this.tokenMessageEmail(user.name, code, '2fa');
-    await this.emailService.send(user.email, 'Seu código de autenticação em dois fatores', emailBodyMessage);
+    this.emailService.send(user.email, 'Seu código de autenticação em dois fatores', emailBodyMessage);
 
     return tmpToken;
   }
@@ -60,7 +63,7 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshToken = jwtSign(payload, this.refreshSecret, { algorithm: 'HS256', expiresIn: '7d' });
+    const refreshToken = jwtSign(payload, this.refreshSecret, { algorithm: 'HS256', expiresIn: '3d' });
 
     await this.prisma.refreshToken.updateMany({
       where: { userId: user.id, isRevoked: false },
@@ -97,8 +100,8 @@ export class AuthService {
 
   async getMe(req: Request & { cookies: Record<string, string> }) {
     try {
-      const accessToken = req.cookies['access_token'];
-      const refreshToken = req.cookies['refresh_token'];
+      const accessToken = req.cookies[this.ACCESS_COOKIE];
+      const refreshToken = req.cookies[this.REFRESH_COOKIE];
 
       const payload = await this.jwtService.verify(accessToken) as JwtPayload & {
         sub: number;
@@ -131,10 +134,7 @@ export class AuthService {
         email: user.email,
         role: payload.role,
         exp: payload.exp,
-        iat: payload.iat,
-        refreshToken,
-        refreshTokenExp,
-        refreshTokenIat,
+        iat: payload.iat
       };
     } catch {
       throw new UnauthorizedException('Token inválido ou expirado!');
@@ -180,7 +180,7 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(jwtPayload, { expiresIn: '15m' });
-    const refreshToken = jwtSign(jwtPayload, this.refreshSecret, { algorithm: 'HS256', expiresIn: '7d' });
+    const refreshToken = jwtSign(jwtPayload, this.refreshSecret, { algorithm: 'HS256', expiresIn: '3d' });
     const newHash = createHmac('sha256', this.hashSecret).update(refreshToken).digest('hex');
 
     await this.prisma.$transaction([
