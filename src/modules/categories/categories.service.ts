@@ -3,10 +3,19 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { CategoryPublicResponseDto } from './dto/category-public-response.dto';
 
 @Injectable()
 export class CategoriesService {
   constructor(private readonly prisma: PrismaService) { }
+
+  async findAllPublic(): Promise<CategoryPublicResponseDto[]> {
+    return this.prisma.category.findMany({
+      select: { name: true, id: true },
+      where: { Event: { some: { startDate: { gte: new Date() } } } },
+      orderBy: { name: 'asc' },
+    });
+  }
 
   async findAll(): Promise<Category[]> {
     return this.prisma.category.findMany({

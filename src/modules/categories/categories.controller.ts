@@ -1,11 +1,13 @@
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../../guards/roles.guard';
+import { Public } from 'src/decorators/public.decorator';
 import { CategoriesService } from './categories.service';
 import { Roles } from '../../decorators/roles.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
+import { CategoryPublicResponseDto } from './dto/category-public-response.dto';
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards, HttpCode } from '@nestjs/common';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,6 +15,12 @@ import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGua
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) { }
+
+  @Public()
+  @Get('publicAllCategories')
+  async findAllPublic(): Promise<CategoryPublicResponseDto[]> {
+    return this.categoriesService.findAllPublic();
+  }
 
   @Get()
   async findAll(): Promise<CategoryResponseDto[]> {

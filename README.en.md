@@ -26,7 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/auth:` Changed in me routes to fix the fact that it was not refreshing the user after the access timed out
+### `./src/modules/categories:` Created the route: publicAllCategories that allows unauthenticated users to view event categories that have at least 1 event, to perform filters on the front.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

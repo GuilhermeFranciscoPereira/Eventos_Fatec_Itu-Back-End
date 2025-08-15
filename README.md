@@ -26,7 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/auth:` Alterado nas rotas de me para corrigir o fato de que não estava fazendo o refresh do usuário após esgotar o tempo de acesso
+### `./src/modules/categories:` Criado a rota: publicAllCategories que permite aos usuários não autenticados visualizarem as categorias de eventos que possuem pelo menos 1 evento, para realizar filtros no front.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
