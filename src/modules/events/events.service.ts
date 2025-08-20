@@ -25,10 +25,8 @@ export class EventsService {
     return this.prisma.event.findMany({
       where: { startTime: { gt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000) } },
       select: { id: true, name: true, description: true, imageUrl: true, course: true, semester: true, maxParticipants: true, currentParticipants: true, isRestricted: true, location: true, customLocation: true, speakerName: true, startDate: true, startTime: true, endTime: true, duration: true, categoryId: true },
-      orderBy: {
-        startTime: 'asc',
-      },
-    });
+      orderBy: { startTime: 'asc' },
+    }).then(events => events.filter(e => e.currentParticipants < e.maxParticipants));
   }
 
   async findAll() {

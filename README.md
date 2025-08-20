@@ -26,7 +26,9 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/categories:` Criado a rota: publicAllCategories que permite aos usuários não autenticados visualizarem as categorias de eventos que possuem pelo menos 1 evento, para realizar filtros no front.
+### `./src/modules/events/events.service.ts:` Alterado a função `findAllPublic` para além de retornar somente os eventos que ainda não iniciaram para também somente os eventos que já não estão mais cheios ( Número máximo de participantes )
+
+### `./src/modules/participants/participants.service.ts:` Alterado a função `create` para somente registrar se o número de participantes máximos não tiverem sido batidos
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

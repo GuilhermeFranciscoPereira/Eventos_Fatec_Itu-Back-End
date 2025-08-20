@@ -26,7 +26,9 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/categories:` Created the route: publicAllCategories that allows unauthenticated users to view event categories that have at least 1 event, to perform filters on the front.
+### `./src/modules/events/events.service.ts:` Changed the `findAllPublic` function to return only events that haven't started yet, and also only events that are no longer full (maximum number of participants).
+
+### `./src/modules/participants/participants.service.ts:` Changed the `create` function to only register if the maximum number of participants hasn't been reached.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

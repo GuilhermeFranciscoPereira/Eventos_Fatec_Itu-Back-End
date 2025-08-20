@@ -28,17 +28,22 @@ export class ParticipantsService {
       if (existsByRa) throw new ConflictException('Participante com este RA já inscrito neste evento.');
     }
 
-    await this.prisma.event.update({
-      where: { id: dto.eventId },
+    const event = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
+    if (!event) throw new NotFoundException(`Evento ${dto.eventId} não encontrado.`);
+
+    const updated = await this.prisma.event.updateMany({
+      where: { id: dto.eventId, currentParticipants: { lt: event?.maxParticipants } },
       data: { currentParticipants: { increment: 1 } },
     });
 
-    const participant = await this.prisma.participant.create({ data: dto });
-    const event = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
-    if (event) {
-      const html = this.buildConfirmationEmail(participant.name, event);
-      await this.emailService.send(participant.email, 'Confirmação de inscrição', html);
+    if (updated.count === 0) {
+      throw new ConflictException('Sentimos muito mas este evento já atingiu o limite de participantes e não é possível se inscrever nele. Sentimos muito por isso!');
     }
+
+    const participant = await this.prisma.participant.create({ data: dto });
+
+    const html = this.buildConfirmationEmail(participant.name, event);
+    await this.emailService.send(participant.email, 'Confirmação de inscrição', html);
     return participant;
   }
 
