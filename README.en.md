@@ -26,9 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/events/events.service.ts:` Changed the `findAllPublic` function to return only events that haven't started yet, and also only events that are no longer full (maximum number of participants).
-
-### `./src/modules/participants/participants.service.ts:` Changed the `create` function to only register if the maximum number of participants hasn't been reached.
+### `./prisma/schema.prisma:` Added the options for the course and semester enum to have "all" which represents all courses or semesters
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

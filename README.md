@@ -26,9 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/events/events.service.ts:` Alterado a função `findAllPublic` para além de retornar somente os eventos que ainda não iniciaram para também somente os eventos que já não estão mais cheios ( Número máximo de participantes )
-
-### `./src/modules/participants/participants.service.ts:` Alterado a função `create` para somente registrar se o número de participantes máximos não tiverem sido batidos
+### `./prisma/schema.prisma:` Adicionado as opções de o enum de curso e semestre possuirem "all" que representam todos os cursos ou semestres 
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
