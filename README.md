@@ -26,7 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/participants/participants.service.ts:` Adicionado na função de `create` a validação de se a pessoa que está se registrando é do mesmo curso e semestre do evento ( caso o evento possua uma restrição à cursos ou semestres )
+### `./src/modules/categories/categories.service.ts:` Corrigido a função `findAllPublic` onde trazia correto só as categorias que possuissem pelo menos 1 evento, porém, caso o evento ficasse com o máximo de participantes e não fosse possível de ver no front ele ainda trazia a categoria para o filtro do front, corrigido isso.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

@@ -26,7 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/participants/participants.service.ts:` Added to the `create` function the validation of whether the person registering is from the same course and semester as the event (if the event has a restriction on courses or semesters)
+### `./src/modules/categories/categories.service.ts:` Fixed the `findAllPublic` function where it correctly only brought categories that had at least 1 event, however, if the event had the maximum number of participants and it was not possible to see it on the front, it still brought the category to the front filter, fixed that.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

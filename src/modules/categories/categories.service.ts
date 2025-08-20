@@ -11,10 +11,13 @@ export class CategoriesService {
 
   async findAllPublic(): Promise<CategoryPublicResponseDto[]> {
     return this.prisma.category.findMany({
-      select: { name: true, id: true },
-      where: { Event: { some: { startDate: { gte: new Date() } } } },
-      orderBy: { name: 'asc' },
-    });
+      select: {
+        id: true, name: true, Event: { where: { startDate: { gte: new Date() } }, select: { id: true, currentParticipants: true, maxParticipants: true } },
+      }, orderBy: { name: 'asc' },
+    }).then(rows => rows
+      .filter(c => c.Event.some(e => e.currentParticipants < e.maxParticipants))
+      .map(({ id, name }) => ({ id, name }))
+    );
   }
 
   async findAll(): Promise<Category[]> {
