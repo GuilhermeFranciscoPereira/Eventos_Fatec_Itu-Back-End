@@ -26,7 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./prisma/schema.prisma:` Added the options for the course and semester enum to have "all" which represents all courses or semesters
+### `./src/modules/participants/participants.service.ts:` Added to the `create` function the validation of whether the person registering is from the same course and semester as the event (if the event has a restriction on courses or semesters)
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

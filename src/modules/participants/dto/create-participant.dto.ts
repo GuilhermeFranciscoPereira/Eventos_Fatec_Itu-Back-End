@@ -16,10 +16,12 @@ export class CreateParticipantDto {
 
     @IsOptional()
     @IsEnum(Course, { message: 'Curso inválido' })
+    @IsNotEmpty({ message: 'Selecione o seu curso' })
     course!: Course;
-
+    
     @IsOptional()
     @IsEnum(Semester, { message: 'Semestre inválido' })
+    @IsNotEmpty({ message: 'Selecione o seu semestre' })
     semester!: Semester;
 
     @IsOptional()

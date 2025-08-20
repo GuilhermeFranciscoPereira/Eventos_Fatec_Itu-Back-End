@@ -26,7 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Adicionado as opções de o enum de curso e semestre possuirem "all" que representam todos os cursos ou semestres 
+### `./src/modules/participants/participants.service.ts:` Adicionado na função de `create` a validação de se a pessoa que está se registrando é do mesmo curso e semestre do evento ( caso o evento possua uma restrição à cursos ou semestres )
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

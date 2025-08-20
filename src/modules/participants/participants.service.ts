@@ -31,8 +31,21 @@ export class ParticipantsService {
     const event = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
     if (!event) throw new NotFoundException(`Evento ${dto.eventId} não encontrado.`);
 
+    if (event.isRestricted) {
+      if (event.course !== 'ALL') {
+        if (!dto.course || dto.course !== event.course) {
+          throw new ConflictException('Este evento é restrito e não disponível ao seu curso.');
+        }
+      }
+      if (event.semester !== 'ALL') {
+        if (!dto.semester || dto.semester !== event.semester) {
+          throw new ConflictException('Este evento é restrito e não disponível ao seu semestre.');
+        }
+      }
+    }
+
     const updated = await this.prisma.event.updateMany({
-      where: { id: dto.eventId, currentParticipants: { lt: event?.maxParticipants } },
+      where: { id: dto.eventId, currentParticipants: { lt: event.maxParticipants } },
       data: { currentParticipants: { increment: 1 } },
     });
 
