@@ -23,6 +23,7 @@ export class EventsController {
     return this.eventService.findAllPublic();
   }
 
+  @Roles(Role.ADMIN, Role.COORDENADOR, Role.AUXILIAR)
   @Get()
   async findAll(): Promise<EventResponseDto[]> {
     return this.eventService.findAll();
@@ -35,7 +36,6 @@ export class EventsController {
   }
 
   @Post('create')
-  @Roles(Role.ADMIN, Role.COORDENADOR)
   @UseInterceptors(FileInterceptor('image'))
   @HttpCode(201)
   async create(@Body() dto: CreateEventDto, @UploadedFile() file: Express.Multer.File): Promise<EventResponseDto> {
@@ -43,14 +43,12 @@ export class EventsController {
   }
 
   @Patch('patch/:id')
-  @Roles(Role.ADMIN, Role.COORDENADOR)
   @UseInterceptors(FileInterceptor('image'))
   async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateEventDto, @UploadedFile() file?: Express.Multer.File): Promise<EventResponseDto> {
     return this.eventService.update(id, dto, file);
   }
 
   @Delete('delete/:id')
-  @Roles(Role.ADMIN, Role.COORDENADOR)
   @HttpCode(200)
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.eventService.remove(id);

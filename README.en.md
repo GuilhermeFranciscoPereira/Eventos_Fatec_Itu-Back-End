@@ -26,7 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/categories/categories.service.ts:` Fixed the `findAllPublic` function where it correctly only brought categories that had at least 1 event, however, if the event had the maximum number of participants and it was not possible to see it on the front, it still brought the category to the front filter, fixed that.
+### `./src/modules/events/events.controller.ts:` Released in the GET route in the findAll function the users authenticated as auxiliary, remaining the administrators, coordinators and adding the auxiliary only in this route
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
