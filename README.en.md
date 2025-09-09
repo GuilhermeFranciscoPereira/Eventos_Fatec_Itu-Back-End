@@ -12,11 +12,11 @@
 
 ## 📌 About the project
 
-### This system was developed so that events at Fatec Itu - Dom Amaury College can be streamed. Castanho could have a more practical registration method, making it easier for students, outsiders, and event organizers. Clearly, this system is also used by event organizers for management, monitoring, etc.
+### This system was developed to make registration for events at Faculdade Fatec Itu - Dom Amaury Castanho more practical, streamlining the process for both students and external participants. It is also used by coordinators and organizers for event management, enabling participant tracking, automated issuance of valid certificates, and other features that streamline administration.
 
-### 👥 This system is being created by: Guilherme Francisco Pereira as a final project development / Real system
+### 👥 The system is being developed by Guilherme Francisco Pereira as part of his Final Project (TCC), with real-world application and practical use.
 
-### ✨ Interesting fact!! This is the only student-developed system that is implemented and used by the college, both by students and professors, coordinators, and more!
+### ✨ Interesting fact: this is one of the systems developed exclusively by students that is already implemented and used by the college, benefiting students, professors, coordinators, and others involved!
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&color=40E0D0&height=120&section=footer"/>
 
@@ -26,9 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./prisma/prisma.schema:` Added indexes to speed up database queries, making searches and filters faster. It also helps ensure efficiency and consistency in frequently used columns in WHERE, ORDER BY, and JOIN statements. It also adds field size restrictions.
-
-### `./src/modules/dto:` Standardize validation messages in pt-BR
+### `./README:` Rewritten the content of the (📌 About the project) section of this documentation
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

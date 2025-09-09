@@ -12,11 +12,11 @@
 
 ## 📌 Sobre o projeto
 
-### Este sistema foi desenvolvido para que os eventos da Faculdade Fatec Itu - Dom Amaury Castanho pudessem ter um método de inscrição mais práticos, gerando facilidade tanto para os alunos, pessoas de fora e para os responsáveis pelos eventos. Claramente este sistema também é utilizado pelos responsáveis dos eventos, para gerenciamento, controle e etc. 
+### Este sistema foi desenvolvido para tornar as inscrições nos eventos da Faculdade Fatec Itu - Dom Amaury Castanho mais práticas, facilitando o processo tanto para alunos quanto para participantes externos. Além disso, também é utilizado por coordenadores e organizadores para o gerenciamento dos eventos, possibilitando o controle de participantes, a automação na emissão de certificados válidos e outras funcionalidades que otimizam a administração.
 
-### 👥 Este sistema está sendo criado por: Guilherme Francisco Pereira como desenvolvimento de TCC / Sistema real
+### 👥 O sistema está sendo desenvolvido por Guilherme Francisco Pereira como parte do Trabalho de Conclusão de Curso (TCC), com aplicação real e utilização prática.
 
-### ✨ Fato interessante!! Este é o único sistema desenvolvido por alunos que está implementado e em utilizado pela faculdade, tanto por alunos como professores, coordenadores, e etc!
+### ✨ Fato interessante: este é um dos sistemas desenvolvidos exclusivamente por alunos que já está implantado e sendo utilizado ativamente pela faculdade, beneficiando alunos, professores, coordenadores e demais envolvidos!
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&color=40E0D0&height=120&section=footer"/>
 
@@ -26,9 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/prisma.schema:` Adicionado índices para acelerar consultas no banco, tornando buscas e filtros mais rápidos. Também ajuda a garantir eficiência e consistência em colunas usadas com frequência em WHERE, ORDER BY e JOIN. Além de adicionar restrições de tamanho nos campos.
-
-### `./src/modules/dto:` Padronizar mensagens de validação em pt-BR
+### `./README:` Reescrito o conteúdo da seção (📌 Sobre o projeto) desta documentação
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
