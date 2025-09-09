@@ -4,19 +4,18 @@ import { IsOptional, IsString, IsEmail, MinLength, IsEnum, Matches, MaxLength, I
 
 export class UpdateUserDto {
     @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     @IsString({ message: 'Nome deve ser uma string' })
-    @IsNotEmpty({ message: 'Nome não pode ser vazio ou apenas espaços' })
+    @IsNotEmpty({ message: 'Nome não pode ser vazio' })
     @MinLength(3, { message: 'Nome deve ter ao menos 3 caracteres' })
-    @MaxLength(50, { message: 'Nome deve ter no máximo 50 caracteres' })
+    @MaxLength(120, { message: 'Nome deve ter no máximo 120 caracteres' })
     name?: string;
 
     @IsOptional()
+    @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
     @IsEmail({}, { message: 'Formato de e-mail inválido' })
-    @Matches(
-        /@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br)$/,
-        { message: 'E-mail deve ser @fatec.sp.gov.br ou @cms.sp.gov.br' },
-    )
+    @Matches(/@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br)$/, { message: 'E-mail deve ser @fatec.sp.gov.br ou @cms.sp.gov.br' })
+    @MaxLength(191, { message: 'E-mail deve ter no máximo 191 caracteres' })
     email?: string;
 
     @IsOptional()
@@ -29,6 +28,11 @@ export class UpdateUserDto {
     password?: string;
 
     @IsOptional()
-    @IsEnum(Role)
+    @IsEnum(Role, { message: 'Papel inválido' })
     role?: Role;
+
+    @IsOptional()
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @MaxLength(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
+    imageUrl?: string;
 }

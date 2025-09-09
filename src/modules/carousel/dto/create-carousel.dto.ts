@@ -1,19 +1,24 @@
 import { Transform } from 'class-transformer';
-import { IsString, IsNotEmpty, IsBoolean, IsInt, MinLength, MaxLength, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsBoolean, IsInt, MinLength, MaxLength, Min, Matches } from 'class-validator';
 
 export class CreateCarouselDto {
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     @IsString({ message: 'Nome deve ser uma string' })
-    @IsNotEmpty({ message: 'Nome não pode ser vazio ou apenas espaços' })
+    @IsNotEmpty({ message: 'Nome não pode ser vazio' })
     @MinLength(3, { message: 'Nome deve ter ao menos 3 caracteres' })
-    @MaxLength(50, { message: 'Nome deve ter no máximo 50 caracteres' })
+    @MaxLength(80, { message: 'Nome deve ter no máximo 80 caracteres' })
     name!: string;
 
-    @IsBoolean()
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @IsNotEmpty({ message: 'URL da imagem é obrigatória' })
+    @MaxLength(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
+    @Matches(/^https?:\/\/.+/i, { message: 'URL da imagem inválida' })
+    imageUrl!: string;
+
+    @IsBoolean({ message: 'isActive deve ser true ou false' })
     isActive!: boolean;
 
-    @IsNotEmpty({ message: 'Deve ter a ordem da imagem' })
-    @IsInt()
-    @Min(1, { message: 'Ordem deve ser no mínimo 1.' })
+    @IsInt({ message: 'Ordem deve ser um número inteiro' })
+    @Min(1, { message: 'Ordem deve ser no mínimo 1' })
     order!: number;
 }

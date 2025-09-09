@@ -26,7 +26,9 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/events/events.controller.ts:` Liberado na rota de GET na função findAll os usuários autenticados como auxiliar, permanecendo os administradores, coordenadores e adicionado o auxiliar somente nesta rota
+### `./prisma/prisma.schema:` Adicionado índices para acelerar consultas no banco, tornando buscas e filtros mais rápidos. Também ajuda a garantir eficiência e consistência em colunas usadas com frequência em WHERE, ORDER BY e JOIN. Além de adicionar restrições de tamanho nos campos.
+
+### `./src/modules/dto:` Padronizar mensagens de validação em pt-BR
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

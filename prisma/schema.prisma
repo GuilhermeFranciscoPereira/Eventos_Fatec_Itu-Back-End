@@ -68,57 +68,68 @@ enum Location {
 
 model User {
   id           Int            @id @default(autoincrement())
-  imageUrl     String?
-  name         String
-  email        String         @unique
-  password     String
+  imageUrl     String?        @db.VarChar(2048)
+  name         String         @db.VarChar(120)
+  email        String         @unique @db.VarChar(191)
+  password     String         @db.VarChar(255)
   role         Role
   refreshToken RefreshToken[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+
+  @@index([role])
+  @@index([createdAt])
 }
 
 model RefreshToken {
   id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  tokenHash String
+  tokenHash String   @unique @db.Char(64)
   isRevoked Boolean  @default(false)
   createdAt DateTime @default(now())
   expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Category {
   id        Int      @id @default(autoincrement())
-  name      String   @unique
+  name      String   @unique @db.VarChar(80)
   Event     Event[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
 }
 
 model Carousel {
   id        Int      @id @default(autoincrement())
-  name      String
-  imageUrl  String
-  isActive  Boolean
+  name      String   @db.VarChar(80)
+  imageUrl  String   @db.VarChar(2048)
+  isActive  Boolean  @default(false)
   order     Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([order])
+  @@index([isActive])
 }
 
 model Event {
   id                  Int           @id @default(autoincrement())
-  name                String
-  description         String
-  imageUrl            String
+  name                String        @db.VarChar(140)
+  description         String        @db.Text
+  imageUrl            String        @db.VarChar(2048)
   course              Course
   semester            Semester?
   maxParticipants     Int
   currentParticipants Int           @default(0)
   isRestricted        Boolean
   location            Location
-  customLocation      String?
-  speakerName         String
+  customLocation      String?       @db.VarChar(140)
+  speakerName         String        @db.VarChar(120)
   startDate           DateTime
   startTime           DateTime
   endTime             DateTime
@@ -128,19 +139,29 @@ model Event {
   categoryId          Int?
   category            Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   participants        Participant[]
+
+  @@index([location])
+  @@index([categoryId])
+  @@index([isRestricted])
+  @@index([course, semester, startDate])
+  @@fulltext([name, description])
 }
 
 model Participant {
   id              Int       @id @default(autoincrement())
-  name            String
-  email           String
+  name            String    @db.VarChar(120)
+  email           String    @db.VarChar(191)
   course          Course?
   semester        Semester?
-  ra              String?
+  ra              String?   @db.VarChar(32)
   isPresent       Boolean   @default(false)
   certificateSent Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   eventId         Int
   event           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, email])
+  @@index([eventId, isPresent])
+  @@index([createdAt])
 }

@@ -3,34 +3,32 @@ import { Course, Semester } from '@prisma/client';
 import { IsEmail, Matches, IsString, IsNotEmpty, MinLength, MaxLength, IsEnum, IsInt, Min, Length, IsOptional } from 'class-validator';
 
 export class CreateParticipantDto {
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     @IsString({ message: 'Nome deve ser uma string' })
     @IsNotEmpty({ message: 'Nome não pode ser vazio' })
     @MinLength(3, { message: 'Nome deve ter ao menos 3 caracteres' })
-    @MaxLength(100, { message: 'Nome deve ter no máximo 100 caracteres' })
+    @MaxLength(120, { message: 'Nome deve ter no máximo 120 caracteres' })
     name!: string;
 
+    @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
     @IsEmail({}, { message: 'Formato de e-mail inválido' })
-    @IsNotEmpty({ message: 'E-mail não pode ser vazio' })
+    @MaxLength(191, { message: 'E-mail deve ter no máximo 191 caracteres' })
     email!: string;
 
     @IsOptional()
     @IsEnum(Course, { message: 'Curso inválido' })
-    @IsNotEmpty({ message: 'Selecione o seu curso' })
-    course!: Course;
-    
+    course?: Course;
+
     @IsOptional()
     @IsEnum(Semester, { message: 'Semestre inválido' })
-    @IsNotEmpty({ message: 'Selecione o seu semestre' })
-    semester!: Semester;
+    semester?: Semester;
 
     @IsOptional()
-    @Length(13, 13, { message: 'RA inválido' })
-    @IsNotEmpty({ message: 'RA não pode ser vazio' })
+    @Length(13, 13, { message: 'RA deve ter 13 dígitos' })
     @Matches(/^[0-9]{13}$/, { message: 'RA deve conter apenas números' })
-    ra!: string;
+    ra?: string;
 
-    @IsInt({ message: 'EventId deve ser um número inteiro' })
-    @Min(1, { message: 'EventId inválido' })
+    @IsInt({ message: 'eventId deve ser um número inteiro' })
+    @Min(1, { message: 'eventId inválido' })
     eventId!: number;
 }

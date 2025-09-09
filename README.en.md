@@ -26,7 +26,9 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/events/events.controller.ts:` Released in the GET route in the findAll function the users authenticated as auxiliary, remaining the administrators, coordinators and adding the auxiliary only in this route
+### `./prisma/prisma.schema:` Added indexes to speed up database queries, making searches and filters faster. It also helps ensure efficiency and consistency in frequently used columns in WHERE, ORDER BY, and JOIN statements. It also adds field size restrictions.
+
+### `./src/modules/dto:` Standardize validation messages in pt-BR
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

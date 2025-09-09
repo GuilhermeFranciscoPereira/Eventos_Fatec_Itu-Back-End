@@ -2,7 +2,8 @@ import { Matches, Length, MinLength, MaxLength } from 'class-validator';
 
 export class ResetPasswordDto {
     @Length(6, 6, { message: 'Código deve ter 6 dígitos' })
-    code: string;
+    @Matches(/^\d{6}$/, { message: 'Código deve conter apenas números' })
+    code!: string;
 
     @MinLength(6, { message: 'Senha deve ter ao menos 6 caracteres' })
     @MaxLength(10, { message: 'Senha deve ter no máximo 10 caracteres' })
@@ -10,5 +11,5 @@ export class ResetPasswordDto {
     @Matches(/(?=.*[a-z])/, { message: 'Senha deve conter ao menos uma letra minúscula' })
     @Matches(/(?=.*\d)/, { message: 'Senha deve conter ao menos um número' })
     @Matches(/(?=.*[^A-Za-z0-9])/, { message: 'Senha deve conter ao menos um caractere especial' })
-    newPassword: string;
+    newPassword!: string;
 }

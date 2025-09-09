@@ -1,7 +1,7 @@
 import * as argon2 from 'argon2';
 import { Role, User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
-import { CreateDto } from './dto/create-auth.dto';
+import { CreateUserDto } from './dto/create-auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -58,7 +58,7 @@ export class UsersService {
     });
   }
 
-  async create(dto: CreateDto) {
+  async create(dto: CreateUserDto) {
     const userExist = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (userExist) throw new ConflictException('E-mail já cadastrado!');
 

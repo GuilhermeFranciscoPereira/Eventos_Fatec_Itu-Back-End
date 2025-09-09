@@ -11,11 +11,11 @@ export class EventPublicResponseDto {
     currentParticipants!: number;
     isRestricted!: boolean;
     location!: Location;
-    customLocation: string | null;
+    customLocation!: string | null;
     speakerName!: string;
     startDate!: Date;
     startTime!: Date;
     endTime!: Date;
-    duration: number | null;
-    categoryId: number | null;
+    duration!: number | null;
+    categoryId!: number | null;
 }

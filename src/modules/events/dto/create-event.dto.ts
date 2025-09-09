@@ -1,66 +1,72 @@
 import { Transform } from 'class-transformer';
 import { Course, Semester, Location } from '@prisma/client';
-import { IsString, IsNotEmpty, MinLength, MaxLength, IsEnum, IsInt, Min, IsBoolean, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, MaxLength, IsEnum, IsInt, Min, IsBoolean, IsOptional, IsDateString, Matches } from 'class-validator';
 
 export class CreateEventDto {
-    @Transform(({ value }) => value.trim())
-    @IsString({ message: 'O nome do evento deve ser um texto.' })
-    @IsNotEmpty({ message: 'O campo nome do evento é obrigatório.' })
-    @MinLength(3, { message: 'O nome do evento precisa ter pelo menos 3 caracteres.' })
-    @MaxLength(100, { message: 'O nome do evento não pode passar de 100 caracteres.' })
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @IsString({ message: 'Nome do evento deve ser um texto' })
+    @IsNotEmpty({ message: 'Nome do evento é obrigatório' })
+    @MinLength(3, { message: 'Nome do evento deve ter ao menos 3 caracteres' })
+    @MaxLength(140, { message: 'Nome do evento deve ter no máximo 140 caracteres' })
     name!: string;
 
-    @Transform(({ value }) => value.trim())
-    @IsString({ message: 'A descrição deve ser um texto.' })
-    @IsNotEmpty({ message: 'O campo descrição é obrigatório.' })
-    @MinLength(10, { message: 'A descrição precisa ter pelo menos 10 caracteres.' })
-    @MaxLength(1000, { message: 'A descrição não pode passar de 1000 caracteres.' })
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @IsString({ message: 'Descrição deve ser um texto' })
+    @IsNotEmpty({ message: 'Descrição é obrigatória' })
     description!: string;
 
-    @IsEnum(Course, { message: 'O curso selecionado é inválido.' })
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @IsNotEmpty({ message: 'URL da imagem é obrigatória' })
+    @MaxLength(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
+    @Matches(/^https?:\/\/.+/i, { message: 'URL da imagem inválida' })
+    imageUrl!: string;
+
+    @IsEnum(Course, { message: 'Curso inválido' })
     course!: Course;
 
-    @IsEnum(Semester, { message: 'O semestre selecionado é inválido.' })
     @IsOptional()
+    @IsEnum(Semester, { message: 'Semestre inválido' })
     semester?: Semester;
 
-    @IsInt({ message: 'Número máximo de participantes deve ser um número inteiro.' })
-    @Min(1, { message: 'Número máximo de participantes deve ser no mínimo 1.' })
+    @IsInt({ message: 'Número máximo de participantes deve ser inteiro' })
+    @Min(1, { message: 'Número máximo de participantes deve ser no mínimo 1' })
     maxParticipants!: number;
 
-    @IsBoolean({ message: 'É restrito deve ser selecionado ou não selecionado ( verdadeiro ou falso ).' })
+    @IsBoolean({ message: 'isRestricted deve ser true ou false' })
     isRestricted!: boolean;
 
-    @IsEnum(Location, { message: 'Localização inválida.' })
+    @IsEnum(Location, { message: 'Localização inválida' })
     location!: Location;
 
-    @Transform(({ value }) => value?.trim())
     @IsOptional()
-    @MinLength(3, { message: 'Localização customizada precisa ter pelo menos 3 caracteres.' })
-    @MaxLength(100, { message: 'Localização customizada não pode passar de 100 caracteres.' })
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @MinLength(3, { message: 'Localização customizada deve ter ao menos 3 caracteres' })
+    @MaxLength(140, { message: 'Localização customizada deve ter no máximo 140 caracteres' })
     customLocation?: string;
 
-    @Transform(({ value }) => value.trim())
-    @IsString({ message: 'O nome do Palestrante/Responsável deve ser um texto.' })
-    @IsNotEmpty({ message: 'O nome do Palestrante/Responsável é obrigatório.' })
-    @MinLength(3, { message: 'O nome do Palestrante/Responsável precisa ter pelo menos 3 caracteres.' })
-    @MaxLength(100, { message: 'O nome do Palestrante/Responsável não pode passar de 100 caracteres.' })
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @IsString({ message: 'Nome do palestrante deve ser um texto' })
+    @IsNotEmpty({ message: 'Nome do palestrante é obrigatório' })
+    @MinLength(3, { message: 'Nome do palestrante deve ter ao menos 3 caracteres' })
+    @MaxLength(120, { message: 'Nome do palestrante deve ter no máximo 120 caracteres' })
     speakerName!: string;
 
-    @IsDateString({}, { message: 'O campo de data deve ser preenchido.' })
+    @IsDateString({}, { message: 'Data inicial inválida' })
     startDate!: string;
 
-    @IsDateString({}, { message: 'O campo de hora de início deve ser preenchido.' })
+    @IsDateString({}, { message: 'Hora de início inválida' })
     startTime!: string;
 
-    @IsDateString({}, { message: 'O campo de hora final deve ser preenchido.' })
+    @IsDateString({}, { message: 'Hora final inválida' })
     endTime!: string;
 
-    @IsInt({ message: 'Duração deve ser um número inteiro.' })
     @IsOptional()
+    @IsInt({ message: 'Duração deve ser um número inteiro' })
+    @Min(1, { message: 'Duração deve ser no mínimo 1' })
     duration?: number;
 
-    @IsInt({ message: 'Categoria ID deve ser um inteiro.' })
     @IsOptional()
+    @IsInt({ message: 'categoryId deve ser inteiro' })
+    @Min(1, { message: 'categoryId inválido' })
     categoryId?: number;
 }

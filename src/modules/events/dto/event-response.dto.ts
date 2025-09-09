@@ -1,5 +1,5 @@
 import { Course, Semester, Location } from '@prisma/client';
-import { ParticipantResponseDto } from 'src/modules/participants/dto/participant-response.dto';
+import { ParticipantResponseDto } from '../../participants/dto/participant-response.dto';
 
 export class EventResponseDto {
     id!: number;
@@ -12,14 +12,14 @@ export class EventResponseDto {
     currentParticipants!: number;
     isRestricted!: boolean;
     location!: Location;
-    customLocation: string | null;
+    customLocation!: string | null;
     speakerName!: string;
     startDate!: Date;
     startTime!: Date;
     endTime!: Date;
-    duration: number | null;
-    categoryId: number | null;
+    duration!: number | null;
+    categoryId!: number | null;
     createdAt!: Date;
     updatedAt!: Date;
-    participants?: ParticipantResponseDto[]
+    participants?: ParticipantResponseDto[];
 }

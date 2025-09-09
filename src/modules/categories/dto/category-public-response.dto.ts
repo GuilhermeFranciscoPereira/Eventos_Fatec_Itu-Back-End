@@ -1,4 +1,4 @@
 export class CategoryPublicResponseDto {
-    id: number;
+    id!: number;
     name!: string;
 }

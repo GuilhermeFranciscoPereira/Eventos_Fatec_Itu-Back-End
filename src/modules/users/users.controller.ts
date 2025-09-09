@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
-import { CreateDto } from './dto/create-auth.dto';
+import { CreateUserDto } from './dto/create-auth.dto';
 import { RolesGuard } from '../../guards/roles.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from '../../decorators/roles.decorator';
@@ -22,7 +22,7 @@ export class UsersController {
 
   @Post('create')
   @HttpCode(201)
-  async create(@Body() dto: CreateDto) {
+  async create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);
   }
 
