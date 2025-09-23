@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import { IsEmail, MinLength, MaxLength, Matches, IsEnum, IsString, IsNotEmpty } from 'class-validator';
+import { IsEmail, MinLength, MaxLength, Matches, IsEnum, IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateUserDto {
   @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
@@ -27,8 +27,6 @@ export class CreateUserDto {
   @MaxLength(120, { message: 'Nome deve ter no máximo 120 caracteres' })
   name!: string;
 
-  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-  @IsNotEmpty({ message: 'URL da imagem não pode ser vazia' })
-  @MaxLength(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
+  @IsOptional()
   imageUrl?: string;
 }

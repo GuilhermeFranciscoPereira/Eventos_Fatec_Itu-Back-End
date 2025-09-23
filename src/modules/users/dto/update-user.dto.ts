@@ -32,7 +32,5 @@ export class UpdateUserDto {
     role?: Role;
 
     @IsOptional()
-    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-    @MaxLength(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
     imageUrl?: string;
 }

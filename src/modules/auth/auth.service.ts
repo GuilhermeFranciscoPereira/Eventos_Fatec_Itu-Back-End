@@ -106,7 +106,7 @@ export class AuthService {
       const payload = await this.jwtService.verify(accessToken) as JwtPayload & {
         sub: number;
         email: string;
-        imageUrl: string;
+        imageUrl?: string;
         name: string;
         role: string;
         exp: number;

@@ -11,9 +11,6 @@ export class UpdateCarouselDto {
     name?: string;
 
     @IsOptional()
-    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-    @MaxLength(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
-    @Matches(/^https?:\/\/.+/i, { message: 'URL da imagem inválida' })
     imageUrl?: string;
 
     @IsOptional()

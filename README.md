@@ -26,7 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./README:` Reescrito o conteúdo da seção (📌 Sobre o projeto) desta documentação
+### `./src/modules/DTO/imageURL:` Alterado nas DTOs para que os usuários não tenham que obrigatóriamente ter uma foto de perfil
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

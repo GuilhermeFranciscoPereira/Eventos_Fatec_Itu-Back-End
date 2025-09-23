@@ -15,10 +15,7 @@ export class CreateEventDto {
     @IsNotEmpty({ message: 'Descrição é obrigatória' })
     description!: string;
 
-    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     @IsNotEmpty({ message: 'URL da imagem é obrigatória' })
-    @MaxLength(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
-    @Matches(/^https?:\/\/.+/i, { message: 'URL da imagem inválida' })
     imageUrl!: string;
 
     @IsEnum(Course, { message: 'Curso inválido' })
