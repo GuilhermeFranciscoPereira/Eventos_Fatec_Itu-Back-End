@@ -26,7 +26,23 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/DTO/imageURL:` Alterado nas DTOs para que os usuários não tenham que obrigatóriamente ter uma foto de perfil
+### `./prisma/schema.prisma:` Criado a tabela de Course ( cursos ) para gerenciamento completo dos cursos atuais na Fatec Itu
+
+### `./prisma/migrations:` Realizado uma nova migration após adicionar a tabela de cursos
+
+### `./src/modules/courses:` Módulo responsável pelo gerenciamento de cursos
+
+### `./src/modules/courses/dto:` Diretório que contém os Data Transfer Objects (CreateCourseDto, UpdateCourseDto e CourseResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de cursos.
+
+### `./src/modules/courses/courses.controller.ts:` Define os endpoints REST para listagem (GET /courses), criação (POST /courses), atualização (PATCH /courses/:id) e remoção (DELETE /courses/:id) de cursos.
+
+### `./src/modules/courses/courses.controller.spec.ts:` Testes de integração do controller, garantindo que cada rota encaminhe corretamente as chamadas ao coursesService e retorne os códigos HTTP esperados.
+
+### `./src/modules/courses/courses.service.ts:` Implementa a lógica de negócio das cursos — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Course.
+
+### `./src/modules/courses/courses.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CoursesService.
+
+### `./src/modules/courses/courses.module.ts:` Arquivo de montagem do módulo de cursos, importando o PrismaModule e registrando o CoursesService e CoursesController no contexto do NestJS.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -110,6 +126,14 @@
   
   - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
+
+   - `courses:` Pacote dedicado ao gerenciamento completo de cursos, englobando todas as operações de CRUD.
+    - `dto:` Diretório que contém os Data Transfer Objects (CreateCourseDto, UpdateCourseDto e CourseResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de cursos.
+    - `courses.controller.ts:` Define os endpoints REST para listagem (GET /courses), criação (POST /courses), atualização (PATCH /courses/:id) e remoção (DELETE /courses/:id) de cursos.
+    - `courses.controller.spec.ts:` Testes de integração do controller, garantindo que cada rota encaminhe corretamente as chamadas ao coursesService e retorne os códigos HTTP esperados.
+    - `courses.service.ts:` Implementa a lógica de negócio das cursos — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Course.
+    - `courses.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CoursesService.
+    - `courses.module.ts:` Arquivo de montagem do módulo de cursos, importando o PrismaModule e registrando o CoursesService e CoursesController no contexto do NestJS.
 
   - `events:` Pacote dedicado ao gerenciamento completo de eventos, englobando operações de CRUD, upload de imagem e consulta de disponibilidade de datas e horários.
     - `dto:` Diretório com os Data Transfer Objects (CreateEventDto, UpdateEventDto e EventResponseDto) responsáveis por definir o formato dos dados de entrada e saída nas requisições de eventos.

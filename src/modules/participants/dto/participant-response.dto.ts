@@ -1,15 +1,15 @@
-import { Course, Semester } from '@prisma/client';
+import { Semester } from '@prisma/client'
 
 export class ParticipantResponseDto {
-    id!: number;
-    name!: string;
-    email!: string;
-    course!: Course | null;
-    semester!: Semester | null;
-    ra!: string | null;
-    isPresent!: boolean;
-    certificateSent!: boolean;
-    createdAt!: Date;
-    updatedAt!: Date;
-    eventId!: number;
+    id!: number
+    name!: string
+    email!: string
+    courseId!: number | null
+    semester!: Semester | null
+    ra!: string | null
+    isPresent!: boolean
+    certificateSent!: boolean
+    createdAt!: Date
+    updatedAt!: Date
+    eventId!: number
 }

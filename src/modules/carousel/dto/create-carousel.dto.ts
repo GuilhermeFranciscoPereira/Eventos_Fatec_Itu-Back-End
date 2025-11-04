@@ -8,10 +8,7 @@ export class CreateCarouselDto {
     @MinLength(3, { message: 'Nome deve ter ao menos 3 caracteres' })
     @MaxLength(80, { message: 'Nome deve ter no máximo 80 caracteres' })
     name!: string;
-
-    @IsNotEmpty({ message: 'URL da imagem é obrigatória' })
-    imageUrl!: string;
-
+    
     @IsBoolean({ message: 'isActive deve ser true ou false' })
     isActive!: boolean;
 

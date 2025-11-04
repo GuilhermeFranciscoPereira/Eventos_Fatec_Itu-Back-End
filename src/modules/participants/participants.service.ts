@@ -32,14 +32,14 @@ export class ParticipantsService {
     if (!event) throw new NotFoundException(`Evento ${dto.eventId} não encontrado.`);
 
     if (event.isRestricted) {
-      if (event.course !== 'ALL') {
-        if (!dto.course || dto.course !== event.course) {
-          throw new ConflictException('Este evento é restrito e não disponível ao seu curso.');
+      if (event.courseId) {
+        if (!dto.courseId || dto.courseId !== event.courseId) {
+          throw new ConflictException('Este evento é restrito e não disponível ao seu curso.')
         }
       }
-      if (event.semester !== 'ALL') {
+      if (event.semester && event.semester !== 'ALL') {
         if (!dto.semester || dto.semester !== event.semester) {
-          throw new ConflictException('Este evento é restrito e não disponível ao seu semestre.');
+          throw new ConflictException('Este evento é restrito e não disponível ao seu semestre.')
         }
       }
     }

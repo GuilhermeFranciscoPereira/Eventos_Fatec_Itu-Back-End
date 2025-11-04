@@ -1,11 +1,12 @@
-import { Course, Semester, Location } from '@prisma/client';
+import { Semester, Location } from '@prisma/client';
 
 export class EventPublicResponseDto {
     id!: number;
     name!: string;
     description!: string;
     imageUrl!: string;
-    course!: Course;
+    courseId!: number | null;
+    courseName!: string | null;
     semester!: Semester | null;
     maxParticipants!: number;
     currentParticipants!: number;

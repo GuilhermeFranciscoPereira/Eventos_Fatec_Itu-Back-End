@@ -22,21 +22,27 @@ export class EventsService {
   }
 
   async findAllPublic(): Promise<EventPublicResponseDto[]> {
-    return this.prisma.event.findMany({
+    const rows = await this.prisma.event.findMany({
       where: { startTime: { gt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000) } },
-      select: { id: true, name: true, description: true, imageUrl: true, course: true, semester: true, maxParticipants: true, currentParticipants: true, isRestricted: true, location: true, customLocation: true, speakerName: true, startDate: true, startTime: true, endTime: true, duration: true, categoryId: true },
+      select: { id: true, name: true, description: true, imageUrl: true, courseId: true, course: { select: { name: true } }, semester: true, maxParticipants: true, currentParticipants: true, isRestricted: true, location: true, customLocation: true, speakerName: true, startDate: true, startTime: true, endTime: true, duration: true, categoryId: true },
       orderBy: { startTime: 'asc' },
-    }).then(events => events.filter(e => e.currentParticipants < e.maxParticipants));
+    });
+
+    return rows.filter(e => e.currentParticipants < e.maxParticipants).map(e => ({ ...e, courseName: e.course?.name ?? null }));
   }
+
 
   async findAll() {
     return this.prisma.event.findMany({ orderBy: { startTime: 'asc' } });
   }
 
   async findOne(id: number) {
-    const e = await this.prisma.event.findUnique({ where: { id }, include: { participants: true } });
+    const e = await this.prisma.event.findUnique({
+      where: { id },
+      include: { participants: true, course: { select: { name: true } } },
+    });
     if (!e) throw new NotFoundException(`Evento ${id} não encontrado.`);
-    return e;
+    return { ...e, courseName: e.course?.name ?? null };
   }
 
   async create(dto: CreateEventDto, file: Express.Multer.File) {

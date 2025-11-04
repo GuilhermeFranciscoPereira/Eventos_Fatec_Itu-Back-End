@@ -10,6 +10,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ParticipantsModule } from './modules/participants/participants.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+import { CoursesModule } from './modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
     EventsModule,
     ParticipantsModule,
     CertificatesModule,
+    CoursesModule,
   ],
   controllers: [CsrfController]
 })

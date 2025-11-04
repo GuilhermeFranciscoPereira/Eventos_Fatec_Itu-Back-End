@@ -13,15 +13,6 @@ enum Role {
   AUXILIAR
 }
 
-enum Course {
-  ALL
-  ADS
-  GE
-  GTI
-  GEMP
-  MEC
-}
-
 enum Semester {
   ALL
   SEMESTER1
@@ -94,6 +85,17 @@ model RefreshToken {
   @@index([expiresAt])
 }
 
+model Course {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique @db.VarChar(80)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  Event       Event[]
+  Participant Participant[]
+
+  @@index([createdAt])
+}
+
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique @db.VarChar(80)
@@ -122,7 +124,8 @@ model Event {
   name                String        @db.VarChar(140)
   description         String        @db.Text
   imageUrl            String        @db.VarChar(2048)
-  course              Course
+  courseId            Int?
+  course              Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
   semester            Semester?
   maxParticipants     Int
   currentParticipants Int           @default(0)
@@ -143,7 +146,7 @@ model Event {
   @@index([location])
   @@index([categoryId])
   @@index([isRestricted])
-  @@index([course, semester, startDate])
+  @@index([courseId, semester, startDate])
   @@fulltext([name, description])
 }
 
@@ -151,7 +154,8 @@ model Participant {
   id              Int       @id @default(autoincrement())
   name            String    @db.VarChar(120)
   email           String    @db.VarChar(191)
-  course          Course?
+  courseId        Int?
+  course          Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
   semester        Semester?
   ra              String?   @db.VarChar(32)
   isPresent       Boolean   @default(false)
