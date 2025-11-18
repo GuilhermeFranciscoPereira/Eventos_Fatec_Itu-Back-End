@@ -26,7 +26,22 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/DTO/imageURL:` Changed in DTOs so that users are not required to have a profile picture
+### `./prisma/schema.prisma:` Created the Certificate table to store all certificates
+
+### `./prisma/migrations:` Performed a new migration after adding the Certificate table
+
+### `./src/modules/certificates:` Module responsible for storing and exporting the logic for sending certificates to students who are present at the event.
+
+### `./src/modules/certificates/certificates.module.ts:` Imports ScheduleModule.forRoot() and PrismaModule and exports the service to be used in other parts of the code
+
+### `./src/modules/certificates/certificates.controller.ts:` Provides the route for validating whether the certificate is real or not and whether it belongs to the person.
+
+### `./src/modules/certificates/certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events
+
+### `./package.json:` Installed the library to use the QR code:
+```bash
+npm i qrcode
+```
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -98,6 +113,7 @@
     
     - `certificates:` Module responsible for storing and exporting the logic for sending certificates to students who attended the event.
         - `certificates.module.ts:` Imports ScheduleModule.forRoot() and PrismaModule and exports the service for use elsewhere in the code.
+        - `certificates.controller.ts`: Provides the route for validating whether the certificate is real or not and whether it belongs to the person.
         - `certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events.
     
     - `cloudinary:` Exports the option to insert or remove photos from Cloudinary (free service for saving images, I recommend: https://cloudinary.com)

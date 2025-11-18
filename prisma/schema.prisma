@@ -142,6 +142,7 @@ model Event {
   categoryId          Int?
   category            Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   participants        Participant[]
+  Certificate         Certificate[]
 
   @@index([location])
   @@index([categoryId])
@@ -151,21 +152,35 @@ model Event {
 }
 
 model Participant {
-  id              Int       @id @default(autoincrement())
-  name            String    @db.VarChar(120)
-  email           String    @db.VarChar(191)
+  id              Int           @id @default(autoincrement())
+  name            String        @db.VarChar(120)
+  email           String        @db.VarChar(191)
   courseId        Int?
-  course          Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course          Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
   semester        Semester?
-  ra              String?   @db.VarChar(32)
-  isPresent       Boolean   @default(false)
-  certificateSent Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  ra              String?       @db.VarChar(32)
+  isPresent       Boolean       @default(false)
+  certificateSent Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   eventId         Int
-  event           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  Certificate     Certificate[]
 
   @@unique([eventId, email])
   @@index([eventId, isPresent])
   @@index([createdAt])
+}
+
+model Certificate {
+  id            Int         @id @default(autoincrement())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participantId Int
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId       Int
+  tokenHash     String      @unique @db.Char(64)
+  issuedAt      DateTime    @default(now())
+
+  @@unique([participantId, eventId])
+  @@index([eventId])
 }

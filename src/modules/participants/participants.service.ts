@@ -105,7 +105,10 @@ export class ParticipantsService {
                       <li><strong>Data:</strong> ${new Date(event.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</li>
                       <li><strong>Horário:</strong> ${event.startTime.toISOString().substr(11, 5)} às ${event.endTime.toISOString().substr(11, 5)}</li>
                       <li><strong>Palestrante:</strong> ${event.speakerName}</li>
-                      <li><strong>Local:</strong> ${event.location !== 'OUTROS' ? event.location : event.customLocation}</li>
+                      <li><strong>Local:</strong> ${event.location !== 'OUTROS'
+                        ? event.location.replace(/_/g, ' ').toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase())
+                        : event.customLocation}
+                      </li>
                       <li><strong>Descrição:</strong> ${event.description}</li>
                     </ul>
                     <p style="line-height:1.6;margin:0 0 20px;">Caso tenha alguma dúvida, <a href="mailto:contato@fatecitu.sp.gov.br" style="color:#b20000; text-decoration:none;">entre em contato conosco</a>. Será um prazer ajudar!</p>

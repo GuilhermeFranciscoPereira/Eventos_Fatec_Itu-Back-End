@@ -26,23 +26,22 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Criado a tabela de Course ( cursos ) para gerenciamento completo dos cursos atuais na Fatec Itu
+### `./prisma/schema.prisma:` Criado a tabela de Certificate ( certificado ) para armazenar todos os certificados
 
-### `./prisma/migrations:` Realizado uma nova migration após adicionar a tabela de cursos
+### `./prisma/migrations:` Realizado uma nova migration após adicionar a tabela de Certificate
 
-### `./src/modules/courses:` Módulo responsável pelo gerenciamento de cursos
+### `./src/modules/certificates:` Módulo responsável por armazenar e exportar a lógica de envio de certificado para os alunos que estão como presentes no evento.
 
-### `./src/modules/courses/dto:` Diretório que contém os Data Transfer Objects (CreateCourseDto, UpdateCourseDto e CourseResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de cursos.
+### `./src/modules/certificates/certificates.module.ts:` Importa o ScheduleModule.forRoot() e o PrismaModule e exporta o service para ser utilizado em outros locais do código
 
-### `./src/modules/courses/courses.controller.ts:` Define os endpoints REST para listagem (GET /courses), criação (POST /courses), atualização (PATCH /courses/:id) e remoção (DELETE /courses/:id) de cursos.
+### `./src/modules/certificates/certificates.controller.ts:` Disponibiliza a rota para validação se o certificado é real ou não e se pertence a pessoa.
 
-### `./src/modules/courses/courses.controller.spec.ts:` Testes de integração do controller, garantindo que cada rota encaminhe corretamente as chamadas ao coursesService e retorne os códigos HTTP esperados.
+### `./src/modules/certificates/certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior
 
-### `./src/modules/courses/courses.service.ts:` Implementa a lógica de negócio das cursos — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Course.
-
-### `./src/modules/courses/courses.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CoursesService.
-
-### `./src/modules/courses/courses.module.ts:` Arquivo de montagem do módulo de cursos, importando o PrismaModule e registrando o CoursesService e CoursesController no contexto do NestJS.
+### `./package.json:` Instalado a biblioteca para utilizar o qrcode:
+```bash
+npm i qrcode
+```
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -117,6 +116,7 @@
 
   - `certificates:` Módulo responsável por armazenar e exportar a lógica de envio de certificado para os alunos que estão como presentes no evento.
     - `certificates.module.ts:` Importa o ScheduleModule.forRoot() e o PrismaModule e exporta o service para ser utilizado em outros locais do código
+    - `certificates.controller.ts:` Disponibiliza a rota para validação se o certificado é real ou não e se pertence a pessoa.
     - `certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior
 
   - `cloudinary:` Exporta a opção de inserir ou remover fotos da cloudinary - ( serviço gratuito para salvar imagens, recomendo: https://cloudinary.com)
