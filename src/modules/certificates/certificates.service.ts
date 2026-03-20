@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as QRCode from 'qrcode';
 import * as PDFKit from 'pdfkit';
 import { Cron } from '@nestjs/schedule';
+import { Location } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +22,7 @@ export class CertificatesService {
 
     const events = await this.prisma.event.findMany({
       where: { endTime: { gte: start, lte: end } },
-      include: { participants: true, course: true },
+      include: { participants: true, course: true, location: true }
     });
 
     for (const ev of events) await this.processEvent(ev);
@@ -31,7 +32,7 @@ export class CertificatesService {
     const tokenHash = createHash('sha256').update(token).digest('hex');
     const cert = await this.prisma.certificate.findUnique({
       where: { tokenHash },
-      include: { participant: true, event: { include: { course: true } } },
+      include: { participant: true, event: { include: { course: true, location: true } } }
     });
     if (!cert) return null;
 
@@ -47,13 +48,13 @@ export class CertificatesService {
       palestrante: e.speakerName,
       data: data,
       horario: `${hIni} às ${hFim}`,
-      local: e.location !== 'OUTROS' ? e.location.replace(/_/g, ' ') : (e.customLocation ?? ''),
+      local: e.location.name.toLowerCase() !== 'outros' ? e.location.name : (e.customLocation ?? ''),
       curso: e.course?.name ?? null,
       emitidoEm: cert.issuedAt,
     };
   }
 
-  private async processEvent(ev: Event & { participants: Participant[]; course: Course | null }) {
+  private async processEvent(ev: Event & { participants: Participant[]; course: Course | null; location: Location }) {
     for (const p of ev.participants.filter(x => x.isPresent && !x.certificateSent)) {
       try {
         const { token, tokenHash } = this.genToken();
@@ -105,7 +106,7 @@ export class CertificatesService {
     return `${process.env.CORS_ORIGINS}/Verification/${token}`;
   }
 
-  private createPdf(p: Participant, ev: Event & { course: Course | null }, qrPng: Buffer): Promise<Buffer> {
+  private createPdf(p: Participant, ev: Event & { course: Course | null; location: Location }, qrPng: Buffer): Promise<Buffer> {
     return new Promise(resolve => {
       const doc = new PDFKit({ size: 'A4', layout: 'landscape', margins: { top: 0, bottom: 0, left: 0, right: 0 } });
       const chunks: Buffer[] = [];
@@ -141,7 +142,9 @@ export class CertificatesService {
       const cargaCurta = `${String(horasNum).padStart(2, '0')}h${String(minutosNum).padStart(2, '0')}m`;
       const cargaExtenso = `${horasNum} ${horasNum === 1 ? 'hora' : 'horas'} e ${minutosNum} ${minutosNum === 1 ? 'minuto' : 'minutos'}`;
 
-      const localEvento = ev.location !== 'OUTROS' ? ev.location.replace(/_/g, ' ').toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase()) : (ev.customLocation ?? 'Local a definir');
+      const localEvento = ev.location.name.toLowerCase() !== 'outros'
+        ? ev.location.name
+        : (ev.customLocation ?? 'Local a definir');
 
       const texto = [
         `A Faculdade de Tecnologia de Itu – Dom Amaury Castanho certifica que ${p.name} participou do evento “${ev.name}”, ministrado por ${ev.speakerName}, realizado em ${dataEvento}, no horário de ${horaInicio} às ${horaFim}, em ${localEvento}.`,

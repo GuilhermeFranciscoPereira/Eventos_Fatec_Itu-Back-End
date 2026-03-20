@@ -24,39 +24,6 @@ enum Semester {
   ESPECIAL
 }
 
-enum Location {
-  AUDITORIO
-  BIBLIOTECA
-  SALA_MAKER
-  LAB_MECANICA_METROLOGIA
-  LAB_SISTEMAS_INTEGRADOS
-  LAB_HIDRAULICA_PNEUMATICA
-  LAB_ENSAIOS_METALOGRAFICOS
-  LAB_ELETRONICA_POTENCIA
-  LAB_COMANDOS_ELETRICOS
-  LAB_CONTROLE_PROCESSOS
-  LAB_INFORMATICA_1
-  LAB_INFORMATICA_2
-  LAB_INFORMATICA_3
-  LAB_INFORMATICA_4
-  LAB_INFORMATICA_5
-  LAB_INFORMATICA_6
-  SALA_1
-  SALA_2
-  SALA_3
-  SALA_4
-  SALA_5
-  SALA_6
-  SALA_7
-  SALA_8
-  SALA_9
-  SALA_9_3_4
-  SALA_10
-  SALA_11
-  SALA_12
-  OUTROS
-}
-
 model User {
   id           Int            @id @default(autoincrement())
   imageUrl     String?        @db.VarChar(2048)
@@ -106,6 +73,16 @@ model Category {
   @@index([createdAt])
 }
 
+model Location {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(80)
+  Event     Event[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
 model Carousel {
   id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(80)
@@ -120,32 +97,34 @@ model Carousel {
 }
 
 model Event {
-  id                  Int           @id @default(autoincrement())
-  name                String        @db.VarChar(140)
-  description         String        @db.Text
-  imageUrl            String        @db.VarChar(2048)
+  id                  Int       @id @default(autoincrement())
+  name                String    @db.VarChar(140)
+  description         String    @db.Text
+  imageUrl            String    @db.VarChar(2048)
   courseId            Int?
-  course              Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course              Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
   semester            Semester?
   maxParticipants     Int
-  currentParticipants Int           @default(0)
+  currentParticipants Int       @default(0)
   isRestricted        Boolean
-  location            Location
-  customLocation      String?       @db.VarChar(140)
-  speakerName         String        @db.VarChar(120)
-  startDate           DateTime
-  startTime           DateTime
-  endTime             DateTime
-  duration            Int?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  categoryId          Int?
-  category            Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  participants        Participant[]
-  Certificate         Certificate[]
+  locationId          Int
+  location            Location  @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  customLocation      String?   @db.VarChar(140)
 
-  @@index([location])
+  speakerName  String        @db.VarChar(120)
+  startDate    DateTime
+  startTime    DateTime
+  endTime      DateTime
+  duration     Int?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  categoryId   Int?
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  participants Participant[]
+  Certificate  Certificate[]
+
   @@index([categoryId])
+  @@index([locationId])
   @@index([isRestricted])
   @@index([courseId, semester, startDate])
   @@fulltext([name, description])

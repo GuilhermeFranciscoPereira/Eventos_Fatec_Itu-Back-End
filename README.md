@@ -26,22 +26,27 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Criado a tabela de Certificate ( certificado ) para armazenar todos os certificados
+### `./prisma/schema.prisma:` Refatorada a modelagem de locais no banco de dados. O enum `Location` foi removido e substituído por uma nova tabela `Location`, permitindo que os locais passem a ser gerenciados dinamicamente via CRUD.
 
-### `./prisma/migrations:` Realizado uma nova migration após adicionar a tabela de Certificate
+### `./prisma/migrations:` Criada uma nova migration para suportar a nova entidade `Location`, a substituição do campo antigo de localização em `Event` por `locationId`, e os novos relacionamentos no banco de dados.
 
-### `./src/modules/certificates:` Módulo responsável por armazenar e exportar a lógica de envio de certificado para os alunos que estão como presentes no evento.
+### `./src/modules/locations:` Criado o novo módulo de locais contendo controller, service, module e DTOs para permitir o gerenciamento completo de locais cadastrados no sistema.
 
-### `./src/modules/certificates/certificates.module.ts:` Importa o ScheduleModule.forRoot() e o PrismaModule e exporta o service para ser utilizado em outros locais do código
+### `./src/modules/events/dto/create-event.dto.ts:` Atualizado o DTO de criação de eventos para utilizar `locationId` no lugar do enum `location`, adequando a entrada de dados à nova estrutura relacional.
 
-### `./src/modules/certificates/certificates.controller.ts:` Disponibiliza a rota para validação se o certificado é real ou não e se pertence a pessoa.
+### `./src/modules/events/dto/update-event.dto.ts:` Atualizado o DTO de edição de eventos para trabalhar com `locationId`, mantendo compatibilidade com a nova modelagem de locais.
 
-### `./src/modules/certificates/certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior
+### `./src/modules/events/dto/event-response.dto.ts:` Atualizado o DTO de resposta dos eventos para incluir `locationId` e `locationName`, removendo a dependência do enum antigo.
 
-### `./package.json:` Instalado a biblioteca para utilizar o qrcode:
-```bash
-npm i qrcode
-```
+### `./src/modules/events/dto/event-public-response.dto.ts:` Atualizado o DTO público de eventos para refletir a nova estrutura relacional de locais, passando a expor `locationId` e `locationName`.
+
+### `./src/modules/events/events.controller.ts:` Atualizado para receber `locationId` nas rotas de disponibilidade de datas e horários, substituindo a antiga validação baseada em enum.
+
+### `./src/modules/events/events.service.ts:` Refatorada a lógica de eventos para trabalhar com a entidade `Location` via relacionamento Prisma, incluindo validação de conflitos, disponibilidade de agenda, criação, edição e retorno de `locationName`.
+
+### `./src/modules/participants/participants.service.ts:` Atualizado para utilizar a relação `event.location` na montagem do e-mail de confirmação de inscrição, exibindo corretamente o nome do local cadastrado no banco.
+
+### `./src/modules/certificates/certificates.service.ts:` Atualizado para utilizar a relação `event.location` na geração e validação dos dados do certificado, garantindo compatibilidade com a nova modelagem de locais.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -141,6 +146,12 @@ npm i qrcode
     - `events.service.ts:` Implementa toda a lógica de negócio de eventos — interage com o PrismaClient para operações de CRUD, valida conflitos de horários para evitar sobreposição, utiliza o CloudinaryService para upload e exclusão de imagens, e calcula dinamicamente os slots livres de datas e horários conforme o local e data informados.
     - `events.service.spec.ts:` Conjunto de testes unitários do EventsService, cobrindo cenários de criação sem arquivo, detecção de sobreposição de horários, criação bem-sucedida com upload de imagem, atualização com e sem novo arquivo (incluindo exclusão e upload no Cloudinary), cálculo de disponibilidade de horários e datas para diferentes locais, remoção de evento com exclusão de imagem, e tratamento de exceções ConflictException e NotFoundException.
     - `events.module.ts:` Arquivo de configuração do módulo de eventos, importando PrismaModule e CloudinaryModule, e registrando EventsService e EventsController no contexto do NestJS.
+
+  - `locations:` Pacote dedicado ao gerenciamento completo de locais, englobando todas as operações de CRUD e servindo como base relacional para o cadastro de eventos.
+    - `dto:` Diretório que contém os Data Transfer Objects (`CreateLocationDto`, `UpdateLocationDto`, `LocationResponseDto` e `LocationPublicResponseDto`) responsáveis por modelar os dados de entrada e saída nas requisições de locais.
+    - `locations.controller.ts:` Define os endpoints REST para listagem administrativa (GET /locations), listagem pública (GET /locations/publicAllLocations), criação (POST /locations/create), atualização (PATCH /locations/patch/:id) e remoção (DELETE /locations/delete/:id) dos locais cadastrados no sistema.
+    - `locations.service.ts:` Implementa a lógica de negócio dos locais — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela `Location`, incluindo validações de existência, conflitos de nome duplicado e proteção contra exclusão de locais vinculados a eventos.
+    - `locations.module.ts:` Arquivo de configuração do módulo de locais, importando o PrismaModule e registrando o LocationsService e LocationsController no contexto do NestJS.
 
   - `participants:` Módulo dedicado ao fluxo completo de inscrição e controle de presença de participantes em eventos
     - `dto:` Contém os Data Transfer Objects (CreateParticipantDto, UpdateParticipantDto e ParticipantResponseDto) que definem a forma dos dados de entrada e saída nas operações de participantes

@@ -1,4 +1,4 @@
-import { Role, Location } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { EventsService } from './events.service';
 import { RolesGuard } from '../../guards/roles.guard';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -9,7 +9,7 @@ import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EventResponseDto } from './dto/event-response.dto';
 import { EventPublicResponseDto } from './dto/event-public-response.dto';
-import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UploadedFile, UseGuards, UseInterceptors, HttpCode, ParseIntPipe, ParseEnumPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UploadedFile, UseGuards, UseInterceptors, HttpCode, ParseIntPipe } from '@nestjs/common';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN, Role.COORDENADOR)
@@ -55,12 +55,16 @@ export class EventsController {
   }
 
   @Get('availability/dates')
-  async availabilityDates(@Query('location', new ParseEnumPipe(Location)) location: Location): Promise<string[]> {
-    return this.eventService.getAvailableDates(location);
+  async availabilityDates(@Query('locationId', ParseIntPipe) locationId: number): Promise<string[]> {
+    return this.eventService.getAvailableDates(locationId);
   }
 
   @Get('availability/times')
-  async availabilityTimes(@Query('location', new ParseEnumPipe(Location)) location: Location, @Query('date') date: string, @Query('exceptId') exceptId?: string): Promise<{ start: string; end: string }[]> {
-    return this.eventService.getAvailableTimes(location, date, exceptId ? Number(exceptId) : undefined);
+  async availabilityTimes(
+    @Query('locationId', ParseIntPipe) locationId: number,
+    @Query('date') date: string,
+    @Query('exceptId') exceptId?: string,
+  ): Promise<{ start: string; end: string }[]> {
+    return this.eventService.getAvailableTimes(locationId, date, exceptId ? Number(exceptId) : undefined);
   }
 }

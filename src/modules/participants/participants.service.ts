@@ -1,6 +1,6 @@
-import { Participant, Event } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../../services/email.service';
+import { Participant, Event, Location } from '@prisma/client';
 import { CreateParticipantDto } from './dto/create-participant.dto';
 import { UpdateParticipantDto } from './dto/update-participant.dto';
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
@@ -28,7 +28,10 @@ export class ParticipantsService {
       if (existsByRa) throw new ConflictException('Participante com este RA já inscrito neste evento.');
     }
 
-    const event = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: dto.eventId },
+      include: { location: true },
+    });
     if (!event) throw new NotFoundException(`Evento ${dto.eventId} não encontrado.`);
 
     if (event.isRestricted) {
@@ -69,7 +72,7 @@ export class ParticipantsService {
     });
   }
 
-  private buildConfirmationEmail(name: string, event: Event): string {
+  private buildConfirmationEmail(name: string, event: Event & { location: Location }): string {
     return `
     <!DOCTYPE html>
     <html lang="pt-BR">
@@ -105,8 +108,8 @@ export class ParticipantsService {
                       <li><strong>Data:</strong> ${new Date(event.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</li>
                       <li><strong>Horário:</strong> ${event.startTime.toISOString().substr(11, 5)} às ${event.endTime.toISOString().substr(11, 5)}</li>
                       <li><strong>Palestrante:</strong> ${event.speakerName}</li>
-                      <li><strong>Local:</strong> ${event.location !== 'OUTROS'
-                        ? event.location.replace(/_/g, ' ').toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase())
+                      <li><strong>Local:</strong> ${event.location.name.toLowerCase() !== 'outros'
+                        ? event.location.name
                         : event.customLocation}
                       </li>
                       <li><strong>Descrição:</strong> ${event.description}</li>

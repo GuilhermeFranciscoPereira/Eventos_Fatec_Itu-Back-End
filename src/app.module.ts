@@ -4,27 +4,29 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { EventsModule } from './modules/events/events.module';
+import { CoursesModule } from './modules/courses/courses.module';
 import { CsrfController } from './modules/common/csrf.controller';
 import { CarouselModule } from './modules/carousel/carousel.module';
+import { LocationsModule } from './modules/location/locations.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ParticipantsModule } from './modules/participants/participants.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
-import { CoursesModule } from './modules/courses/courses.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    PrismaModule,
     AuthModule,
-    UsersModule,
-    CategoriesModule,
-    CloudinaryModule,
     CarouselModule,
-    EventsModule,
-    ParticipantsModule,
+    CategoriesModule,
     CertificatesModule,
+    CloudinaryModule,
     CoursesModule,
+    EventsModule,
+    LocationsModule,
+    ParticipantsModule,
+    PrismaModule,
+    UsersModule,
   ],
   controllers: [CsrfController]
 })

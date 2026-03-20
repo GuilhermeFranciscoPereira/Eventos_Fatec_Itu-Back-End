@@ -26,22 +26,27 @@
 
 ## 🛎️ Updates to this commit
 
-### `./prisma/schema.prisma:` Created the Certificate table to store all certificates
+### `./prisma/schema.prisma:` The location modeling in the database has been refactored. The `Location` enum has been removed and replaced with a new `Location` table, allowing locations to be managed dynamically via CRUD.
 
-### `./prisma/migrations:` Performed a new migration after adding the Certificate table
+### `./prisma/migrations:` A new migration has been created to support the new `Location` entity, replacing the old location field in `Event` with `locationId`, and the new relationships in the database.
 
-### `./src/modules/certificates:` Module responsible for storing and exporting the logic for sending certificates to students who are present at the event.
+### `./src/modules/locations:` A new locations module has been created containing a controller, service, module, and DTOs to allow complete management of locations registered in the system.
 
-### `./src/modules/certificates/certificates.module.ts:` Imports ScheduleModule.forRoot() and PrismaModule and exports the service to be used in other parts of the code
+### `./src/modules/events/dto/create-event.dto.ts:` Updated the event creation DTO to use `locationId` instead of the `location` enum, adapting the data entry to the new relational structure.
 
-### `./src/modules/certificates/certificates.controller.ts:` Provides the route for validating whether the certificate is real or not and whether it belongs to the person.
+### `./src/modules/events/dto/update-event.dto.ts:` Updated the event editing DTO to work with `locationId`, maintaining compatibility with the new location modeling.
 
-### `./src/modules/certificates/certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events
+### `./src/modules/events/dto/event-response.dto.ts:` Updated the event response DTO to include `locationId` and `locationName`, removing the dependency on the old enum.
 
-### `./package.json:` Installed the library to use the QR code:
-```bash
-npm i qrcode
-```
+### `./src/modules/events/dto/event-public-response.dto.ts:` Updated the public event DTO to reflect the new relational structure of locations, now exposing `locationId` and `locationName`.
+
+### `./src/modules/events/events.controller.ts:` Updated to receive `locationId` in the date and time availability routes, replacing the old enum-based validation.
+
+### `./src/modules/events/events.service.ts:` Refactored the event logic to work with the `Location` entity via the Prisma relationship, including conflict validation, calendar availability, creation, editing, and return of `locationName`.
+
+### `./src/modules/participants/participants.service.ts` file to use the `event.location` relationship in the assembly of the registration confirmation email, correctly displaying the name of the location registered in the database.
+
+### `./src/modules/certificates/certificates.service.ts` file to use the `event.location` relationship in the generation and validation of certificate data, ensuring compatibility with the new location model.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -129,6 +134,12 @@ npm i qrcode
        - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creation (POST /events/create), partial update (PATCH /events/patch/:id), removal (DELETE /events/delete/:id), date availability (GET /events/availability/dates) and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image upload and appropriate HTTP codes (201 for creation, 200 for removal), only the route (GET /publicAllEvents) does not require authentication, this route is used to show events to unauthenticated users.
         - `events.service.ts:` Implements all event business logic — interacts with PrismaClient for CRUD operations, validates schedule conflicts to avoid overlap, uses CloudinaryService for image upload and deletion, and dynamically calculates free date and time slots based on the specified location and date.
         - `events.service.spec.ts:` Unit test suite for EventsService, covering creation scenarios without a file, detecting schedule overlaps, successful creation with image upload, updating with and without a new file (including deletion and upload to Cloudinary), calculating availability for times and dates for different locations, deleting an event with image deletion, and handling ConflictException and NotFoundException exceptions. - `events.module.ts:` Events module configuration file, importing PrismaModule and CloudinaryModule, and registering EventsService and EventsController in the NestJS context.
+
+    - `locations:` Package dedicated to the complete management of locations, encompassing all CRUD operations and serving as a relational base for event registration.
+        - `dto:` Directory containing the Data Transfer Objects (`CreateLocationDto`, `UpdateLocationDto`, `LocationResponseDto`, and `LocationPublicResponseDto`) responsible for modeling the input and output data in location requests.
+        - `locations.controller.ts:` Defines the REST endpoints for administrative listing (GET /locations), public listing (GET /locations/publicAllLocations), creation (POST /locations/create), update (PATCH /locations/patch/:id), and removal (DELETE /locations/delete/:id) of locations registered in the system.
+        - `locations.service.ts:` Implements the business logic for locations — interacts with PrismaClient to search, insert, modify, and delete records in the `Location` table, including existence validations, duplicate name conflicts, and protection against event-bound location deletion.
+        - `locations.module.ts:` Configuration file for the locations module, importing PrismaModule and registering LocationsService and LocationsController in the NestJS context.
     
     - `participants:` Module dedicated to the complete flow of participant registration and attendance control in events
         - `dto:` Contains the Data Transfer Objects (CreateParticipantDto, UpdateParticipantDto, and ParticipantResponseDto) that define the form of input and output data in participant operations

@@ -1,4 +1,4 @@
-import { Semester, Location } from '@prisma/client';
+import { Semester } from '@prisma/client';
 
 export class EventPublicResponseDto {
     id!: number;
@@ -11,7 +11,8 @@ export class EventPublicResponseDto {
     maxParticipants!: number;
     currentParticipants!: number;
     isRestricted!: boolean;
-    location!: Location;
+    locationId!: number;
+    locationName!: string;
     customLocation!: string | null;
     speakerName!: string;
     startDate!: Date;
