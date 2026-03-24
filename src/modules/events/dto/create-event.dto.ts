@@ -29,7 +29,11 @@ export class CreateEventDto {
     @Min(1)
     maxParticipants!: number;
 
-    @Transform(({ value }) => value === 'true')
+    @Transform(({ value }) => {
+        if (value === true || value === 'true') return true
+        if (value === false || value === 'false') return false
+        return Boolean(value)
+    })
     @IsBoolean()
     isRestricted!: boolean;
 

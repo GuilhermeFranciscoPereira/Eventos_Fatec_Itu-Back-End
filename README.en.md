@@ -26,27 +26,7 @@
 
 ## 🛎️ Updates to this commit
 
-### `./prisma/schema.prisma:` The location modeling in the database has been refactored. The `Location` enum has been removed and replaced with a new `Location` table, allowing locations to be managed dynamically via CRUD.
-
-### `./prisma/migrations:` A new migration has been created to support the new `Location` entity, replacing the old location field in `Event` with `locationId`, and the new relationships in the database.
-
-### `./src/modules/locations:` A new locations module has been created containing a controller, service, module, and DTOs to allow complete management of locations registered in the system.
-
-### `./src/modules/events/dto/create-event.dto.ts:` Updated the event creation DTO to use `locationId` instead of the `location` enum, adapting the data entry to the new relational structure.
-
-### `./src/modules/events/dto/update-event.dto.ts:` Updated the event editing DTO to work with `locationId`, maintaining compatibility with the new location modeling.
-
-### `./src/modules/events/dto/event-response.dto.ts:` Updated the event response DTO to include `locationId` and `locationName`, removing the dependency on the old enum.
-
-### `./src/modules/events/dto/event-public-response.dto.ts:` Updated the public event DTO to reflect the new relational structure of locations, now exposing `locationId` and `locationName`.
-
-### `./src/modules/events/events.controller.ts:` Updated to receive `locationId` in the date and time availability routes, replacing the old enum-based validation.
-
-### `./src/modules/events/events.service.ts:` Refactored the event logic to work with the `Location` entity via the Prisma relationship, including conflict validation, calendar availability, creation, editing, and return of `locationName`.
-
-### `./src/modules/participants/participants.service.ts` file to use the `event.location` relationship in the assembly of the registration confirmation email, correctly displaying the name of the location registered in the database.
-
-### `./src/modules/certificates/certificates.service.ts` file to use the `event.location` relationship in the generation and validation of certificate data, ensuring compatibility with the new location model.
+### `./src/modules/events/dto/create-event.dto.ts:` Fixed the transformation of the boolean field isRestricted, ensuring the correct interpretation of values ​​received as string ('true' / 'false') and boolean (true / false). Previously, the value was being incorrectly persisted as disabled due to conventional conversion.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

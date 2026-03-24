@@ -26,27 +26,7 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Refatorada a modelagem de locais no banco de dados. O enum `Location` foi removido e substituído por uma nova tabela `Location`, permitindo que os locais passem a ser gerenciados dinamicamente via CRUD.
-
-### `./prisma/migrations:` Criada uma nova migration para suportar a nova entidade `Location`, a substituição do campo antigo de localização em `Event` por `locationId`, e os novos relacionamentos no banco de dados.
-
-### `./src/modules/locations:` Criado o novo módulo de locais contendo controller, service, module e DTOs para permitir o gerenciamento completo de locais cadastrados no sistema.
-
-### `./src/modules/events/dto/create-event.dto.ts:` Atualizado o DTO de criação de eventos para utilizar `locationId` no lugar do enum `location`, adequando a entrada de dados à nova estrutura relacional.
-
-### `./src/modules/events/dto/update-event.dto.ts:` Atualizado o DTO de edição de eventos para trabalhar com `locationId`, mantendo compatibilidade com a nova modelagem de locais.
-
-### `./src/modules/events/dto/event-response.dto.ts:` Atualizado o DTO de resposta dos eventos para incluir `locationId` e `locationName`, removendo a dependência do enum antigo.
-
-### `./src/modules/events/dto/event-public-response.dto.ts:` Atualizado o DTO público de eventos para refletir a nova estrutura relacional de locais, passando a expor `locationId` e `locationName`.
-
-### `./src/modules/events/events.controller.ts:` Atualizado para receber `locationId` nas rotas de disponibilidade de datas e horários, substituindo a antiga validação baseada em enum.
-
-### `./src/modules/events/events.service.ts:` Refatorada a lógica de eventos para trabalhar com a entidade `Location` via relacionamento Prisma, incluindo validação de conflitos, disponibilidade de agenda, criação, edição e retorno de `locationName`.
-
-### `./src/modules/participants/participants.service.ts:` Atualizado para utilizar a relação `event.location` na montagem do e-mail de confirmação de inscrição, exibindo corretamente o nome do local cadastrado no banco.
-
-### `./src/modules/certificates/certificates.service.ts:` Atualizado para utilizar a relação `event.location` na geração e validação dos dados do certificado, garantindo compatibilidade com a nova modelagem de locais.
+### `./src/modules/events/dto/create-event.dto.ts:` Corrigida a transformação do campo booleano isRestricted, garantindo a interpretação correta de valores recebidos como string ('true' / 'false') e boolean (true / false). Anteriormente, o valor estava sendo persistido incorretamente como desativado devido à conversão inadequada.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
