@@ -26,7 +26,15 @@
 
 ## 🛎️ Updates to this commit
 
-### `./src/modules/events/dto/create-event.dto.ts:` Fixed the transformation of the boolean field isRestricted, ensuring the correct interpretation of values ​​received as string ('true' / 'false') and boolean (true / false). Previously, the value was being incorrectly persisted as disabled due to conventional conversion.
+### `./package.json:` Installed Nest Throttler using `npm i @nestjs/throttler`
+
+### `./src/app.module.ts:` Added `ThrottlerModule` with global protection against excessive requests, including specific rules for authentication and password reset.
+
+### `./src/modules/auth/auth.controller.ts:` Added request limitations on sensitive authentication routes to mitigate brute-force attacks, such as `request-login`, `login`, `request-reset-password`, and `reset-password`.
+
+### `./src/main.ts:` Added a global filter to customize the HTTP `429 Too Many Requests` response with a user-friendly message.
+
+### `./src/common/throttler-exception.filter.ts:` Created a global filter to handle throttler exceptions and return a custom message when the request limit is exceeded.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -108,6 +116,7 @@
 
     - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
+        - `throttler-behind-proxy.guard.ts:` Correctly resolves the identification of the client's real IP address in environments with a proxy or load balancer, ensuring the correct functioning of the rate limit.
 
     - `events:` Package dedicated to complete event management, encompassing CRUD operations, image uploads, and date and time availability queries.
         - `dto:` Directory containing Data Transfer Objects (CreateEventDto, UpdateEventDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.

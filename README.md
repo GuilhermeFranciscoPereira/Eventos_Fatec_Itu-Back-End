@@ -26,7 +26,15 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./src/modules/events/dto/create-event.dto.ts:` Corrigida a transformação do campo booleano isRestricted, garantindo a interpretação correta de valores recebidos como string ('true' / 'false') e boolean (true / false). Anteriormente, o valor estava sendo persistido incorretamente como desativado devido à conversão inadequada.
+### `./package.json:` Instalado o Throttler do Nest usando `npm i @nestjs/throttler`
+
+### `./src/app.module.ts:` Adicionado o `ThrottlerModule` com proteção global contra excesso de requisições, incluindo regras específicas para autenticação e redefinição de senha.
+
+### `./src/modules/auth/auth.controller.ts:` Adicionadas limitações de requisição nas rotas sensíveis de autenticação para mitigar ataques de brute force, como `request-login`, `login`, `request-reset-password` e `reset-password`.
+
+### `./src/main.ts:` Adicionado filtro global para personalizar a resposta HTTP `429 Too Many Requests` com mensagem amigável ao usuário.
+
+### `./src/common/throttler-exception.filter.ts:` Criado filtro global para tratar exceções do throttler e retornar uma mensagem personalizada quando o limite de requisições for excedido.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -109,8 +117,9 @@
     - `cloudinary.provider.ts:` Configura a conexão com a Cloudinary
     - `cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto
   
-  - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
+  - `common:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
+    - `throttler-behind-proxy.guard.ts:` Resolve corretamente a identificação do IP real do cliente em ambientes com proxy ou load balancer, garantindo funcionamento correto do rate limit.
 
    - `courses:` Pacote dedicado ao gerenciamento completo de cursos, englobando todas as operações de CRUD.
     - `dto:` Diretório que contém os Data Transfer Objects (CreateCourseDto, UpdateCourseDto e CourseResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de cursos.

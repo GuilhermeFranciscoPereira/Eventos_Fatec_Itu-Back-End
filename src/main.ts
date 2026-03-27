@@ -6,6 +6,7 @@ import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { ThrottlerExceptionFilter } from './modules/common/throttler-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -33,6 +34,8 @@ async function bootstrap() {
       },
     }),
   );
+
+  app.useGlobalFilters(new ThrottlerExceptionFilter())
 
   app.useGlobalPipes(
     new ValidationPipe({

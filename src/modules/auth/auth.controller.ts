@@ -1,5 +1,6 @@
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
+import { Throttle } from '@nestjs/throttler';
 import { LoginDto } from './dto/login-auth.dto';
 import { MeResponseDto } from './dto/me-auth.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -54,6 +55,7 @@ export class AuthController {
     return { message: 'Deslogado com sucesso!' };
   }
 
+  @Throttle({ auth: { limit: 5, ttl: 60_000, blockDuration: 5 * 60_000 } })
   @Post('request-login')
   @HttpCode(200)
   async requestLogin(@Body() dto: RequestLoginDto, @Res({ passthrough: true }) res: Response) {
@@ -64,6 +66,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
+  @Throttle({ auth: { limit: 5, ttl: 60_000, blockDuration: 5 * 60_000 } })
   async login(@Body() dto: LoginDto, @Req() req: Request & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response) {
     const tmpToken = req.cookies['2fa_token']; if (!tmpToken) throw new UnauthorizedException('Token expirado, solicite novamente!');
     const { accessToken, refreshToken } = await this.authService.login(dto.code, tmpToken);
@@ -75,6 +78,7 @@ export class AuthController {
 
   @Post('request-reset-password')
   @HttpCode(200)
+  @Throttle({ reset: { limit: 3, ttl: 15 * 60_000, blockDuration: 10 * 60_000 } })
   async requestPasswordReset(@Body() dto: RequestResetPasswordDto, @Res({ passthrough: true }) res: Response) {
     const tmpToken = await this.authService.requestPasswordReset(dto.email);
     setCookie(res, 'reset_token', tmpToken, 15 * 60 * 1000);
@@ -83,6 +87,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(200)
+  @Throttle({ reset: { limit: 3, ttl: 15 * 60_000, blockDuration: 10 * 60_000 } })
   async passwordReset(@Body() dto: ResetPasswordDto, @Req() req: Request & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response) {
     const tmpToken = req.cookies['reset_token']; if (!tmpToken) throw new UnauthorizedException('Token expirado, solicite novamente!');
     const result = await this.authService.passwordReset(dto.code, dto.newPassword, tmpToken);
