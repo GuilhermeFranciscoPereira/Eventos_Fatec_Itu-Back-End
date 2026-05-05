@@ -26,15 +26,9 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./package.json:` Instalado o Throttler do Nest usando `npm i @nestjs/throttler`
+### `./Dockerfile:` Arquivo responsável por definir o processo de containerização do back-end. Utiliza Node.js 22 Bookworm Slim e build multi-stage para instalar as dependências com `npm ci`, gerar o Prisma Client com `npx prisma generate`, compilar a aplicação NestJS com `npm run build` e executar a API em modo production na porta `4000`.
 
-### `./src/app.module.ts:` Adicionado o `ThrottlerModule` com proteção global contra excesso de requisições, incluindo regras específicas para autenticação e redefinição de senha.
-
-### `./src/modules/auth/auth.controller.ts:` Adicionadas limitações de requisição nas rotas sensíveis de autenticação para mitigar ataques de brute force, como `request-login`, `login`, `request-reset-password` e `reset-password`.
-
-### `./src/main.ts:` Adicionado filtro global para personalizar a resposta HTTP `429 Too Many Requests` com mensagem amigável ao usuário.
-
-### `./src/common/throttler-exception.filter.ts:` Criado filtro global para tratar exceções do throttler e retornar uma mensagem personalizada quando o limite de requisições for excedido.
+### `./.dockerignore` Criado o dockeringore que serve para remover arquivos desnecessários do contexto de build Docker.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -116,10 +110,9 @@
     - `cloudinary.module.ts:` Importa o nosso provider e service e exporta o service para ser utilizado em outros locais do código
     - `cloudinary.provider.ts:` Configura a conexão com a Cloudinary
     - `cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto
-  
-  - `common:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
+
+  - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
-    - `throttler-behind-proxy.guard.ts:` Resolve corretamente a identificação do IP real do cliente em ambientes com proxy ou load balancer, garantindo funcionamento correto do rate limit.
 
    - `courses:` Pacote dedicado ao gerenciamento completo de cursos, englobando todas as operações de CRUD.
     - `dto:` Diretório que contém os Data Transfer Objects (CreateCourseDto, UpdateCourseDto e CourseResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de cursos.
@@ -166,17 +159,19 @@
   
   - `email.service.ts:` Temos as configurações para o envio de email e o método send que por onde realmente vamos utilizar para o envio dos e-mails
 
-- `./Dockerfile:` Define como a aplicação será empacotada em uma imagem Docker.
+- `./Dockerfile:` Arquivo responsável por definir o processo de containerização do back-end. Utiliza Node.js 22 Bookworm Slim e build multi-stage para instalar as dependências com `npm ci`, gerar o Prisma Client com `npx prisma generate`, compilar a aplicação NestJS com `npm run build` e executar a API em modo production na porta `4000`.
 
-- `./dockerignore:` Evita que arquivos desnecessários (node_modules, build, etc.) entrem na imagem.
-
-- `./docker-compose.yml:` Orquestra serviços (app Nest, banco MySQL) num único comando, cuidando de rede, volumes, variáveis de ambiente.
+- `./.dockerignore` Define quais arquivos e diretórios devem ser ignorados durante o build da imagem Docker.
 
 - `./test/` Diretório dedicado aos testes de ponta a ponta (e2e):  
   - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado, fazendo testes de fluxos de sucesso e fluxos de erros, como validação, autorização e etc.
   - `jest.e2e-json`: Arquivo de configuração do Jest para executar os testes e2e (definição de extensões de arquivo reconhecidas, ponto de partida para busca de testes, transform, e etc.)   
 
 ## ❔ Como rodar o projeto na minha máquina?
+
+- O projeto pode ser executado de duas formas, ambas vão ser ensinadas abaixo:
+    - Localmente, rodando o código na sua máquina.
+    - Via Docker, subindo o front-end em container mas não se esqueça de no meu github também pegar o back-end para subir na nuvem também.
 
 - Antes de tudo, você precisa ter o Git instalado no seu computador. O Git é uma ferramenta que permite clonar e gerenciar repositórios de código.
     - Windows: Baixe o Git <a href="https://git-scm.com/download/win" target="_blank">aqui</a> e siga as instruções de instalação.

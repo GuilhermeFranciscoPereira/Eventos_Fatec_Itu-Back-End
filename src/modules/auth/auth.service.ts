@@ -35,7 +35,7 @@ export class AuthService {
 
   async requestLogin(dto: { email: string; password: string }) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException('Email incorreto');
+    if (!user) throw new UnauthorizedException('E-mail incorreto');
 
     const ok = await argon2.verify(user.password, dto.password + this.pepper);
     if (!ok) throw new UnauthorizedException('Senha inválida');

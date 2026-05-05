@@ -500,13 +500,13 @@ describe('Application Tests - (e2e)', () => {
 
     describe('Error Cases', () => {
         it('POST /apiEvents/auth/request-login invalid creds → 401', async () => {
-            authStub.requestLogin.mockRejectedValueOnce(new UnauthorizedException('Email incorreto'));
+            authStub.requestLogin.mockRejectedValueOnce(new UnauthorizedException('E-mail incorreto'));
             await request(server)
                 .post('/apiEvents/auth/request-login')
                 .set('Cookie', csrfCookie)
                 .set('X-CSRF-Token', csrfToken)
                 .send({ email: 'wrong@cms.sp.gov.br', password: 'BadPass1!' })
-                .expect(401, { statusCode: 401, message: 'Email incorreto', error: 'Unauthorized' });
+                .expect(401, { statusCode: 401, message: 'E-mail incorreto', error: 'Unauthorized' });
         });
 
         it('POST /apiEvents/auth/request-login invalid payload → 400', async () => {

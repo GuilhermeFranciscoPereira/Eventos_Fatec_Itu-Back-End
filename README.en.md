@@ -26,15 +26,9 @@
 
 ## 🛎️ Updates to this commit
 
-### `./package.json:` Installed Nest Throttler using `npm i @nestjs/throttler`
+### `./Dockerfile:` File responsible for defining the backend containerization process. It uses Node.js 22 Bookworm Slim and multi-stage build to install dependencies with `npm ci`, generate the Prisma Client with `npx prisma generate`, compile the NestJS application with `npm run build`, and run the API in production mode on port `4000`.
 
-### `./src/app.module.ts:` Added `ThrottlerModule` with global protection against excessive requests, including specific rules for authentication and password reset.
-
-### `./src/modules/auth/auth.controller.ts:` Added request limitations on sensitive authentication routes to mitigate brute-force attacks, such as `request-login`, `login`, `request-reset-password`, and `reset-password`.
-
-### `./src/main.ts:` Added a global filter to customize the HTTP `429 Too Many Requests` response with a user-friendly message.
-
-### `./src/common/throttler-exception.filter.ts:` Created a global filter to handle throttler exceptions and return a custom message when the request limit is exceeded.
+## `./.dockerignore` This dockerignore file is used to remove unnecessary files from the Docker build context.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -114,9 +108,8 @@
         - `cloudinary.provider.ts:` Configures the connection to Cloudinary
         - `cloudinary.service.ts:` Exports the functions for uploading and deleting a photo
 
-    - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
+    - `commom:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
-        - `throttler-behind-proxy.guard.ts:` Correctly resolves the identification of the client's real IP address in environments with a proxy or load balancer, ensuring the correct functioning of the rate limit.
 
     - `events:` Package dedicated to complete event management, encompassing CRUD operations, image uploads, and date and time availability queries.
         - `dto:` Directory containing Data Transfer Objects (CreateEventDto, UpdateEventDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
@@ -152,17 +145,19 @@
 - `./src/services`: Brings together injectable classes that encapsulate business logic, utilities, and external integrations.
     - `email.service.ts:` We have the configurations for sending emails and the send method that we will actually use to send emails.
 
-- `./Dockerfile:` Defines how the application will be packaged into a Docker image.
+`./Dockerfile:` File responsible for defining the backend containerization process. It uses Node.js 22 Bookworm Slim and multi-stage build to install dependencies with `npm ci`, generate the Prisma Client with `npx prisma generate`, compile the NestJS application with `npm run build`, and run the API in production mode on port `4000`.
 
-- `./dockerignore:` Prevents unnecessary files (node_modules, build, etc.) from being included in the image.
-
-- `./docker-compose.yml:` Orchestrates services (Nest app, MySQL database) in a single command, taking care of networking, volumes, and environment variables.
+- `./dockerignore:` Defines which files and directories should be ignored during the Docker image build.
 
 - `./test/` Directory dedicated to end-to-end (e2e) tests:
     - `app.e2e-spec.ts`: Our e2e tests to validate endpoints and main API flows ensure that scenarios work as expected, testing success flows and error flows, such as validation, authorization, etc.
     - `jest.e2e-json`: Jest configuration file for running e2e tests (defining recognized file extensions, starting point for test searches, transforms, etc.)
 
 ## ❔ How do I run the project on my machine?
+
+- The project can be run in two ways, both of which will be explained below:
+    - Locally, running the code on your machine.
+    - Via Docker, uploading the front-end in a container, but don't forget to also download the back-end from my GitHub to upload to the cloud as well.
 
 - First of all, you need to have Git installed on your computer. Git is a tool that allows you to clone and manage code repositories.
 - Windows: Download Git <a href="https://git-scm.com/download/win" target="_blank">here</a> and follow the installation instructions. - macOS: You can install Git <a href="https://git-scm.com/download/mac" target="_blank">here</a> or using Homebrew with the brew install git command:

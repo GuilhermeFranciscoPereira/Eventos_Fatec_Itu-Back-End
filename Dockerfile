@@ -1,43 +1,37 @@
-# Stage 1: build
-FROM node:20-alpine AS builder
+FROM node:22-bookworm-slim AS deps
 
-# Defina diretório de trabalho
 WORKDIR /app
 
-# Copie apenas o package.json e o lockfile para instalar deps
-COPY package*.json ./
-COPY prisma ./prisma/
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Instale dependências
+COPY package*.json ./
 RUN npm ci
 
-# Copie o restante do código
-COPY tsconfig*.json ./
-COPY src ./src
+FROM node:22-bookworm-slim AS builder
 
-# Gere o cliente do Prisma e faça o build TS
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
 RUN npx prisma generate
 RUN npm run build
 
-# Stage 2: runtime
-FROM node:20-alpine AS runner
+FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
 
-# Apenas prod deps
-COPY package*.json ./
-RUN npm ci --production
+ENV NODE_ENV=production
 
-# Copie build e prisma client
-COPY --from=builder /app/dist ./dist
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Variáveis de ambiente pontuais
-ENV NODE_ENV=production
-ENV PORT=3000
+EXPOSE 4000
 
-EXPOSE 3000
-
-# Comando de start
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "start:prod"]
