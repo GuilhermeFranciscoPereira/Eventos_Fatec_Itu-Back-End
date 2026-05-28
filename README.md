@@ -26,17 +26,15 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./prisma/schema.prisma:` Adicionado o campo `presenceSecretHash` no model `Event`, permitindo que cada evento tenha uma palavra secreta de presença salva de forma protegida no banco de dados.
+### `./Dockerfile:` Ajustado o processo de containerização do back-end para build em produção com NestJS, Prisma e Node.js 22 Bookworm Slim, realizando instalação das dependências, geração do Prisma Client, compilação da aplicação e execução da API na porta `4000`.
 
-### `./src/modules/events/dto/create-event.dto.ts:` Adicionado o campo opcional `presenceSecret` no DTO de criação de eventos, permitindo informar a palavra secreta no momento do cadastro do evento.
+### `./.dockerignore:` Adicionado arquivo para impedir que arquivos desnecessários, como `node_modules`, `dist`, `.git`, `.env` e arquivos de log sejam enviados para o contexto de build do Docker.
 
-### `./src/modules/events/dto/update-event.dto.ts:` Mantido o uso do `PartialType(CreateEventDto)`, permitindo que a palavra secreta também possa ser enviada opcionalmente na edição do evento.
+### `./.github/workflows/deploy.yml:` Adicionado workflow de CI/CD com GitHub Actions para automatizar o build da imagem Docker do back-end, publicar a imagem no GitHub Container Registry e atualizar automaticamente o container na VPS após cada `git push` na branch `main`.
 
-### `./src/modules/events/dto/validate-presence.dto.ts:` Criado o DTO responsável por validar o envio da palavra secreta usada para confirmar a presença do participante.
+### `GitHub Container Registry:` Configurado o fluxo de publicação da imagem `ghcr.io/guilhermefranciscopereira/eventos-fatec-itu-backend:latest`, permitindo que a VPS baixe a versão mais recente da API sem precisar realizar o build localmente.
 
-### `./src/modules/events/events.controller.ts:` Adicionada a rota pública `PATCH /events/:eventId/participants/:participantId/presence`, responsável por receber a palavra secreta e solicitar a confirmação de presença do participante no evento.
-
-### `./src/modules/events/events.service.ts:` Implementada a lógica de hash da palavra secreta com `argon2` na criação e edição do evento, além da validação da palavra enviada pelo participante para marcar sua presença no campo `isPresent`.
+### `Deploy automatizado:` Alterado o fluxo de deploy para que a VPS execute apenas `docker compose pull` e `docker compose up -d`, reduzindo o consumo de RAM e evitando falhas durante o build em ambiente de produção.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -68,6 +66,16 @@
 
 - `./prisma:` O prisma permite interagir com o banco de dados de forma segura e performática.Ele também cuida do gerenciamento de schema e facilita a criação e execução de migrations, além de oferecer uma API intuitiva para consultas e manipulação de dados.
   - `schema.prisma:` É o arquivo central onde definimos os modelos de dados, relacionamentos e geradores do Prisma Client.
+
+- `./.github/workflows/deploy.yml:` Workflow do GitHub Actions responsável pelo CI/CD do back-end. Ao receber um `git push` na branch `main`, realiza o build da imagem Docker, publica no GitHub Container Registry e atualiza automaticamente o container do back-end na VPS.
+
+- `./Dockerfile:` Arquivo responsável por definir o processo de containerização do back-end. Utiliza Node.js 22 Bookworm Slim e build multi-stage para instalar as dependências com `npm ci`, gerar o Prisma Client com `npx prisma generate`, compilar a aplicação NestJS com `npm run build` e executar a API em modo production na porta `4000`.
+
+- `./.dockerignore` Define quais arquivos e diretórios devem ser ignorados durante o build da imagem Docker.
+
+- `./test/` Diretório dedicado aos testes de ponta a ponta (e2e):  
+  - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado, fazendo testes de fluxos de sucesso e fluxos de erros, como validação, autorização e etc.
+  - `jest.e2e-json`: Arquivo de configuração do Jest para executar os testes e2e (definição de extensões de arquivo reconhecidas, ponto de partida para busca de testes, transform, e etc.)   
 
 - `./src/app.module.ts`: Módulo raiz que declara/importa os demais módulos, controladores e provedores da aplicação.  
 - `./src/main.ts`: Ponto de entrada da aplicação, aqui o Nest é inicializado e configurado.
@@ -166,14 +174,6 @@
   - `./src/services:` Reúne classes injetáveis que encapsulam lógica de negócio, utilitários e integrações externas.
   
   - `email.service.ts:` Temos as configurações para o envio de email e o método send que por onde realmente vamos utilizar para o envio dos e-mails
-
-- `./Dockerfile:` Arquivo responsável por definir o processo de containerização do back-end. Utiliza Node.js 22 Bookworm Slim e build multi-stage para instalar as dependências com `npm ci`, gerar o Prisma Client com `npx prisma generate`, compilar a aplicação NestJS com `npm run build` e executar a API em modo production na porta `4000`.
-
-- `./.dockerignore` Define quais arquivos e diretórios devem ser ignorados durante o build da imagem Docker.
-
-- `./test/` Diretório dedicado aos testes de ponta a ponta (e2e):  
-  - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado, fazendo testes de fluxos de sucesso e fluxos de erros, como validação, autorização e etc.
-  - `jest.e2e-json`: Arquivo de configuração do Jest para executar os testes e2e (definição de extensões de arquivo reconhecidas, ponto de partida para busca de testes, transform, e etc.)   
 
 ## ❔ Como rodar o projeto na minha máquina?
 
