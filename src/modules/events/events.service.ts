@@ -1,9 +1,11 @@
+import * as argon2 from 'argon2';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { ValidatePresenceDto } from './dto/validate-presence.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { EventPublicResponseDto } from './dto/event-public-response.dto';
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 
 @Injectable()
 export class EventsService {
@@ -104,7 +106,53 @@ export class EventsService {
       ...e,
       courseName: e.course?.name ?? null,
       locationName: e.location.name,
+      hasPresenceSecret: Boolean(e.presenceSecretHash),
+      presenceSecretHash: undefined,
     };
+  }
+
+  async findPublicByParticipantEmail(email: string): Promise<EventPublicResponseDto[]> {
+    const events = await this.prisma.event.findMany({
+      where: {
+        startDate: {
+          gte: new Date(),
+        },
+        participants: {
+          some: {
+            email,
+          },
+        },
+      },
+      include: {
+        course: true,
+        location: true,
+      },
+      orderBy: {
+        startDate: 'asc',
+      },
+    });
+
+    return events.map(event => ({
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      imageUrl: event.imageUrl,
+      courseId: event.courseId,
+      courseName: event.course?.name ?? null,
+      semester: event.semester,
+      maxParticipants: event.maxParticipants,
+      currentParticipants: event.currentParticipants,
+      isRestricted: event.isRestricted,
+      locationId: event.locationId,
+      locationName: event.location.name,
+      customLocation: event.customLocation,
+      speakerName: event.speakerName,
+      startDate: event.startDate,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      duration: event.duration,
+      categoryId: event.categoryId,
+    }));
   }
 
   async create(dto: CreateEventDto, file: Express.Multer.File) {
@@ -131,10 +179,27 @@ export class EventsService {
 
     const upload = await this.cloudinary.uploadFile(file);
 
+    const presenceSecretHash = dto.presenceSecret
+      ? await argon2.hash(dto.presenceSecret.trim().toLowerCase())
+      : null;
+
     const created = await this.prisma.event.create({
       data: {
-        ...dto,
+        name: dto.name,
+        description: dto.description,
+        courseId: dto.courseId,
+        semester: dto.semester,
+        maxParticipants: dto.maxParticipants,
+        isRestricted: dto.isRestricted,
+        locationId: dto.locationId,
         customLocation: isOtherLocation ? dto.customLocation ?? null : null,
+        speakerName: dto.speakerName,
+        startDate: dto.startDate,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        duration: dto.duration,
+        categoryId: dto.categoryId,
+        presenceSecretHash,
         imageUrl: upload.secure_url,
       },
       include: {
@@ -147,6 +212,7 @@ export class EventsService {
       ...created,
       courseName: created.course?.name ?? null,
       locationName: created.location.name,
+      hasPresenceSecret: Boolean(presenceSecretHash),
     };
   }
 
@@ -209,11 +275,28 @@ export class EventsService {
     const updated = await this.prisma.event.update({
       where: { id },
       data: {
-        ...dto,
+        name: dto.name,
+        description: dto.description,
+        courseId: dto.courseId,
+        semester: dto.semester,
+        maxParticipants: dto.maxParticipants,
+        isRestricted: dto.isRestricted,
+        locationId: dto.locationId,
         customLocation: isOtherLocation
           ? dto.customLocation ?? exists.customLocation ?? null
           : null,
-        ...(file ? { imageUrl } : {}),
+        speakerName: dto.speakerName,
+        startDate: dto.startDate,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        duration: dto.duration,
+        categoryId: dto.categoryId,
+        imageUrl: file ? imageUrl : undefined,
+        presenceSecretHash: dto.presenceSecret === undefined
+          ? undefined
+          : dto.presenceSecret
+            ? await argon2.hash(dto.presenceSecret.trim().toLowerCase())
+            : null,
       },
       include: {
         location: { select: { name: true } },
@@ -225,6 +308,72 @@ export class EventsService {
       ...updated,
       courseName: updated.course?.name ?? null,
       locationName: updated.location.name,
+      hasPresenceSecret: Boolean(updated.presenceSecretHash),
+    };
+  }
+
+  async validatePresence(
+    eventId: number,
+    participantId: number,
+    dto: ValidatePresenceDto,
+  ) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        presenceSecretHash: true,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Evento não encontrado');
+    }
+
+    if (!event.presenceSecretHash) {
+      throw new BadRequestException('Este evento não possui validação por palavra secreta');
+    }
+
+    const isValidSecret = await argon2.verify(
+      event.presenceSecretHash,
+      dto.presenceSecret.toLowerCase(),
+    );
+
+    if (!isValidSecret) {
+      throw new ForbiddenException('Palavra secreta inválida');
+    }
+
+    const participant = await this.prisma.participant.findFirst({
+      where: {
+        id: participantId,
+        eventId,
+      },
+      select: {
+        id: true,
+        isPresent: true,
+      },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Participante não encontrado neste evento');
+    }
+
+    if (participant.isPresent) {
+      return {
+        message: 'Presença já confirmada',
+        isPresent: true,
+      };
+    }
+
+    await this.prisma.participant.update({
+      where: { id: participantId },
+      data: {
+        isPresent: true,
+      },
+    });
+
+    return {
+      message: 'Presença confirmada com sucesso',
+      isPresent: true,
     };
   }
 

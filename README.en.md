@@ -26,9 +26,17 @@
 
 ## 🛎️ Updates to this commit
 
-### `./Dockerfile:` File responsible for defining the backend containerization process. It uses Node.js 22 Bookworm Slim and multi-stage build to install dependencies with `npm ci`, generate the Prisma Client with `npx prisma generate`, compile the NestJS application with `npm run build`, and run the API in production mode on port `4000`.
+### `./prisma/schema.prisma:` Added the `presenceSecretHash` field to the `Event` model, allowing each event to have a secret attendance word saved securely in the database.
 
-## `./.dockerignore` This dockerignore file is used to remove unnecessary files from the Docker build context.
+### `./src/modules/events/dto/create-event.dto.ts:` Added the optional `presenceSecret` field to the event creation DTO, allowing the secret word to be entered when registering the event.
+
+### `./src/modules/events/dto/update-event.dto.ts:` Maintained the use of `PartialType(CreateEventDto)`, allowing the secret word to also be optionally sent when editing the event.
+
+### `./src/modules/events/dto/validate-presence.dto.ts:` Created the DTO responsible for validating the sending of the secret word used to confirm the participant's presence.
+
+### `./src/modules/events/events.controller.ts:` Added the public route `PATCH /events/:eventId/participants/:participantId/presence`, responsible for receiving the secret word and requesting confirmation of the participant's presence at the event.
+
+### `./src/modules/events/events.service.ts:` Implemented the logic for hashing the secret word with `argon2` in the creation and editing of the event, in addition to validating the word sent by the participant to mark their presence in the `isPresent` field.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -111,10 +119,10 @@
     - `commom:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
 
-    - `events:` Package dedicated to complete event management, encompassing CRUD operations, image uploads, and date and time availability queries.
-        - `dto:` Directory containing Data Transfer Objects (CreateEventDto, UpdateEventDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
-       - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creation (POST /events/create), partial update (PATCH /events/patch/:id), removal (DELETE /events/delete/:id), date availability (GET /events/availability/dates) and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image upload and appropriate HTTP codes (201 for creation, 200 for removal), only the route (GET /publicAllEvents) does not require authentication, this route is used to show events to unauthenticated users.
-        - `events.service.ts:` Implements all event business logic — interacts with PrismaClient for CRUD operations, validates schedule conflicts to avoid overlap, uses CloudinaryService for image upload and deletion, and dynamically calculates free date and time slots based on the specified location and date.
+    - `events:` Package dedicated to complete event management, encompassing CRUD operations, image upload, date and time availability checks, and attendance validation via secret word.
+        - `dto:` Directory containing the Data Transfer Objects (CreateEventDto, UpdateEventDto, ValidatePresenceDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
+        - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creating (POST /events/create), partial updating (PATCH /events/patch/:id), deleting (DELETE /events/delete/:id), confirming attendance by secret word (PATCH /events/:eventId/participants/:participantId/presence), date availability (GET /events/availability/dates) and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image upload and appropriate HTTP codes (201 for creation, 200 for deletion), only public routes do not need to be authenticated, such as the public listing of events and attendance confirmation.
+        - `events.service.ts:` Implements all the business logic for events — interacts with PrismaClient for CRUD operations, validates time conflicts to avoid overlap, uses CloudinaryService for uploading and deleting images, dynamically calculates available date and time slots according to the location and date provided, saves the attendance secret word with a hash using argon2, and validates the word sent to mark the participant as present.
         - `events.service.spec.ts:` Unit test suite for EventsService, covering creation scenarios without a file, detecting schedule overlaps, successful creation with image upload, updating with and without a new file (including deletion and upload to Cloudinary), calculating availability for times and dates for different locations, deleting an event with image deletion, and handling ConflictException and NotFoundException exceptions. - `events.module.ts:` Events module configuration file, importing PrismaModule and CloudinaryModule, and registering EventsService and EventsController in the NestJS context.
 
     - `locations:` Package dedicated to the complete management of locations, encompassing all CRUD operations and serving as a relational base for event registration.

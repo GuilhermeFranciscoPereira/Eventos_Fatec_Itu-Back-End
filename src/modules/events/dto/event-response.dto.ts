@@ -23,4 +23,5 @@ export class EventResponseDto {
     createdAt!: Date;
     updatedAt!: Date;
     participants?: ParticipantResponseDto[];
+    hasPresenceSecret?: boolean;
 }

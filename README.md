@@ -26,9 +26,17 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./Dockerfile:` Arquivo responsável por definir o processo de containerização do back-end. Utiliza Node.js 22 Bookworm Slim e build multi-stage para instalar as dependências com `npm ci`, gerar o Prisma Client com `npx prisma generate`, compilar a aplicação NestJS com `npm run build` e executar a API em modo production na porta `4000`.
+### `./prisma/schema.prisma:` Adicionado o campo `presenceSecretHash` no model `Event`, permitindo que cada evento tenha uma palavra secreta de presença salva de forma protegida no banco de dados.
 
-### `./.dockerignore` Criado o dockeringore que serve para remover arquivos desnecessários do contexto de build Docker.
+### `./src/modules/events/dto/create-event.dto.ts:` Adicionado o campo opcional `presenceSecret` no DTO de criação de eventos, permitindo informar a palavra secreta no momento do cadastro do evento.
+
+### `./src/modules/events/dto/update-event.dto.ts:` Mantido o uso do `PartialType(CreateEventDto)`, permitindo que a palavra secreta também possa ser enviada opcionalmente na edição do evento.
+
+### `./src/modules/events/dto/validate-presence.dto.ts:` Criado o DTO responsável por validar o envio da palavra secreta usada para confirmar a presença do participante.
+
+### `./src/modules/events/events.controller.ts:` Adicionada a rota pública `PATCH /events/:eventId/participants/:participantId/presence`, responsável por receber a palavra secreta e solicitar a confirmação de presença do participante no evento.
+
+### `./src/modules/events/events.service.ts:` Implementada a lógica de hash da palavra secreta com `argon2` na criação e edição do evento, além da validação da palavra enviada pelo participante para marcar sua presença no campo `isPresent`.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -122,10 +130,10 @@
     - `courses.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto pelo CoursesService.
     - `courses.module.ts:` Arquivo de montagem do módulo de cursos, importando o PrismaModule e registrando o CoursesService e CoursesController no contexto do NestJS.
 
-  - `events:` Pacote dedicado ao gerenciamento completo de eventos, englobando operações de CRUD, upload de imagem e consulta de disponibilidade de datas e horários.
-    - `dto:` Diretório com os Data Transfer Objects (CreateEventDto, UpdateEventDto e EventResponseDto) responsáveis por definir o formato dos dados de entrada e saída nas requisições de eventos.
-    - `events.controller.ts:` Define os endpoints REST para listagem (GET /events), busca por ID (GET /events/:id), criação (POST /events/create), atualização parcial (PATCH /events/patch/:id), remoção (DELETE /events/delete/:id), disponibilidade de datas (GET /events/availability/dates) e disponibilidade de horários (GET /events/availability/times). Todos protegidos por JwtAuthGuard e RolesGuard, com decorator @Roles para perfis ADMIN e COORDENADOR, interceptação de arquivo para upload de imagem e códigos HTTP apropriados (201 para criação, 200 para remoção), apenas a rota (GET /publicAllEvents) não necessita estar autenticado, esta rota é usada para mostrar os eventos para usuários não autenticados.
-    - `events.service.ts:` Implementa toda a lógica de negócio de eventos — interage com o PrismaClient para operações de CRUD, valida conflitos de horários para evitar sobreposição, utiliza o CloudinaryService para upload e exclusão de imagens, e calcula dinamicamente os slots livres de datas e horários conforme o local e data informados.
+  - `events:` Pacote dedicado ao gerenciamento completo de eventos, englobando operações de CRUD, upload de imagem, consulta de disponibilidade de datas e horários e validação de presença por palavra secreta.
+    - `dto:` Diretório com os Data Transfer Objects (CreateEventDto, UpdateEventDto, ValidatePresenceDto e EventResponseDto) responsáveis por definir o formato dos dados de entrada e saída nas requisições de eventos.
+    - `events.controller.ts:` Define os endpoints REST para listagem (GET /events), busca por ID (GET /events/:id), criação (POST /events/create), atualização parcial (PATCH /events/patch/:id), remoção (DELETE /events/delete/:id), confirmação de presença por palavra secreta (PATCH /events/:eventId/participants/:participantId/presence), disponibilidade de datas (GET /events/availability/dates) e disponibilidade de horários (GET /events/availability/times). Todos protegidos por JwtAuthGuard e RolesGuard, com decorator @Roles para perfis ADMIN e COORDENADOR, interceptação de arquivo para upload de imagem e códigos HTTP apropriados (201 para criação, 200 para remoção), apenas as rotas públicas não necessitam estar autenticadas, como a listagem pública de eventos e a confirmação de presença.
+    - `events.service.ts:` Implementa toda a lógica de negócio de eventos — interage com o PrismaClient para operações de CRUD, valida conflitos de horários para evitar sobreposição, utiliza o CloudinaryService para upload e exclusão de imagens, calcula dinamicamente os slots livres de datas e horários conforme o local e data informados, salva a palavra secreta de presença com hash usando argon2 e valida a palavra enviada para marcar o participante como presente.
     - `events.service.spec.ts:` Conjunto de testes unitários do EventsService, cobrindo cenários de criação sem arquivo, detecção de sobreposição de horários, criação bem-sucedida com upload de imagem, atualização com e sem novo arquivo (incluindo exclusão e upload no Cloudinary), cálculo de disponibilidade de horários e datas para diferentes locais, remoção de evento com exclusão de imagem, e tratamento de exceções ConflictException e NotFoundException.
     - `events.module.ts:` Arquivo de configuração do módulo de eventos, importando PrismaModule e CloudinaryModule, e registrando EventsService e EventsController no contexto do NestJS.
 

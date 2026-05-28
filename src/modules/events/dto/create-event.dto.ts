@@ -75,4 +75,11 @@ export class CreateEventDto {
     @IsInt()
     @Min(1)
     categoryId?: number;
+
+    @IsOptional()
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @IsString()
+    @MinLength(3)
+    @MaxLength(80)
+    presenceSecret?: string;
 }

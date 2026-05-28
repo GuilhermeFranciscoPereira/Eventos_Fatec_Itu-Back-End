@@ -8,7 +8,9 @@ import { Public } from '../../decorators/public.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EventResponseDto } from './dto/event-response.dto';
+import { ValidatePresenceDto } from './dto/validate-presence.dto';
 import { EventPublicResponseDto } from './dto/event-public-response.dto';
+import { FindEventsByParticipantEmailDto } from './dto/find-by-participant-email.dto';
 import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UploadedFile, UseGuards, UseInterceptors, HttpCode, ParseIntPipe } from '@nestjs/common';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -27,6 +29,14 @@ export class EventsController {
   @Get()
   async findAll(): Promise<EventResponseDto[]> {
     return this.eventService.findAll();
+  }
+
+  @Public()
+  @Get('public/by-participant-email')
+  async findPublicByParticipantEmail(
+    @Query() dto: FindEventsByParticipantEmailDto,
+  ): Promise<EventPublicResponseDto[]> {
+    return this.eventService.findPublicByParticipantEmail(dto.email);
   }
 
   @Public()
@@ -52,6 +62,16 @@ export class EventsController {
   @HttpCode(200)
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.eventService.remove(id);
+  }
+
+  @Public()
+  @Patch(':eventId/participants/:participantId/presence')
+  async validatePresence(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Param('participantId', ParseIntPipe) participantId: number,
+    @Body() dto: ValidatePresenceDto,
+  ) {
+    return this.eventService.validatePresence(eventId, participantId, dto);
   }
 
   @Get('availability/dates')
