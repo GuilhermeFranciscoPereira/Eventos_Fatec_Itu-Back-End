@@ -1,4 +1,3 @@
-import * as argon2 from 'argon2';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -106,8 +105,6 @@ export class EventsService {
       ...e,
       courseName: e.course?.name ?? null,
       locationName: e.location.name,
-      hasPresenceSecret: Boolean(e.presenceSecretHash),
-      presenceSecretHash: undefined,
     };
   }
 
@@ -179,9 +176,7 @@ export class EventsService {
 
     const upload = await this.cloudinary.uploadFile(file);
 
-    const presenceSecretHash = dto.presenceSecret
-      ? await argon2.hash(dto.presenceSecret.trim().toLowerCase())
-      : null;
+    const presenceSecret = dto.presenceSecret?.trim() || null;
 
     const created = await this.prisma.event.create({
       data: {
@@ -199,7 +194,7 @@ export class EventsService {
         endTime: dto.endTime,
         duration: dto.duration,
         categoryId: dto.categoryId,
-        presenceSecretHash,
+        presenceSecret,
         imageUrl: upload.secure_url,
       },
       include: {
@@ -212,7 +207,6 @@ export class EventsService {
       ...created,
       courseName: created.course?.name ?? null,
       locationName: created.location.name,
-      hasPresenceSecret: Boolean(presenceSecretHash),
     };
   }
 
@@ -272,6 +266,8 @@ export class EventsService {
       imageUrl = up.secure_url;
     }
 
+    const presenceSecret = dto.presenceSecret?.trim() || null;
+
     const updated = await this.prisma.event.update({
       where: { id },
       data: {
@@ -292,11 +288,7 @@ export class EventsService {
         duration: dto.duration,
         categoryId: dto.categoryId,
         imageUrl: file ? imageUrl : undefined,
-        presenceSecretHash: dto.presenceSecret === undefined
-          ? undefined
-          : dto.presenceSecret
-            ? await argon2.hash(dto.presenceSecret.trim().toLowerCase())
-            : null,
+        presenceSecret
       },
       include: {
         location: { select: { name: true } },
@@ -308,7 +300,6 @@ export class EventsService {
       ...updated,
       courseName: updated.course?.name ?? null,
       locationName: updated.location.name,
-      hasPresenceSecret: Boolean(updated.presenceSecretHash),
     };
   }
 
@@ -321,7 +312,7 @@ export class EventsService {
       where: { id: eventId },
       select: {
         id: true,
-        presenceSecretHash: true,
+        presenceSecret: true,
       },
     });
 
@@ -329,16 +320,13 @@ export class EventsService {
       throw new NotFoundException('Evento não encontrado');
     }
 
-    if (!event.presenceSecretHash) {
+    if (!event.presenceSecret) {
       throw new BadRequestException('Este evento não possui validação por palavra secreta');
     }
 
-    const isValidSecret = await argon2.verify(
-      event.presenceSecretHash,
-      dto.presenceSecret.toLowerCase(),
-    );
+    const presenceSecret = dto.presenceSecret.trim();
 
-    if (!isValidSecret) {
+    if (event.presenceSecret !== presenceSecret) {
       throw new ForbiddenException('Palavra secreta inválida');
     }
 

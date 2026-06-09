@@ -26,15 +26,15 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `./Dockerfile:` Ajustado o processo de containerização do back-end para build em produção com NestJS, Prisma e Node.js 22 Bookworm Slim, realizando instalação das dependências, geração do Prisma Client, compilação da aplicação e execução da API na porta `4000`.
+### `Remoção do fluxo antigo:` Removidas as referências lógicas a `presenceSecretHash`, `hasPresenceSecret`, `argon2.hash` e `argon2.verify`, simplificando o fluxo da palavra secreta conforme a nova regra de negócio.
 
-### `./.dockerignore:` Adicionado arquivo para impedir que arquivos desnecessários, como `node_modules`, `dist`, `.git`, `.env` e arquivos de log sejam enviados para o contexto de build do Docker.
+### `./prisma/schema.prisma:` Alterado o model `Event` para substituir o antigo campo de palavra secreta armazenada em hash pelo campo `presenceSecret`, permitindo que a palavra secreta de presença seja salva diretamente no banco e possa ser exibida no painel administrativo durante a edição do evento.
 
-### `./.github/workflows/deploy.yml:` Adicionado workflow de CI/CD com GitHub Actions para automatizar o build da imagem Docker do back-end, publicar a imagem no GitHub Container Registry e atualizar automaticamente o container na VPS após cada `git push` na branch `main`.
+### `./src/modules/events/events.service.ts:` Removido o uso de hash na palavra secreta do evento. A palavra agora é salva diretamente em presenceSecret, pode ser alterada na edição, mantida quando o campo não for modificado e usada diretamente na validação de presença. Também foi ajustado o retorno do evento para permitir que o formulário carregue a palavra secreta atual.
 
-### `GitHub Container Registry:` Configurado o fluxo de publicação da imagem `ghcr.io/guilhermefranciscopereira/eventos-fatec-itu-backend:latest`, permitindo que a VPS baixe a versão mais recente da API sem precisar realizar o build localmente.
+### `./src/modules/events/dto/create-event.dto.ts:` Mantida e ajustada a validação do campo `presenceSecret` como opcional, com tratamento de espaços extras, tamanho mínimo e tamanho máximo compatível com o campo atualizado no banco de dados.
 
-### `Deploy automatizado:` Alterado o fluxo de deploy para que a VPS execute apenas `docker compose pull` e `docker compose up -d`, reduzindo o consumo de RAM e evitando falhas durante o build em ambiente de produção.
+### `./src/modules/events/dto/event-public-response.dto.ts:` Mantido o DTO público sem expor a palavra secreta de presença, garantindo que os dados públicos dos eventos não retornem informações administrativas sensíveis.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

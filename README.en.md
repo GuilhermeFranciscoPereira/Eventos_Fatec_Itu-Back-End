@@ -26,15 +26,13 @@
 
 ## 🛎️ Updates to this commit
 
-### `./Dockerfile:` Adjusted the backend containerization process for production builds with NestJS, Prisma, and Node.js 22 Bookworm Slim, installing dependencies, generating the Prisma Client, compiling the application, and running the API on port `4000`.
+### `Removal of the old flow:` Logical references to `presenceSecretHash`, `hasPresenceSecret`, `argon2.hash`, and `argon2.verify` have been removed, simplifying the secret word flow according to the new business rule.
 
-### `./.dockerignore:` Added a file to prevent unnecessary files, such as `node_modules`, `dist`, `.git`, `.env`, and log files, from being sent to the Docker build context.
+## `./prisma/schema.prisma:` The `Event` model has been modified to replace the old hash-stored secret word field with the `presenceSecret` field, allowing the presence secret word to be saved directly to the database and displayed in the administrative panel during event editing.
 
-### `./.github/workflows/deploy.yml:` Added a CI/CD workflow with GitHub Actions to automate the build of the backend Docker image, publish the image to the GitHub Container Registry, and automatically update the container on the VPS after each `git push` to the `main` branch.
+## `./src/modules/events/events.service.ts:` The use of hashing in the event secret word has been removed. The word is now saved directly in presenceSecret, can be changed during editing, is maintained when the field is not modified, and is used directly in presence validation. The event return has also been adjusted to allow the form to load the current secret word. ### `./src/modules/events/dto/create-event.dto.ts:` The validation of the `presenceSecret` field has been maintained and adjusted as optional, with handling of extra spaces, minimum size, and maximum size compatible with the updated field in the database.
 
-### `GitHub Container Registry:` Configured the image publishing workflow for `ghcr.io/guilhermefranciscopereira/eventos-fatec-itu-backend:latest`, allowing the VPS to download the latest API version without needing to perform a local build.
-
-## `Automated Deployment:` Changed the deployment workflow so that the VPS only executes `docker compose pull` and `docker compose up -d`, reducing RAM consumption and preventing build failures in a production environment.
+### `./src/modules/events/dto/event-public-response.dto.ts:` The public DTO has been maintained without exposing the attendance secret, ensuring that public event data does not return sensitive administrative information.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

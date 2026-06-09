@@ -77,9 +77,13 @@ export class CreateEventDto {
     categoryId?: number;
 
     @IsOptional()
-    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @Transform(({ value }) => {
+        if (value === null) return null;
+        if (typeof value !== 'string') return value;
+        const trimmed = value.trim();
+        return trimmed || null;
+    })
     @IsString()
-    @MinLength(3)
     @MaxLength(80)
-    presenceSecret?: string;
+    presenceSecret?: string | null;
 }

@@ -111,18 +111,18 @@ model Event {
   location            Location  @relation(fields: [locationId], references: [id], onDelete: Restrict)
   customLocation      String?   @db.VarChar(140)
 
-  speakerName        String        @db.VarChar(120)
-  startDate          DateTime
-  startTime          DateTime
-  endTime            DateTime
-  duration           Int?
-  presenceSecretHash String?       @db.VarChar(255)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  categoryId         Int?
-  category           Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  participants       Participant[]
-  Certificate        Certificate[]
+  speakerName    String        @db.VarChar(120)
+  startDate      DateTime
+  startTime      DateTime
+  endTime        DateTime
+  duration       Int?
+  presenceSecret String?       @db.VarChar(80)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  categoryId     Int?
+  category       Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  participants   Participant[]
+  Certificate    Certificate[]
 
   @@index([categoryId])
   @@index([locationId])
