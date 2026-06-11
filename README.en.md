@@ -26,23 +26,19 @@
 
 ## 🛎️ Updates to this commit
 
-### `Course Flow in Events:` The event rule has been updated to allow linking to none, one, or multiple courses. An event without linked courses continues to represent "All courses"; an event with one or more linked courses now restricts registrations to the selected courses.
+### `Authentication Flow, Users and Participants:` Validations related to passwords and institutional email have been updated. Passwords no longer have a maximum character limit in authentication DTOs, and user and participant flows now also accept emails with the `@cps.sp.gov.br` domain.
 
-### `./prisma/schema.prisma:` The direct relationship `Event.courseId` has been removed, and the `EventCourse` model has been created, representing the many-to-many relationship between events and courses. The event index has also been adjusted to no longer depend on a single course.
+### `./src/modules/auth/dto/request-login-auth.dto.ts:` The maximum character limit validation for passwords has been removed from the login request flow.
 
-### `./prisma/migrations/20260611120000_add_event_courses_relation/migration.sql:` A migration has been created to add the `EventCourse` table, migrate events that already had `courseId` to the new relational table, and remove the old `courseId` column from the `Event` table.
+### `./src/modules/auth/dto/request-reset-password-auth.dto.ts:` The maximum character limit validation for passwords has been removed from the password reset request flow.
 
-### `./src/modules/events/dto/create-event.dto.ts:` Added validation for the new `courseIds` field, accepting course lists via JSON, array, or multiple fields in `FormData`, while maintaining `courseId` for compatibility with older submissions.
+### `./src/modules/auth/dto/reset-password-auth.dto.ts:` Removed the maximum character limit validation for the new password in the password reset flow.
 
-### `./src/modules/events/dto/event-response.dto.ts:` Updated the administrative event DTO to return `courseIds` and `courseNames`, in addition to the compatible `courseId` and `courseName` fields.
+### `./src/modules/auth/dto/create-auth.dto.ts:` Updated the institutional email validation to also accept the `@cps.sp.gov.br` domain, in addition to the already allowed domains.
 
-### `./src/modules/events/dto/event-public-response.dto.ts:` Updated the public event DTO to return the list of courses linked to the event, allowing the front-end to correctly display one or more courses.
+### `./src/modules/users/dto/update-user.dto.ts:` Updated the institutional email validation in user editing to also accept the `@cps.sp.gov.br` domain.
 
-### `./src/modules/events/events.service.ts:` Event queries, creation, and editing have been refactored to use `EventCourse`. Creation/editing now validates if all courses exist, saves multiple links, returns course names/IDs, and automatically marks the event as restricted when courses are selected.
-
-### `./src/modules/participants/participants.service.ts:` Registration validation for restricted events has been adjusted to accept the participant when their course is among any of the courses linked to the event.
-
-### `./src/modules/certificates/certificates.service.ts:` Reading of event courses in certificates and public verification has been updated, returning the names of linked courses separated by commas.
+### `./src/modules/participants/participants.service.ts:` Updated the institutional email validation in the participant registration flow to also accept the `@cps.sp.gov.br` domain.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

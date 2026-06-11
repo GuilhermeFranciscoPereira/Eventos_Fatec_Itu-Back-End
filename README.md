@@ -26,23 +26,19 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Fluxo de cursos em eventos:` Atualizada a regra de eventos para permitir vínculo com nenhum, um ou vários cursos. Evento sem cursos vinculados continua representando "Todos os cursos"; evento com um ou mais cursos vinculados passa a restringir inscrições aos cursos selecionados.
+### `Fluxo de autenticação, usuários e participantes:` Atualizadas as validações relacionadas a senha e e-mail institucional. As senhas deixaram de ter limite máximo de caracteres nos DTOs de autenticação, e os fluxos de usuários e participantes passaram a aceitar também e-mails com domínio `@cps.sp.gov.br`.
 
-### `./prisma/schema.prisma:` Removido o relacionamento direto `Event.courseId` e criado o model `EventCourse`, representando a relação muitos-para-muitos entre eventos e cursos. Também foi ajustado o índice de eventos para não depender mais de um único curso.
+### `./src/modules/auth/dto/request-login-auth.dto.ts:` Removida a validação de quantidade máxima de caracteres da senha no fluxo de solicitação de login.
 
-### `./prisma/migrations/20260611120000_add_event_courses_relation/migration.sql:` Criada migration para adicionar a tabela `EventCourse`, migrar os eventos que já possuíam `courseId` para a nova tabela relacional e remover a coluna antiga `courseId` da tabela `Event`.
+### `./src/modules/auth/dto/request-reset-password-auth.dto.ts:` Removida a validação de quantidade máxima de caracteres da senha no fluxo de solicitação de redefinição de senha.
 
-### `./src/modules/events/dto/create-event.dto.ts:` Adicionada validação para o novo campo `courseIds`, aceitando lista de cursos por JSON, array ou múltiplos campos no `FormData`, mantendo `courseId` como compatibilidade para envios antigos.
+### `./src/modules/auth/dto/reset-password-auth.dto.ts:` Removida a validação de quantidade máxima de caracteres da nova senha no fluxo de redefinição de senha.
 
-### `./src/modules/events/dto/event-response.dto.ts:` Atualizado o DTO administrativo de eventos para retornar `courseIds` e `courseNames`, além dos campos compatíveis `courseId` e `courseName`.
+### `./src/modules/auth/dto/create-auth.dto.ts:` Atualizada a validação de e-mail institucional para aceitar também o domínio `@cps.sp.gov.br`, além dos domínios já permitidos.
 
-### `./src/modules/events/dto/event-public-response.dto.ts:` Atualizado o DTO público de eventos para retornar a lista de cursos vinculados ao evento, permitindo que o front-end mostre corretamente um ou vários cursos.
+### `./src/modules/users/dto/update-user.dto.ts:` Atualizada a validação de e-mail institucional na edição de usuários para aceitar também o domínio `@cps.sp.gov.br`.
 
-### `./src/modules/events/events.service.ts:` Refatoradas as consultas, criação e edição de eventos para usar `EventCourse`. A criação/edição agora valida se todos os cursos existem, salva múltiplos vínculos, retorna os nomes/ids dos cursos e marca automaticamente o evento como restrito quando há cursos selecionados.
-
-### `./src/modules/participants/participants.service.ts:` Ajustada a validação de inscrição em eventos restritos para aceitar o participante quando seu curso estiver entre qualquer um dos cursos vinculados ao evento.
-
-### `./src/modules/certificates/certificates.service.ts:` Atualizada a leitura dos cursos do evento nos certificados e na verificação pública, retornando os nomes dos cursos vinculados separados por vírgula.
+### `./src/modules/participants/participants.service.ts:` Atualizada a validação de e-mail institucional no fluxo de inscrição de participantes para aceitar também o domínio `@cps.sp.gov.br`.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

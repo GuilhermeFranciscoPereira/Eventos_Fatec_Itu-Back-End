@@ -23,7 +23,9 @@ export class ParticipantsService {
     const existsByEmail = await this.prisma.participant.findFirst({ where: { eventId: dto.eventId, email: dto.email } });
     if (existsByEmail) throw new ConflictException('Participante com este e-mail já inscrito neste evento.');
     if (dto.ra) {
-      if (!dto.email.match(/@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br)$/)) throw new ConflictException('E-mail deve ser institucional (@fatec.sp.gov.br ou @cms.sp.gov.br)');
+      if (!dto.email.match(/@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br|cps\.sp\.gov\.br)$/)) {
+        throw new ConflictException('E-mail deve ser institucional (@fatec.sp.gov.br, @cms.sp.gov.br ou @cps.sp.gov.br)');
+      }
       const existsByRa = await this.prisma.participant.findFirst({ where: { eventId: dto.eventId, ra: dto.ra } });
       if (existsByRa) throw new ConflictException('Participante com este RA já inscrito neste evento.');
     }
@@ -118,8 +120,8 @@ export class ParticipantsService {
                       <li><strong>Horário:</strong> ${event.startTime.toISOString().substr(11, 5)} às ${event.endTime.toISOString().substr(11, 5)}</li>
                       <li><strong>Palestrante:</strong> ${event.speakerName}</li>
                       <li><strong>Local:</strong> ${event.location.name.toLowerCase() !== 'outros'
-                        ? event.location.name
-                        : event.customLocation}
+        ? event.location.name
+        : event.customLocation}
                       </li>
                       <li><strong>Descrição:</strong> ${event.description}</li>
                     </ul>
