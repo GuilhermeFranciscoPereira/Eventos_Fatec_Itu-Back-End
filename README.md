@@ -26,15 +26,23 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Remoção do fluxo antigo:` Removidas as referências lógicas a `presenceSecretHash`, `hasPresenceSecret`, `argon2.hash` e `argon2.verify`, simplificando o fluxo da palavra secreta conforme a nova regra de negócio.
+### `Fluxo de cursos em eventos:` Atualizada a regra de eventos para permitir vínculo com nenhum, um ou vários cursos. Evento sem cursos vinculados continua representando "Todos os cursos"; evento com um ou mais cursos vinculados passa a restringir inscrições aos cursos selecionados.
 
-### `./prisma/schema.prisma:` Alterado o model `Event` para substituir o antigo campo de palavra secreta armazenada em hash pelo campo `presenceSecret`, permitindo que a palavra secreta de presença seja salva diretamente no banco e possa ser exibida no painel administrativo durante a edição do evento.
+### `./prisma/schema.prisma:` Removido o relacionamento direto `Event.courseId` e criado o model `EventCourse`, representando a relação muitos-para-muitos entre eventos e cursos. Também foi ajustado o índice de eventos para não depender mais de um único curso.
 
-### `./src/modules/events/events.service.ts:` Removido o uso de hash na palavra secreta do evento. A palavra agora é salva diretamente em presenceSecret, pode ser alterada na edição, mantida quando o campo não for modificado e usada diretamente na validação de presença. Também foi ajustado o retorno do evento para permitir que o formulário carregue a palavra secreta atual.
+### `./prisma/migrations/20260611120000_add_event_courses_relation/migration.sql:` Criada migration para adicionar a tabela `EventCourse`, migrar os eventos que já possuíam `courseId` para a nova tabela relacional e remover a coluna antiga `courseId` da tabela `Event`.
 
-### `./src/modules/events/dto/create-event.dto.ts:` Mantida e ajustada a validação do campo `presenceSecret` como opcional, com tratamento de espaços extras, tamanho mínimo e tamanho máximo compatível com o campo atualizado no banco de dados.
+### `./src/modules/events/dto/create-event.dto.ts:` Adicionada validação para o novo campo `courseIds`, aceitando lista de cursos por JSON, array ou múltiplos campos no `FormData`, mantendo `courseId` como compatibilidade para envios antigos.
 
-### `./src/modules/events/dto/event-public-response.dto.ts:` Mantido o DTO público sem expor a palavra secreta de presença, garantindo que os dados públicos dos eventos não retornem informações administrativas sensíveis.
+### `./src/modules/events/dto/event-response.dto.ts:` Atualizado o DTO administrativo de eventos para retornar `courseIds` e `courseNames`, além dos campos compatíveis `courseId` e `courseName`.
+
+### `./src/modules/events/dto/event-public-response.dto.ts:` Atualizado o DTO público de eventos para retornar a lista de cursos vinculados ao evento, permitindo que o front-end mostre corretamente um ou vários cursos.
+
+### `./src/modules/events/events.service.ts:` Refatoradas as consultas, criação e edição de eventos para usar `EventCourse`. A criação/edição agora valida se todos os cursos existem, salva múltiplos vínculos, retorna os nomes/ids dos cursos e marca automaticamente o evento como restrito quando há cursos selecionados.
+
+### `./src/modules/participants/participants.service.ts:` Ajustada a validação de inscrição em eventos restritos para aceitar o participante quando seu curso estiver entre qualquer um dos cursos vinculados ao evento.
+
+### `./src/modules/certificates/certificates.service.ts:` Atualizada a leitura dos cursos do evento nos certificados e na verificação pública, retornando os nomes dos cursos vinculados separados por vírgula.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

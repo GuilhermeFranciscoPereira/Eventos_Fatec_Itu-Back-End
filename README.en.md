@@ -26,13 +26,23 @@
 
 ## 🛎️ Updates to this commit
 
-### `Removal of the old flow:` Logical references to `presenceSecretHash`, `hasPresenceSecret`, `argon2.hash`, and `argon2.verify` have been removed, simplifying the secret word flow according to the new business rule.
+### `Course Flow in Events:` The event rule has been updated to allow linking to none, one, or multiple courses. An event without linked courses continues to represent "All courses"; an event with one or more linked courses now restricts registrations to the selected courses.
 
-## `./prisma/schema.prisma:` The `Event` model has been modified to replace the old hash-stored secret word field with the `presenceSecret` field, allowing the presence secret word to be saved directly to the database and displayed in the administrative panel during event editing.
+### `./prisma/schema.prisma:` The direct relationship `Event.courseId` has been removed, and the `EventCourse` model has been created, representing the many-to-many relationship between events and courses. The event index has also been adjusted to no longer depend on a single course.
 
-## `./src/modules/events/events.service.ts:` The use of hashing in the event secret word has been removed. The word is now saved directly in presenceSecret, can be changed during editing, is maintained when the field is not modified, and is used directly in presence validation. The event return has also been adjusted to allow the form to load the current secret word. ### `./src/modules/events/dto/create-event.dto.ts:` The validation of the `presenceSecret` field has been maintained and adjusted as optional, with handling of extra spaces, minimum size, and maximum size compatible with the updated field in the database.
+### `./prisma/migrations/20260611120000_add_event_courses_relation/migration.sql:` A migration has been created to add the `EventCourse` table, migrate events that already had `courseId` to the new relational table, and remove the old `courseId` column from the `Event` table.
 
-### `./src/modules/events/dto/event-public-response.dto.ts:` The public DTO has been maintained without exposing the attendance secret, ensuring that public event data does not return sensitive administrative information.
+### `./src/modules/events/dto/create-event.dto.ts:` Added validation for the new `courseIds` field, accepting course lists via JSON, array, or multiple fields in `FormData`, while maintaining `courseId` for compatibility with older submissions.
+
+### `./src/modules/events/dto/event-response.dto.ts:` Updated the administrative event DTO to return `courseIds` and `courseNames`, in addition to the compatible `courseId` and `courseName` fields.
+
+### `./src/modules/events/dto/event-public-response.dto.ts:` Updated the public event DTO to return the list of courses linked to the event, allowing the front-end to correctly display one or more courses.
+
+### `./src/modules/events/events.service.ts:` Event queries, creation, and editing have been refactored to use `EventCourse`. Creation/editing now validates if all courses exist, saves multiple links, returns course names/IDs, and automatically marks the event as restricted when courses are selected.
+
+### `./src/modules/participants/participants.service.ts:` Registration validation for restricted events has been adjusted to accept the participant when their course is among any of the courses linked to the event.
+
+### `./src/modules/certificates/certificates.service.ts:` Reading of event courses in certificates and public verification has been updated, returning the names of linked courses separated by commas.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

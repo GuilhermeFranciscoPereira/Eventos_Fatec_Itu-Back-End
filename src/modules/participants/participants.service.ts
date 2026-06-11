@@ -30,13 +30,22 @@ export class ParticipantsService {
 
     const event = await this.prisma.event.findUnique({
       where: { id: dto.eventId },
-      include: { location: true },
+      include: {
+        location: true,
+        eventCourses: {
+          select: {
+            courseId: true,
+          },
+        },
+      },
     });
     if (!event) throw new NotFoundException(`Evento ${dto.eventId} não encontrado.`);
 
     if (event.isRestricted) {
-      if (event.courseId) {
-        if (!dto.courseId || dto.courseId !== event.courseId) {
+      const allowedCourseIds = event.eventCourses.map(({ courseId }) => courseId);
+
+      if (allowedCourseIds.length) {
+        if (!dto.courseId || !allowedCourseIds.includes(dto.courseId)) {
           throw new ConflictException('Este evento é restrito e não disponível ao seu curso.')
         }
       }

@@ -7,6 +7,9 @@ export class EventResponseDto {
     description!: string;
     imageUrl!: string;
     courseId!: number | null;
+    courseName!: string | null;
+    courseIds!: number[];
+    courseNames!: string[];
     semester!: Semester | null;
     maxParticipants!: number;
     currentParticipants!: number;

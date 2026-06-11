@@ -6,6 +6,13 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { EventPublicResponseDto } from './dto/event-public-response.dto';
 import { Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 
+type EventCourseSummary = {
+  course: {
+    id: number;
+    name: string;
+  };
+};
+
 @Injectable()
 export class EventsService {
   constructor(private prisma: PrismaService, private cloudinary: CloudinaryService) { }
@@ -21,6 +28,39 @@ export class EventsService {
     return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
   }
 
+  private getCourseSummary(eventCourses: EventCourseSummary[]) {
+    const courses = eventCourses.map(({ course }) => course);
+
+    return {
+      courseId: courses[0]?.id ?? null,
+      courseName: courses[0]?.name ?? null,
+      courseIds: courses.map(({ id }) => id),
+      courseNames: courses.map(({ name }) => name),
+    };
+  }
+
+  private getRequestedCourseIds(dto: Pick<CreateEventDto, 'courseId' | 'courseIds'>): number[] {
+    const requested = dto.courseIds ?? (dto.courseId ? [dto.courseId] : []);
+
+    return Array.from(new Set(requested));
+  }
+
+  private async assertCoursesExist(courseIds: number[]) {
+    if (!courseIds.length) return;
+
+    const count = await this.prisma.course.count({
+      where: {
+        id: {
+          in: courseIds,
+        },
+      },
+    });
+
+    if (count !== courseIds.length) {
+      throw new NotFoundException('Um ou mais cursos selecionados não foram encontrados.');
+    }
+  }
+
   async findAllPublic(): Promise<EventPublicResponseDto[]> {
     const rows = await this.prisma.event.findMany({
       where: {
@@ -31,8 +71,17 @@ export class EventsService {
         name: true,
         description: true,
         imageUrl: true,
-        courseId: true,
-        course: { select: { name: true } },
+        eventCourses: {
+          select: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { courseId: 'asc' },
+        },
         semester: true,
         maxParticipants: true,
         currentParticipants: true,
@@ -52,40 +101,55 @@ export class EventsService {
 
     return rows
       .filter(e => e.currentParticipants < e.maxParticipants)
-      .map(e => ({
-        id: e.id,
-        name: e.name,
-        description: e.description,
-        imageUrl: e.imageUrl,
-        courseId: e.courseId,
-        courseName: e.course?.name ?? null,
-        semester: e.semester,
-        maxParticipants: e.maxParticipants,
-        currentParticipants: e.currentParticipants,
-        isRestricted: e.isRestricted,
-        locationId: e.locationId,
-        locationName: e.location.name,
-        customLocation: e.customLocation,
-        speakerName: e.speakerName,
-        startDate: e.startDate,
-        startTime: e.startTime,
-        endTime: e.endTime,
-        duration: e.duration,
-        categoryId: e.categoryId,
-      }));
+      .map(e => {
+        const courseSummary = this.getCourseSummary(e.eventCourses);
+
+        return {
+          id: e.id,
+          name: e.name,
+          description: e.description,
+          imageUrl: e.imageUrl,
+          ...courseSummary,
+          semester: e.semester,
+          maxParticipants: e.maxParticipants,
+          currentParticipants: e.currentParticipants,
+          isRestricted: e.isRestricted,
+          locationId: e.locationId,
+          locationName: e.location.name,
+          customLocation: e.customLocation,
+          speakerName: e.speakerName,
+          startDate: e.startDate,
+          startTime: e.startTime,
+          endTime: e.endTime,
+          duration: e.duration,
+          categoryId: e.categoryId,
+        };
+      });
   }
 
   async findAll() {
     const rows = await this.prisma.event.findMany({
       include: {
         location: { select: { name: true } },
+        eventCourses: {
+          select: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { courseId: 'asc' },
+        },
       },
       orderBy: { startTime: 'asc' },
     });
 
-    return rows.map(e => ({
+    return rows.map(({ location, eventCourses, ...e }) => ({
       ...e,
-      locationName: e.location.name,
+      ...this.getCourseSummary(eventCourses),
+      locationName: location.name,
     }));
   }
 
@@ -94,17 +158,29 @@ export class EventsService {
       where: { id },
       include: {
         participants: true,
-        course: { select: { name: true } },
+        eventCourses: {
+          select: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { courseId: 'asc' },
+        },
         location: { select: { name: true } },
       },
     });
 
     if (!e) throw new NotFoundException(`Evento ${id} não encontrado.`);
 
+    const { location, eventCourses, ...event } = e;
+
     return {
-      ...e,
-      courseName: e.course?.name ?? null,
-      locationName: e.location.name,
+      ...event,
+      ...this.getCourseSummary(eventCourses),
+      locationName: location.name,
     };
   }
 
@@ -121,7 +197,17 @@ export class EventsService {
         },
       },
       include: {
-        course: true,
+        eventCourses: {
+          select: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { courseId: 'asc' },
+        },
         location: true,
       },
       orderBy: {
@@ -134,8 +220,7 @@ export class EventsService {
       name: event.name,
       description: event.description,
       imageUrl: event.imageUrl,
-      courseId: event.courseId,
-      courseName: event.course?.name ?? null,
+      ...this.getCourseSummary(event.eventCourses),
       semester: event.semester,
       maxParticipants: event.maxParticipants,
       currentParticipants: event.currentParticipants,
@@ -174,6 +259,9 @@ export class EventsService {
 
     if (!file) throw new ConflictException('Imagem obrigatória.');
 
+    const courseIds = this.getRequestedCourseIds(dto);
+    await this.assertCoursesExist(courseIds);
+
     const upload = await this.cloudinary.uploadFile(file);
 
     const presenceSecret = dto.presenceSecret?.trim() || null;
@@ -182,10 +270,18 @@ export class EventsService {
       data: {
         name: dto.name,
         description: dto.description,
-        courseId: dto.courseId,
-        semester: dto.semester,
+        eventCourses: courseIds.length
+          ? {
+            create: courseIds.map(courseId => ({
+              course: {
+                connect: { id: courseId },
+              },
+            })),
+          }
+          : undefined,
+        semester: courseIds.length ? dto.semester : 'ALL',
         maxParticipants: dto.maxParticipants,
-        isRestricted: dto.isRestricted,
+        isRestricted: courseIds.length ? true : dto.isRestricted,
         locationId: dto.locationId,
         customLocation: isOtherLocation ? dto.customLocation ?? null : null,
         speakerName: dto.speakerName,
@@ -199,14 +295,26 @@ export class EventsService {
       },
       include: {
         location: { select: { name: true } },
-        course: { select: { name: true } },
+        eventCourses: {
+          select: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { courseId: 'asc' },
+        },
       },
     });
 
+    const { location: createdLocation, eventCourses, ...event } = created;
+
     return {
-      ...created,
-      courseName: created.course?.name ?? null,
-      locationName: created.location.name,
+      ...event,
+      ...this.getCourseSummary(eventCourses),
+      locationName: createdLocation.name,
     };
   }
 
@@ -267,16 +375,31 @@ export class EventsService {
     }
 
     const presenceSecret = dto.presenceSecret?.trim() || null;
+    const shouldUpdateCourses = dto.courseIds !== undefined || dto.courseId !== undefined;
+    const courseIds = this.getRequestedCourseIds(dto);
+
+    if (shouldUpdateCourses) {
+      await this.assertCoursesExist(courseIds);
+    }
 
     const updated = await this.prisma.event.update({
       where: { id },
       data: {
         name: dto.name,
         description: dto.description,
-        courseId: dto.courseId,
-        semester: dto.semester,
+        eventCourses: shouldUpdateCourses
+          ? {
+            deleteMany: {},
+            create: courseIds.map(courseId => ({
+              course: {
+                connect: { id: courseId },
+              },
+            })),
+          }
+          : undefined,
+        semester: shouldUpdateCourses && !courseIds.length ? 'ALL' : dto.semester,
         maxParticipants: dto.maxParticipants,
-        isRestricted: dto.isRestricted,
+        isRestricted: shouldUpdateCourses && courseIds.length ? true : dto.isRestricted,
         locationId: dto.locationId,
         customLocation: isOtherLocation
           ? dto.customLocation ?? exists.customLocation ?? null
@@ -292,14 +415,26 @@ export class EventsService {
       },
       include: {
         location: { select: { name: true } },
-        course: { select: { name: true } },
+        eventCourses: {
+          select: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { courseId: 'asc' },
+        },
       },
     });
 
+    const { location: updatedLocation, eventCourses, ...event } = updated;
+
     return {
-      ...updated,
-      courseName: updated.course?.name ?? null,
-      locationName: updated.location.name,
+      ...event,
+      ...this.getCourseSummary(eventCourses),
+      locationName: updatedLocation.name,
     };
   }
 

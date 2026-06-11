@@ -1,6 +1,30 @@
 import { Semester } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsString, IsNotEmpty, MinLength, MaxLength, IsEnum, IsInt, Min, IsBoolean, IsOptional, IsDateString } from 'class-validator';
+import { ArrayUnique, IsArray, IsString, IsNotEmpty, MinLength, MaxLength, IsEnum, IsInt, Min, IsBoolean, IsOptional, IsDateString } from 'class-validator';
+
+function toNumberArray(value: unknown): number[] | undefined {
+    if (value === undefined || value === null) return undefined;
+    if (value === '') return [];
+
+    let rawValues: unknown[];
+
+    if (Array.isArray(value)) {
+        rawValues = value;
+    } else if (typeof value === 'string' && value.trim().startsWith('[')) {
+        try {
+            const parsed = JSON.parse(value);
+            rawValues = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+            rawValues = [value];
+        }
+    } else if (typeof value === 'string' && value.includes(',')) {
+        rawValues = value.split(',');
+    } else {
+        rawValues = [value];
+    }
+
+    return rawValues.map((item) => Number(item));
+}
 
 export class CreateEventDto {
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
@@ -18,7 +42,16 @@ export class CreateEventDto {
     @IsOptional()
     @Type(() => Number)
     @IsInt()
+    @Min(1)
     courseId?: number;
+
+    @IsOptional()
+    @Transform(({ value }) => toNumberArray(value))
+    @IsArray()
+    @ArrayUnique()
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    courseIds?: number[];
 
     @IsOptional()
     @IsEnum(Semester)

@@ -53,12 +53,12 @@ model RefreshToken {
 }
 
 model Course {
-  id          Int           @id @default(autoincrement())
-  name        String        @unique @db.VarChar(80)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  Event       Event[]
-  Participant Participant[]
+  id           Int           @id @default(autoincrement())
+  name         String        @unique @db.VarChar(80)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  eventCourses EventCourse[]
+  Participant  Participant[]
 
   @@index([createdAt])
 }
@@ -101,8 +101,7 @@ model Event {
   name                String    @db.VarChar(140)
   description         String    @db.Text
   imageUrl            String    @db.VarChar(2048)
-  courseId            Int?
-  course              Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  eventCourses        EventCourse[]
   semester            Semester?
   maxParticipants     Int
   currentParticipants Int       @default(0)
@@ -127,8 +126,19 @@ model Event {
   @@index([categoryId])
   @@index([locationId])
   @@index([isRestricted])
-  @@index([courseId, semester, startDate])
+  @@index([semester, startDate])
   @@fulltext([name, description])
+}
+
+model EventCourse {
+  eventId   Int
+  courseId  Int
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([eventId, courseId])
+  @@index([courseId])
 }
 
 model Participant {

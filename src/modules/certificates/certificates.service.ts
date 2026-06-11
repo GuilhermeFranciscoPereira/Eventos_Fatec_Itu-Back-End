@@ -22,7 +22,7 @@ export class CertificatesService {
 
     const events = await this.prisma.event.findMany({
       where: { endTime: { gte: start, lte: end } },
-      include: { participants: true, course: true, location: true }
+      include: { participants: true, eventCourses: { include: { course: true } }, location: true }
     });
 
     for (const ev of events) await this.processEvent(ev);
@@ -32,7 +32,7 @@ export class CertificatesService {
     const tokenHash = createHash('sha256').update(token).digest('hex');
     const cert = await this.prisma.certificate.findUnique({
       where: { tokenHash },
-      include: { participant: true, event: { include: { course: true, location: true } } }
+      include: { participant: true, event: { include: { eventCourses: { include: { course: true } }, location: true } } }
     });
     if (!cert) return null;
 
@@ -49,12 +49,12 @@ export class CertificatesService {
       data: data,
       horario: `${hIni} às ${hFim}`,
       local: e.location.name.toLowerCase() !== 'outros' ? e.location.name : (e.customLocation ?? ''),
-      curso: e.course?.name ?? null,
+      curso: e.eventCourses.map(({ course }) => course.name).join(', ') || null,
       emitidoEm: cert.issuedAt,
     };
   }
 
-  private async processEvent(ev: Event & { participants: Participant[]; course: Course | null; location: Location }) {
+  private async processEvent(ev: Event & { participants: Participant[]; eventCourses: { course: Course }[]; location: Location }) {
     for (const p of ev.participants.filter(x => x.isPresent && !x.certificateSent)) {
       try {
         const { token, tokenHash } = this.genToken();
@@ -106,7 +106,7 @@ export class CertificatesService {
     return `${process.env.CORS_ORIGINS}/Verification/${token}`;
   }
 
-  private createPdf(p: Participant, ev: Event & { course: Course | null; location: Location }, qrPng: Buffer): Promise<Buffer> {
+  private createPdf(p: Participant, ev: Event & { location: Location }, qrPng: Buffer): Promise<Buffer> {
     return new Promise(resolve => {
       const doc = new PDFKit({ size: 'A4', layout: 'landscape', margins: { top: 0, bottom: 0, left: 0, right: 0 } });
       const chunks: Buffer[] = [];
