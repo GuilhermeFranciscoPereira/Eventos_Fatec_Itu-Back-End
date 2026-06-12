@@ -26,19 +26,25 @@
 
 ## 🛎️ Updates to this commit
 
-### `Authentication Flow, Users and Participants:` Validations related to passwords and institutional email have been updated. Passwords no longer have a maximum character limit in authentication DTOs, and user and participant flows now also accept emails with the `@cps.sp.gov.br` domain.
+### `Multi-Day Event Flow:` Added backend support for events with optional end dates, allowing the representation of events that start on one day and end on another, such as hackathons and academic weeks.
 
-### `./src/modules/auth/dto/request-login-auth.dto.ts:` The maximum character limit validation for passwords has been removed from the login request flow.
+### `./prisma/schema.prisma:` Added the optional `endDate` field to the `Event` model and created an index to assist queries by end date.
 
-### `./src/modules/auth/dto/request-reset-password-auth.dto.ts:` The maximum character limit validation for passwords has been removed from the password reset request flow.
+### `./prisma/migrations/20260612120000_add_event_end_date/migration.sql:` Created a migration to add the `endDate` column to the `Event` table and the corresponding index.
 
-### `./src/modules/auth/dto/reset-password-auth.dto.ts:` Removed the maximum character limit validation for the new password in the password reset flow.
+### `./src/modules/events/dto/create-event.dto.ts:` Added validation for the optional `endDate` field, allowing the value to be cleared when the event reverts to a single day.
 
-### `./src/modules/auth/dto/create-auth.dto.ts:` Updated the institutional email validation to also accept the `@cps.sp.gov.br` domain, in addition to the already allowed domains.
+### `./src/modules/events/dto/event-response.dto.ts:` Updated the administrative DTO to return `endDate` along with other event data.
 
-### `./src/modules/users/dto/update-user.dto.ts:` Updated the institutional email validation in user editing to also accept the `@cps.sp.gov.br` domain.
+### `./src/modules/events/dto/event-public-response.dto.ts:` Updated the public DTO to return `endDate`, allowing the front-end to display date ranges on public screens.
 
-### `./src/modules/participants/participants.service.ts:` Updated the institutional email validation in the participant registration flow to also accept the `@cps.sp.gov.br` domain.
+### `./src/modules/events/events.service.ts:` Adjusted the creation, editing, listing, and validation of events to work with date and time ranges. Location conflict validation now considers the entire event period, and time availability correctly blocks intermediate days.
+
+### `./src/modules/categories/categories.service.ts:` Adjusted the public category search to consider events still in progress by `endTime`, preventing the hiding of multi-day event categories after the start date.
+
+### `./src/modules/participants/participants.service.ts:` Updated the registration confirmation email to display the date range when the event has an end date.
+
+### `./src/modules/certificates/certificates.service.ts:` Updated certificate generation and verification to show the date range for events lasting more than one day.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

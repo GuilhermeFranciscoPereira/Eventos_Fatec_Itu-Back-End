@@ -26,19 +26,25 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Fluxo de autenticação, usuários e participantes:` Atualizadas as validações relacionadas a senha e e-mail institucional. As senhas deixaram de ter limite máximo de caracteres nos DTOs de autenticação, e os fluxos de usuários e participantes passaram a aceitar também e-mails com domínio `@cps.sp.gov.br`.
+### `Fluxo de eventos com mais de um dia:` Adicionado suporte no back-end para eventos com data final opcional, permitindo representar eventos que começam em um dia e terminam em outro, como hackathons e semanas acadêmicas.
 
-### `./src/modules/auth/dto/request-login-auth.dto.ts:` Removida a validação de quantidade máxima de caracteres da senha no fluxo de solicitação de login.
+### `./prisma/schema.prisma:` Adicionado o campo opcional `endDate` ao model `Event` e criado índice para auxiliar consultas por data final.
 
-### `./src/modules/auth/dto/request-reset-password-auth.dto.ts:` Removida a validação de quantidade máxima de caracteres da senha no fluxo de solicitação de redefinição de senha.
+### `./prisma/migrations/20260612120000_add_event_end_date/migration.sql:` Criada migration para adicionar a coluna `endDate` na tabela `Event` e o índice correspondente.
 
-### `./src/modules/auth/dto/reset-password-auth.dto.ts:` Removida a validação de quantidade máxima de caracteres da nova senha no fluxo de redefinição de senha.
+### `./src/modules/events/dto/create-event.dto.ts:` Adicionada validação para o campo opcional `endDate`, permitindo limpar o valor quando o evento voltar a ser de apenas um dia.
 
-### `./src/modules/auth/dto/create-auth.dto.ts:` Atualizada a validação de e-mail institucional para aceitar também o domínio `@cps.sp.gov.br`, além dos domínios já permitidos.
+### `./src/modules/events/dto/event-response.dto.ts:` Atualizado o DTO administrativo para retornar `endDate` junto aos demais dados do evento.
 
-### `./src/modules/users/dto/update-user.dto.ts:` Atualizada a validação de e-mail institucional na edição de usuários para aceitar também o domínio `@cps.sp.gov.br`.
+### `./src/modules/events/dto/event-public-response.dto.ts:` Atualizado o DTO público para retornar `endDate`, permitindo que o front-end exiba intervalos de datas nas telas públicas.
 
-### `./src/modules/participants/participants.service.ts:` Atualizada a validação de e-mail institucional no fluxo de inscrição de participantes para aceitar também o domínio `@cps.sp.gov.br`.
+### `./src/modules/events/events.service.ts:` Ajustada a criação, edição, listagem e validação de eventos para trabalhar com intervalo de data e horário. A validação de conflito de local agora considera todo o período do evento, e a disponibilidade de horários bloqueia corretamente os dias intermediários.
+
+### `./src/modules/categories/categories.service.ts:` Ajustada a busca pública de categorias para considerar eventos ainda em andamento por `endTime`, evitando ocultar categorias de eventos multi-dia depois da data inicial.
+
+### `./src/modules/participants/participants.service.ts:` Atualizado o e-mail de confirmação de inscrição para exibir intervalo de datas quando o evento possuir data final.
+
+### `./src/modules/certificates/certificates.service.ts:` Atualizada a geração e verificação de certificados para mostrar intervalo de datas em eventos com mais de um dia.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

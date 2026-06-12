@@ -37,7 +37,7 @@ export class CertificatesService {
     if (!cert) return null;
 
     const e = cert.event;
-    const data = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(e.startDate);
+    const data = this.formatDateRange(e.startDate, e.endDate);
     const hIni = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(e.startTime);
     const hFim = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(e.endTime);
 
@@ -106,6 +106,14 @@ export class CertificatesService {
     return `${process.env.CORS_ORIGINS}/Verification/${token}`;
   }
 
+  private formatDateRange(startDate: Date, endDate?: Date | null): string {
+    const formatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const start = formatter.format(startDate);
+    const end = endDate ? formatter.format(endDate) : null;
+
+    return end && end !== start ? `${start} a ${end}` : start;
+  }
+
   private createPdf(p: Participant, ev: Event & { location: Location }, qrPng: Buffer): Promise<Buffer> {
     return new Promise(resolve => {
       const doc = new PDFKit({ size: 'A4', layout: 'landscape', margins: { top: 0, bottom: 0, left: 0, right: 0 } });
@@ -131,7 +139,7 @@ export class CertificatesService {
       const footerMaxHeight = 200;
       const textBlockHeight = height - contentTop - footerMaxHeight - 20;
 
-      const dataEvento = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(ev.startDate);
+      const dataEvento = this.formatDateRange(ev.startDate, ev.endDate);
       const horaInicio = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(ev.startTime);
       const horaFim = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(ev.endTime);
 

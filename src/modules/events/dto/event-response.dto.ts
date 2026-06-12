@@ -19,6 +19,7 @@ export class EventResponseDto {
     customLocation!: string | null;
     speakerName!: string;
     startDate!: Date;
+    endDate!: Date | null;
     startTime!: Date;
     endTime!: Date;
     duration!: number | null;

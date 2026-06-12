@@ -61,10 +61,41 @@ export class EventsService {
     }
   }
 
+  private getDatePart(value: string | Date): string {
+    return value instanceof Date
+      ? value.toISOString().split('T')[0]
+      : value.substring(0, 10);
+  }
+
+  private getTimePart(value: string | Date): string {
+    return value instanceof Date
+      ? value.toISOString().substring(11, 16)
+      : value.includes('T')
+        ? value.substring(11, 16)
+        : value.substring(0, 5);
+  }
+
+  private combineDateAndTime(date: string | Date, time: string | Date): Date {
+    return new Date(`${this.getDatePart(date)}T${this.getTimePart(time)}:00.000Z`);
+  }
+
+  private getEffectiveEndDate(startDate: string | Date, endDate?: string | Date | null): string {
+    return endDate ? this.getDatePart(endDate) : this.getDatePart(startDate);
+  }
+
+  private assertValidDateRange(startDate: string | Date, endDate: string | Date | null | undefined, startTime: string | Date, endTime: string | Date) {
+    const startsAt = this.combineDateAndTime(startDate, startTime);
+    const endsAt = this.combineDateAndTime(this.getEffectiveEndDate(startDate, endDate), endTime);
+
+    if (endsAt <= startsAt) {
+      throw new ConflictException('A data e horÃ¡rio de fim devem ser posteriores ao inÃ­cio do evento.');
+    }
+  }
+
   async findAllPublic(): Promise<EventPublicResponseDto[]> {
     const rows = await this.prisma.event.findMany({
       where: {
-        startTime: { gt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000) },
+        endTime: { gt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000) },
       },
       select: {
         id: true,
@@ -91,6 +122,7 @@ export class EventsService {
         customLocation: true,
         speakerName: true,
         startDate: true,
+        endDate: true,
         startTime: true,
         endTime: true,
         duration: true,
@@ -119,6 +151,7 @@ export class EventsService {
           customLocation: e.customLocation,
           speakerName: e.speakerName,
           startDate: e.startDate,
+          endDate: e.endDate,
           startTime: e.startTime,
           endTime: e.endTime,
           duration: e.duration,
@@ -187,7 +220,7 @@ export class EventsService {
   async findPublicByParticipantEmail(email: string): Promise<EventPublicResponseDto[]> {
     const events = await this.prisma.event.findMany({
       where: {
-        startDate: {
+        endTime: {
           gte: new Date(),
         },
         participants: {
@@ -230,6 +263,7 @@ export class EventsService {
       customLocation: event.customLocation,
       speakerName: event.speakerName,
       startDate: event.startDate,
+      endDate: event.endDate,
       startTime: event.startTime,
       endTime: event.endTime,
       duration: event.duration,
@@ -248,10 +282,16 @@ export class EventsService {
 
     const isOtherLocation = location.name.toLowerCase() === 'outros';
 
+    this.assertValidDateRange(dto.startDate, dto.endDate, dto.startTime, dto.endTime);
+    const effectiveEndDate = this.getEffectiveEndDate(dto.startDate, dto.endDate);
+    const normalizedStartTime = `${this.getDatePart(dto.startDate)}T${this.getTimePart(dto.startTime)}:00.000Z`;
+    const normalizedEndTime = `${effectiveEndDate}T${this.getTimePart(dto.endTime)}:00.000Z`;
+
     if (!isOtherLocation) {
       await this.checkOverlap(
         dto.locationId,
         dto.startDate,
+        dto.endDate,
         dto.startTime,
         dto.endTime,
       );
@@ -286,8 +326,9 @@ export class EventsService {
         customLocation: isOtherLocation ? dto.customLocation ?? null : null,
         speakerName: dto.speakerName,
         startDate: dto.startDate,
-        startTime: dto.startTime,
-        endTime: dto.endTime,
+        endDate: dto.endDate ?? null,
+        startTime: normalizedStartTime,
+        endTime: normalizedEndTime,
         duration: dto.duration,
         categoryId: dto.categoryId,
         presenceSecret,
@@ -344,6 +385,12 @@ export class EventsService {
       ? dto.startDate.substring(0, 10)
       : exists.startDate.toISOString().split('T')[0];
 
+    const newEndDate = dto.endDate === undefined
+      ? exists.endDate?.toISOString().split('T')[0] ?? null
+      : dto.endDate
+        ? dto.endDate.substring(0, 10)
+        : null;
+
     const newStart = dto.startTime
       ? dto.startTime.substring(11, 16)
       : exists.startTime.toISOString().substring(11, 16);
@@ -352,16 +399,21 @@ export class EventsService {
       ? dto.endTime.substring(11, 16)
       : exists.endTime.toISOString().substring(11, 16);
 
+    this.assertValidDateRange(newDate, newEndDate, newStart, newEnd);
+    const normalizedStartTime = `${newDate}T${newStart}:00.000Z`;
+    const normalizedEndTime = `${this.getEffectiveEndDate(newDate, newEndDate)}T${newEnd}:00.000Z`;
+
     if (
       !isOtherLocation &&
       (
         dto.locationId !== undefined ||
         dto.startDate !== undefined ||
+        dto.endDate !== undefined ||
         dto.startTime !== undefined ||
         dto.endTime !== undefined
       )
     ) {
-      await this.checkOverlap(newLocationId, newDate, newStart, newEnd, id);
+      await this.checkOverlap(newLocationId, newDate, newEndDate, newStart, newEnd, id);
     }
 
     let imageUrl = exists.imageUrl;
@@ -406,8 +458,9 @@ export class EventsService {
           : null,
         speakerName: dto.speakerName,
         startDate: dto.startDate,
-        startTime: dto.startTime,
-        endTime: dto.endTime,
+        endDate: dto.endDate === undefined ? undefined : dto.endDate,
+        startTime: dto.startTime !== undefined || dto.startDate !== undefined ? normalizedStartTime : undefined,
+        endTime: dto.endTime !== undefined || dto.endDate !== undefined || dto.startDate !== undefined ? normalizedEndTime : undefined,
         duration: dto.duration,
         categoryId: dto.categoryId,
         imageUrl: file ? imageUrl : undefined,
@@ -500,27 +553,37 @@ export class EventsService {
     };
   }
 
-  private async checkOverlap(locationId: number, date: string, startTime: string, endTime: string, exceptId?: number) {
-    const day = date.length > 10 ? date.substring(0, 10) : date;
-    const dayStart = new Date(`${day}T00:00:00.000Z`);
-    const dayEnd = new Date(`${day}T23:59:59.999Z`);
+  private async checkOverlap(locationId: number, startDate: string, endDate: string | null | undefined, startTime: string, endTime: string, exceptId?: number) {
+    const startDay = this.getDatePart(startDate);
+    const endDay = this.getEffectiveEndDate(startDate, endDate);
+    const rangeStart = new Date(`${startDay}T00:00:00.000Z`);
+    const rangeEnd = new Date(`${endDay}T23:59:59.999Z`);
     const events = await this.prisma.event.findMany({
       where: {
         locationId,
-        startDate: { gte: dayStart, lte: dayEnd },
+        startDate: { lte: rangeEnd },
+        OR: [
+          { endDate: { gte: rangeStart } },
+          {
+            endDate: null,
+            startDate: { gte: rangeStart },
+          },
+        ],
         id: exceptId ? { not: exceptId } : undefined,
       },
     });
 
-    const reqStart = this.toMinutes(startTime);
-    const reqEnd = this.toMinutes(endTime);
+    const reqStart = this.combineDateAndTime(startDay, startTime);
+    const reqEnd = this.combineDateAndTime(endDay, endTime);
 
     for (const e of events) {
-      const eStart = this.toMinutes(e.startTime.toISOString().substr(11, 5));
-      const eEnd = this.toMinutes(e.endTime.toISOString().substr(11, 5));
-      const overlap = Math.max(reqStart, eStart) < Math.min(reqEnd, eEnd);
+      const eStartDay = this.getDatePart(e.startDate);
+      const eEndDay = this.getEffectiveEndDate(e.startDate, e.endDate);
+      const eStart = this.combineDateAndTime(eStartDay, e.startTime);
+      const eEnd = this.combineDateAndTime(eEndDay, e.endTime);
+      const overlap = reqStart < eEnd && eStart < reqEnd;
       if (overlap) throw new ConflictException(
-        `Conflito com evento "${e.name}" de ${this.fromMinutes(eStart)} às ${this.fromMinutes(eEnd)} neste dia.`
+        `Conflito com evento "${e.name}" neste período.`
       );
     }
   }
@@ -575,23 +638,33 @@ export class EventsService {
     const events = await this.prisma.event.findMany({
       where: {
         locationId,
-        startDate: { gte: dayStart, lte: dayEnd },
+        startDate: { lte: dayEnd },
+        OR: [
+          { endDate: { gte: dayStart } },
+          {
+            endDate: null,
+            startDate: { gte: dayStart },
+          },
+        ],
         ...(exceptId ? { id: { not: exceptId } } : {}),
       },
       orderBy: { startTime: 'asc' },
     });
 
     const busy = events.map(e => {
-      const eStart = this.toMinutes(e.startTime.toISOString().substring(11, 16));
-      let eEnd = this.toMinutes(e.endTime.toISOString().substring(11, 16));
-      const endDatePart = e.endTime.toISOString().split('T')[0];
-
-      if (endDatePart !== date) {
-        eEnd = this.toMinutes(this.BUSINESS_END);
-      }
+      const startDatePart = this.getDatePart(e.startDate);
+      const endDatePart = this.getEffectiveEndDate(e.startDate, e.endDate);
+      const eStart = startDatePart === date
+        ? this.toMinutes(this.getTimePart(e.startTime))
+        : this.toMinutes(this.BUSINESS_START);
+      const eEnd = endDatePart === date
+        ? this.toMinutes(this.getTimePart(e.endTime))
+        : this.toMinutes(this.BUSINESS_END);
 
       return { start: eStart, end: eEnd };
     });
+
+    busy.sort((a, b) => a.start - b.start);
 
     const endAll = this.toMinutes(this.BUSINESS_END);
     const free: { start: string; end: string }[] = [];

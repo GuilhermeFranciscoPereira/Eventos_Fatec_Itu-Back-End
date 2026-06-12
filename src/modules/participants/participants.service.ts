@@ -84,6 +84,11 @@ export class ParticipantsService {
   }
 
   private buildConfirmationEmail(name: string, event: Event & { location: Location }): string {
+    const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+    const startDate = dateFormatter.format(event.startDate);
+    const endDate = event.endDate ? dateFormatter.format(event.endDate) : null;
+    const eventDate = endDate && endDate !== startDate ? `${startDate} a ${endDate}` : startDate;
+
     return `
     <!DOCTYPE html>
     <html lang="pt-BR">
@@ -116,7 +121,7 @@ export class ParticipantsService {
                       Aqui estão os detalhes para você se preparar:
                     </p>
                     <ul style="line-height:1.6;color:#555;font-size:16px; margin:0 0 20px; padding-left:20px;">
-                      <li><strong>Data:</strong> ${new Date(event.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</li>
+                      <li><strong>Data:</strong> ${eventDate}</li>
                       <li><strong>Horário:</strong> ${event.startTime.toISOString().substr(11, 5)} às ${event.endTime.toISOString().substr(11, 5)}</li>
                       <li><strong>Palestrante:</strong> ${event.speakerName}</li>
                       <li><strong>Local:</strong> ${event.location.name.toLowerCase() !== 'outros'

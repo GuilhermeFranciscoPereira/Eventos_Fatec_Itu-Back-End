@@ -91,6 +91,11 @@ export class CreateEventDto {
     @IsDateString()
     startDate!: string;
 
+    @IsOptional()
+    @Transform(({ value }) => value === '' ? null : value)
+    @IsDateString()
+    endDate?: string | null;
+
     @IsDateString()
     startTime!: string;
 

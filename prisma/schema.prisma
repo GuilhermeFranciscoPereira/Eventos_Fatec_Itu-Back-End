@@ -112,6 +112,7 @@ model Event {
 
   speakerName    String        @db.VarChar(120)
   startDate      DateTime
+  endDate        DateTime?
   startTime      DateTime
   endTime        DateTime
   duration       Int?
@@ -127,6 +128,7 @@ model Event {
   @@index([locationId])
   @@index([isRestricted])
   @@index([semester, startDate])
+  @@index([endDate])
   @@fulltext([name, description])
 }
 

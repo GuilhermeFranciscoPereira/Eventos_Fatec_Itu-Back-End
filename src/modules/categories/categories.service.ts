@@ -12,7 +12,7 @@ export class CategoriesService {
   async findAllPublic(): Promise<CategoryPublicResponseDto[]> {
     return this.prisma.category.findMany({
       select: {
-        id: true, name: true, Event: { where: { startDate: { gte: new Date() } }, select: { id: true, currentParticipants: true, maxParticipants: true } },
+        id: true, name: true, Event: { where: { endTime: { gte: new Date() } }, select: { id: true, currentParticipants: true, maxParticipants: true } },
       }, orderBy: { name: 'asc' },
     }).then(rows => rows
       .filter(c => c.Event.some(e => e.currentParticipants < e.maxParticipants))
