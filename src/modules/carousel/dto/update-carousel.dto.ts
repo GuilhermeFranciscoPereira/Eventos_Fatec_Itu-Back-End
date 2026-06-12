@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsInt, MinLength, MaxLength, Min, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsInt, MinLength, MaxLength, Min } from 'class-validator';
 
 export class UpdateCarouselDto {
     @IsOptional()
@@ -18,6 +18,7 @@ export class UpdateCarouselDto {
     isActive?: boolean;
 
     @IsOptional()
+    @Transform(({ value }) => value === '' || value === null || value === undefined ? undefined : Number(value))
     @IsInt({ message: 'Ordem deve ser um número inteiro' })
     @Min(1, { message: 'Ordem deve ser no mínimo 1' })
     order?: number;

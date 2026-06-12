@@ -26,9 +26,13 @@
 
 ## 🛎️ Updates to this commit
 
-### `Backend Deployment Flow:` Updated the deployment process to automatically apply pending Prisma migrations to the VPS before launching the updated backend container.
+### `Carousel ordering flow:` Adjusted the API to automatically reorganize carousel items when creating, editing, dragging through the interface, or deleting an image, keeping the sequence continuous without duplicate orders or gaps.
 
-### `./.github/workflows/deploy.yml:` Adjusted the backend deployment to start the MySQL service, run `npx prisma migrate deploy` inside the backend container, and then launch the updated backend, avoiding the need to manually run migrations on the VPS after each Prisma change.
+### `./src/modules/carousel/dto/create-carousel.dto.ts:` Made the `order` field optional during creation, with transformation to integer number and minimum validation of 1, allowing the API to automatically use the last available position when the order is not sent.
+
+### `./src/modules/carousel/dto/update-carousel.dto.ts:` Adjusted the transformation of the `order` field during editing to accept only valid numeric values before positive integer validations.
+
+### `./src/modules/carousel/carousel.service.ts:` Added order limit validations, sequential reordering inside a transaction, item insertion at the requested position, reordering after deletion, and safe persistence of the new sequence used by the front-end drag and drop.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

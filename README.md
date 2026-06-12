@@ -26,9 +26,13 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Fluxo de deploy do back-end:` Atualizado o processo de deploy para aplicar automaticamente as migrations pendentes do Prisma na VPS antes de subir o container atualizado do back-end.
+### `Fluxo de ordenação do carrossel:` Ajustada a API para permitir reorganização automática dos itens do carrossel ao criar, editar, arrastar pela interface ou excluir uma imagem, mantendo a sequência contínua sem ordens duplicadas ou buracos.
 
-### `./.github/workflows/deploy.yml:` Ajustado o deploy do back-end para iniciar o serviço do MySQL, executar `npx prisma migrate deploy` dentro do container do backend e, em seguida, subir o backend atualizado, evitando a necessidade de rodar migrations manualmente na VPS após cada alteração no prisma.
+### `./src/modules/carousel/dto/create-carousel.dto.ts:` Tornado o campo `order` opcional na criação, com transformação para número inteiro e validação mínima de 1, permitindo que a API use automaticamente a última posição disponível quando a ordem não for enviada.
+
+### `./src/modules/carousel/dto/update-carousel.dto.ts:` Ajustada a transformação do campo `order` na edição para aceitar somente valores numéricos válidos antes das validações de inteiro positivo.
+
+### `./src/modules/carousel/carousel.service.ts:` Adicionadas validações de limite para a ordem, reorganização sequencial em transação, inserção do item na posição solicitada, reordenação após exclusão e persistência segura da nova sequência usada pelo drag and drop do front-end.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
