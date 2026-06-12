@@ -26,25 +26,9 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Fluxo de eventos com mais de um dia:` Adicionado suporte no back-end para eventos com data final opcional, permitindo representar eventos que começam em um dia e terminam em outro, como hackathons e semanas acadêmicas.
+### `Fluxo de deploy do back-end:` Atualizado o processo de deploy para aplicar automaticamente as migrations pendentes do Prisma na VPS antes de subir o container atualizado do back-end.
 
-### `./prisma/schema.prisma:` Adicionado o campo opcional `endDate` ao model `Event` e criado índice para auxiliar consultas por data final.
-
-### `./prisma/migrations/20260612120000_add_event_end_date/migration.sql:` Criada migration para adicionar a coluna `endDate` na tabela `Event` e o índice correspondente.
-
-### `./src/modules/events/dto/create-event.dto.ts:` Adicionada validação para o campo opcional `endDate`, permitindo limpar o valor quando o evento voltar a ser de apenas um dia.
-
-### `./src/modules/events/dto/event-response.dto.ts:` Atualizado o DTO administrativo para retornar `endDate` junto aos demais dados do evento.
-
-### `./src/modules/events/dto/event-public-response.dto.ts:` Atualizado o DTO público para retornar `endDate`, permitindo que o front-end exiba intervalos de datas nas telas públicas.
-
-### `./src/modules/events/events.service.ts:` Ajustada a criação, edição, listagem e validação de eventos para trabalhar com intervalo de data e horário. A validação de conflito de local agora considera todo o período do evento, e a disponibilidade de horários bloqueia corretamente os dias intermediários.
-
-### `./src/modules/categories/categories.service.ts:` Ajustada a busca pública de categorias para considerar eventos ainda em andamento por `endTime`, evitando ocultar categorias de eventos multi-dia depois da data inicial.
-
-### `./src/modules/participants/participants.service.ts:` Atualizado o e-mail de confirmação de inscrição para exibir intervalo de datas quando o evento possuir data final.
-
-### `./src/modules/certificates/certificates.service.ts:` Atualizada a geração e verificação de certificados para mostrar intervalo de datas em eventos com mais de um dia.
+### `./.github/workflows/deploy.yml:` Ajustado o deploy do back-end para iniciar o serviço do MySQL, executar `npx prisma migrate deploy` dentro do container do backend e, em seguida, subir o backend atualizado, evitando a necessidade de rodar migrations manualmente na VPS após cada alteração no prisma.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

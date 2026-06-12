@@ -51,7 +51,9 @@ jobs:
             cd /opt/agenda-fatec-itu &&
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin &&
             docker compose pull backend &&
-            docker compose up -d mysql backend &&
+            docker compose up -d mysql &&
+            docker compose run --rm backend npx prisma migrate deploy &&
+            docker compose up -d backend &&
             docker image prune -f &&
             docker compose ps &&
             df -h

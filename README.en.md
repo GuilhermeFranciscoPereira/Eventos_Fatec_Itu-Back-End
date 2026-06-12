@@ -26,25 +26,9 @@
 
 ## 🛎️ Updates to this commit
 
-### `Multi-Day Event Flow:` Added backend support for events with optional end dates, allowing the representation of events that start on one day and end on another, such as hackathons and academic weeks.
+### `Backend Deployment Flow:` Updated the deployment process to automatically apply pending Prisma migrations to the VPS before launching the updated backend container.
 
-### `./prisma/schema.prisma:` Added the optional `endDate` field to the `Event` model and created an index to assist queries by end date.
-
-### `./prisma/migrations/20260612120000_add_event_end_date/migration.sql:` Created a migration to add the `endDate` column to the `Event` table and the corresponding index.
-
-### `./src/modules/events/dto/create-event.dto.ts:` Added validation for the optional `endDate` field, allowing the value to be cleared when the event reverts to a single day.
-
-### `./src/modules/events/dto/event-response.dto.ts:` Updated the administrative DTO to return `endDate` along with other event data.
-
-### `./src/modules/events/dto/event-public-response.dto.ts:` Updated the public DTO to return `endDate`, allowing the front-end to display date ranges on public screens.
-
-### `./src/modules/events/events.service.ts:` Adjusted the creation, editing, listing, and validation of events to work with date and time ranges. Location conflict validation now considers the entire event period, and time availability correctly blocks intermediate days.
-
-### `./src/modules/categories/categories.service.ts:` Adjusted the public category search to consider events still in progress by `endTime`, preventing the hiding of multi-day event categories after the start date.
-
-### `./src/modules/participants/participants.service.ts:` Updated the registration confirmation email to display the date range when the event has an end date.
-
-### `./src/modules/certificates/certificates.service.ts:` Updated certificate generation and verification to show the date range for events lasting more than one day.
+### `./.github/workflows/deploy.yml:` Adjusted the backend deployment to start the MySQL service, run `npx prisma migrate deploy` inside the backend container, and then launch the updated backend, avoiding the need to manually run migrations on the VPS after each Prisma change.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
