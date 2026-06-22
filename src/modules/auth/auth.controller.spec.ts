@@ -31,19 +31,28 @@ describe('AuthController - Unitary Test', () => {
   describe('me', () => {
     it('should return me data when valid', async () => {
       service.getMe.mockReturnValue({ sub: 1 });
-      const result = await controller.me(req, res);
+      const result = await controller.me(req);
       expect(result).toEqual({ sub: 1 });
     });
 
-    it('should refresh tokens when expired', async () => {
-      service.getMe.mockImplementationOnce(() => { throw new Error('expirado'); });
+    it('should throw when token is expired', async () => {
+      service.getMe.mockImplementationOnce(() => { throw new UnauthorizedException('Token expirado'); });
+      await expect(controller.me(req)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('refresh', () => {
+    it('should refresh tokens and set cookies', async () => {
       service.refreshTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'b' });
-      service.getMe.mockReturnValueOnce({ sub: 2 });
       req.cookies = { refresh_token: 'r' };
-      const result = await controller.me(req, res);
+      const result = await controller.refresh(req, res);
       expect(res.cookie).toHaveBeenCalledWith('access_token', 'a', expect.any(Object));
       expect(res.cookie).toHaveBeenCalledWith('refresh_token', 'b', expect.any(Object));
-      expect(result).toEqual({ sub: 2 });
+      expect(result).toEqual({ message: 'Sessão renovada com sucesso!' });
+    });
+
+    it('should throw UnauthorizedException when refresh token is missing', async () => {
+      await expect(controller.refresh(req, res)).rejects.toThrow(UnauthorizedException);
     });
   });
 

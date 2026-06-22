@@ -29,20 +29,19 @@ export class AuthController {
 
   @Get('me')
   @HttpCode(200)
-  async me(@Req() req: any & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response): Promise<MeResponseDto> {
-    try {
-      return await this.authService.getMe(req) as unknown as Promise<MeResponseDto>;
-    } catch (err: any) {
-      if (err.message.includes('expirado') && req.cookies[REFRESH_COOKIE]) {
-        const { accessToken, refreshToken } = await this.authService.refreshTokens(req.cookies[REFRESH_COOKIE]);
-        setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000); // 15 Minutes
-        setCookie(res, REFRESH_COOKIE, refreshToken, 3 * 24 * 60 * 60 * 1000); // 3 Days
-        req.cookies[ACCESS_COOKIE] = accessToken;
-        req.cookies[REFRESH_COOKIE] = refreshToken;
-        return await this.authService.getMe(req) as unknown as Promise<MeResponseDto>;
-      }
-      throw err;
-    }
+  async me(@Req() req: any & { cookies: Record<string, string> }): Promise<MeResponseDto> {
+    return await this.authService.getMe(req) as unknown as Promise<MeResponseDto>;
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  async refresh(@Req() req: Request & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response) {
+    const refreshCookie = req.cookies[REFRESH_COOKIE];
+    if (!refreshCookie) throw new UnauthorizedException('Refresh token não encontrado.');
+    const { accessToken, refreshToken } = await this.authService.refreshTokens(refreshCookie);
+    setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000);
+    setCookie(res, REFRESH_COOKIE, refreshToken, 3 * 24 * 60 * 60 * 1000);
+    return { message: 'Sessão renovada com sucesso!' };
   }
 
   @Post('logout')

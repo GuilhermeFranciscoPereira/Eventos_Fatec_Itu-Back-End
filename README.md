@@ -26,13 +26,11 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Fluxo de ordenação do carrossel:` Ajustada a API para permitir reorganização automática dos itens do carrossel ao criar, editar, arrastar pela interface ou excluir uma imagem, mantendo a sequência contínua sem ordens duplicadas ou buracos.
+### `Fluxo de renovação de sessão:` Adicionada uma rota explícita de refresh para renovar o `access_token` por meio do `refresh_token`, corrigindo o problema em que o front-end recebia `401 Unauthorized` após 15 minutos e só recuperava o acesso administrativo ao recarregar a página.
 
-### `./src/modules/carousel/dto/create-carousel.dto.ts:` Tornado o campo `order` opcional na criação, com transformação para número inteiro e validação mínima de 1, permitindo que a API use automaticamente a última posição disponível quando a ordem não for enviada.
+### `./src/modules/auth/auth.controller.ts:` Criada a rota `POST /auth/refresh`, responsável por validar o cookie de refresh, gerar novos tokens, atualizar os cookies `access_token` e `refresh_token` e retornar confirmação de sessão renovada. O endpoint `GET /auth/me` foi simplificado para apenas retornar o usuário quando o access token atual estiver válido.
 
-### `./src/modules/carousel/dto/update-carousel.dto.ts:` Ajustada a transformação do campo `order` na edição para aceitar somente valores numéricos válidos antes das validações de inteiro positivo.
-
-### `./src/modules/carousel/carousel.service.ts:` Adicionadas validações de limite para a ordem, reorganização sequencial em transação, inserção do item na posição solicitada, reordenação após exclusão e persistência segura da nova sequência usada pelo drag and drop do front-end.
+### `./src/modules/auth/auth.controller.spec.ts:` Atualizados os testes do controller de autenticação para cobrir o novo comportamento do `/auth/me`, a renovação de tokens pela rota `/auth/refresh` e o erro quando não existe refresh token válido na requisição.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -92,9 +90,9 @@
 - `./src/modules:` A pasta modules reúne todos os módulos da aplicação, cada um em seu próprio diretório para manter lógica, controladores e provedores bem organizados e desacoplados, depois todos importados pelo módulo raiz (AppModule)
   - `auth:` Módulo dedicado a todo o fluxo de autenticação e autorização do usuário.
     - `dto:` Pasta com os Data Transfer Objects que definem o formato de entrada e saída das requisições de autenticação, em resumo, é a nossa "Tipagem".
-    - `auth.controller.ts:` Expõe os endpoints de me, register, logout, request-login, login, request-reset-password e reset-password, gerencia cookies de acesso, refresh e 2FA  
-    - `auth.controller.spec.ts:` Cobre testes de integração do controller, validando cenários de token válido, expirado, registro, logout, login com 2FA e reset de senha  
-    - `auth.service.ts:` Encapsula toda a lógica de negócio de autenticação — registro de usuário com hash de senha, geração e verificação de tokens de acesso, refresh e 2FA, envio de e-mails e limpeza de tokens expirados  
+    - `auth.controller.ts:` Expõe os endpoints de me, refresh, logout, request-login, login, request-reset-password e reset-password, gerencia cookies de acesso, refresh e 2FA, e fornece uma rota própria para renovar sessão sem depender do carregamento inicial do front-end.
+    - `auth.controller.spec.ts:` Cobre testes de integração do controller, validando cenários de token válido, token expirado, renovação via refresh, ausência de refresh token, logout, login com 2FA e reset de senha
+    - `auth.service.ts:` Encapsula toda a lógica de negócio de autenticação — verificação de usuário, hash de senha, geração e verificação de tokens de acesso, rotação de refresh tokens, 2FA, envio de e-mails e limpeza de tokens expirados
     - `auth.service.spec.ts:` Testa os fluxos do serviço de autenticação, garantindo comportamento correto em casos de conflito, credenciais inválidas, geração de tokens, revogação e renovação de refresh tokens  
     - `auth.module.ts:` Configura o módulo de autenticação, importa PrismaModule, ConfigModule, JwtModule com chaves RSA carregadas de variáveis de ambiente, e registra AuthService, JwtStrategy e EmailService  
     - `jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, e fornece os dados de usuário (id, e-mail, perfil) para os guards
