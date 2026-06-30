@@ -1,7 +1,14 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MinLength, MaxLength, IsNotEmpty } from 'class-validator';
 
 export class UpdateLocationDto {
+    @ApiPropertyOptional({
+        example: 'Laboratório 3',
+        minLength: 3,
+        maxLength: 80,
+        description: 'Novo nome do local.',
+    })
     @IsOptional()
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     @IsString({ message: 'Nome deve ser uma string' })

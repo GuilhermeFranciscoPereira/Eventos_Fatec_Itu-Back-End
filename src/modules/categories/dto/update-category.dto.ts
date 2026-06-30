@@ -1,7 +1,14 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MinLength, MaxLength, IsNotEmpty } from 'class-validator';
 
 export class UpdateCategoryDto {
+    @ApiPropertyOptional({
+        example: 'Workshop',
+        minLength: 3,
+        maxLength: 80,
+        description: 'Novo nome da categoria.',
+    })
     @IsOptional()
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     @IsString({ message: 'Nome deve ser uma string' })

@@ -26,11 +26,17 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Fluxo de renovação de sessão:` Adicionada uma rota explícita de refresh para renovar o `access_token` por meio do `refresh_token`, corrigindo o problema em que o front-end recebia `401 Unauthorized` após 15 minutos e só recuperava o acesso administrativo ao recarregar a página.
+### `Documentação Swagger/OpenAPI:` Implementada documentação profissional da API no back-end NestJS, disponível em `/apiEvents/docs`, com servidor de produção configurado para `https://agendafatecitu.com.br/apiEvents` e JSON OpenAPI em `/apiEvents/docs-json`.
 
-### `./src/modules/auth/auth.controller.ts:` Criada a rota `POST /auth/refresh`, responsável por validar o cookie de refresh, gerar novos tokens, atualizar os cookies `access_token` e `refresh_token` e retornar confirmação de sessão renovada. O endpoint `GET /auth/me` foi simplificado para apenas retornar o usuário quando o access token atual estiver válido.
+### `./package.json e ./package-lock.json:` Adicionadas as dependências `@nestjs/swagger` e `swagger-ui-express`, necessárias para gerar e servir a documentação Swagger no NestJS.
 
-### `./src/modules/auth/auth.controller.spec.ts:` Atualizados os testes do controller de autenticação para cobrir o novo comportamento do `/auth/me`, a renovação de tokens pela rota `/auth/refresh` e o erro quando não existe refresh token válido na requisição.
+### `./src/swagger.ts:` Criado arquivo central de configuração do Swagger, definindo título, descrição, versão, servidores de desenvolvimento e produção, tags por módulo, autenticação via cookies `access_token` e `refresh_token`, cabeçalho `X-CSRF-Token` e opções da interface.
+
+### `./src/main.ts:` Integrada a configuração do Swagger ao bootstrap da aplicação e ajustado o Helmet para permitir que a interface do Swagger carregue corretamente em produção sem expor origens desnecessárias.
+
+### `./src/modules/**/*.controller.ts:` Adicionados decorators Swagger nos controllers principais, documentando rotas públicas, rotas privadas, permissões por perfil, respostas esperadas, cookies de sessão, CSRF, uploads multipart e endpoints administrativos.
+
+### `./src/modules/**/dto/*.ts:` Adicionados decorators Swagger nos DTOs principais para refletir campos obrigatórios, opcionais, exemplos, enums, arrays, uploads, dados sensíveis como `writeOnly` e contratos de resposta.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -44,6 +50,7 @@
 !['PrismaLogo'](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
 !['MySQLLogo'](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 !['DockerLogo'](https://img.shields.io/badge/docker-257bd6?style=for-the-badge&logo=docker&logoColor=white)
+!['SwaggerLogo'](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
 
 </div>
 
@@ -53,6 +60,7 @@
     - Prisma: 6.12.0
     - MySQL: 8.0.42
     - Docker: 28.3.2
+    - Swagger/OpenAPI: @nestjs/swagger 11.4.5
 
 ## 🙋🏻‍♂ Como me localizar no projeto?
 
@@ -75,6 +83,7 @@
 
 - `./src/app.module.ts`: Módulo raiz que declara/importa os demais módulos, controladores e provedores da aplicação.  
 - `./src/main.ts`: Ponto de entrada da aplicação, aqui o Nest é inicializado e configurado.
+- `./src/swagger.ts`: Configuração central da documentação Swagger/OpenAPI, incluindo título, descrição, versão, servidores, autenticação por cookies, CSRF, tags e rota da interface em `/apiEvents/docs`.
 
 - `./src/assets:` diretório para organizar recursos estáticos adicionais.
   - `readme:` Pasta que irá armazenar nossas fotos para utilizar na documentação ( README )
@@ -225,6 +234,35 @@
       ```bash
       npm run start:dev
       ```
+
+##
+
+## 📚 Documentação Swagger/OpenAPI
+
+### O Swagger no projeto é a documentação interativa da API do back-end. Ele mostra os endpoints, métodos HTTP, parâmetros, DTOs, respostas, rotas públicas, rotas privadas, permissões e requisitos de autenticação.
+
+- `Desenvolvimento:` com o back-end rodando localmente e `GLOBAL_PREFIX=apiEvents`, acesse:
+  ```txt
+  http://localhost:4000/apiEvents/docs
+  ```
+
+- `Produção:` a documentação fica disponível em:
+  ```txt
+  https://agendafatecitu.com.br/apiEvents/docs
+  ```
+
+- `OpenAPI JSON:` quando precisar importar a especificação em outras ferramentas, use:
+  ```txt
+  https://agendafatecitu.com.br/apiEvents/docs-json
+  ```
+
+- `Rotas públicas:` podem ser testadas diretamente pelo Swagger, como listagens públicas, inscrição de participante, validação de presença e verificação de certificados. Para métodos `POST`, `PATCH` e `DELETE`, obtenha antes o token em `GET /csrf-token` e envie no esquema `csrf-token`.
+
+- `Rotas privadas/autenticadas:` exigem sessão válida por cookies HTTP-only. O fluxo recomendado é pegar o CSRF em `GET /csrf-token`, executar o login pelo fluxo `request-login` e `login`, manter os cookies do navegador ativos e testar as rotas protegidas com o cabeçalho `X-CSRF-Token` quando houver alteração de dados.
+
+- `Cookies e sessão:` o `access_token` identifica a sessão de curta duração, o `refresh_token` permite renovar a sessão em `/auth/refresh` e o `X-CSRF-Token` protege requisições que modificam dados. Como os cookies são HTTP-only, eles não devem ser copiados manualmente para ambientes compartilhados.
+
+- `Cuidados:` não utilize credenciais reais em computadores públicos, prints, gravações, ambientes compartilhados ou durante demonstrações abertas. Prefira usuários de teste e encerre a sessão ao finalizar.
 
 ##
 

@@ -6,6 +6,7 @@ import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { configureSwagger } from './swagger';
 import { ThrottlerExceptionFilter } from './modules/common/throttler-exception.filter';
 
 async function bootstrap() {
@@ -13,7 +14,17 @@ async function bootstrap() {
   const config = app.get<ConfigService>(ConfigService);
   app.setGlobalPrefix(config.get<string>('GLOBAL_PREFIX', ''));
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'validator.swagger.io'],
+        connectSrc: ["'self'", 'https://agendafatecitu.com.br'],
+      },
+    },
+  }));
   app.use(compression());
   app.enableCors({
     origin: config.get<string>('CORS_ORIGINS', '').split(','),
@@ -21,6 +32,8 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   });
+
+  configureSwagger(app, config);
 
   app.use(cookieParser());
   app.use(
