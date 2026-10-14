@@ -1,10 +1,11 @@
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
-import { Injectable, OnModuleInit, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, OnModuleInit, InternalServerErrorException, Logger } from '@nestjs/common';
 
 @Injectable()
 export class EmailService implements OnModuleInit {
+  private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter<SMTPTransport.SentMessageInfo>;
 
   constructor(private config: ConfigService) { }
@@ -28,8 +29,10 @@ export class EmailService implements OnModuleInit {
   async send(to: string, subject: string, html: string, attachments?: Array<{ filename: string; content: Buffer; contentType?: string }>) {
     try {
       await this.transporter.sendMail({ from: this.config.get<string>('MAIL_FROM'), to, subject, html, attachments });
-    } catch (err: any) {
-      throw new InternalServerErrorException(`Falha ao enviar e-mail! \nErro: ${err.message}`);
+    } catch (err: unknown) {
+      // SMTP errors can expose host and credential details, so they stay in the server log only
+      this.logger.error('Failed to send e-mail', err instanceof Error ? err.stack : String(err));
+      throw new InternalServerErrorException('Não foi possível enviar o e-mail. Tente novamente em alguns minutos.');
     }
   }
 }

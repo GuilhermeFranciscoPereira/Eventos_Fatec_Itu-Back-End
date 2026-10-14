@@ -35,10 +35,10 @@ export class AuthService {
 
   async requestLogin(dto: { email: string; password: string }) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException('E-mail incorreto');
+    if (!user) throw new UnauthorizedException('E-mail ou senha inválidos.');
 
     const ok = await argon2.verify(user.password, dto.password + this.pepper);
-    if (!ok) throw new UnauthorizedException('Senha inválida');
+    if (!ok) throw new UnauthorizedException('E-mail ou senha inválidos.');
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const tmpToken = this.jwtService.sign({ sub: user.id, code }, { expiresIn: '15m' });
@@ -83,7 +83,7 @@ export class AuthService {
 
   async requestPasswordReset(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new UnauthorizedException('E-mail não existe!');
+    if (!user) throw new UnauthorizedException('E-mail não cadastrado.');
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const tmpToken = this.jwtService.sign({ sub: user.id, code }, { expiresIn: '15m' });
@@ -158,7 +158,7 @@ export class AuthService {
     try {
       payload = jwtVerify(oldRefreshToken, this.refreshSecret) as unknown as RefreshPayload;
     } catch (err: any) {
-      throw new UnauthorizedException('Refresh token inválido ou expirado.');
+      throw new UnauthorizedException('Sessão expirada. Faça login novamente.');
     }
 
     const tokenHash = createHmac('sha256', this.hashSecret).update(oldRefreshToken).digest('hex');
@@ -172,7 +172,7 @@ export class AuthService {
       },
     });
 
-    if (!storedToken) { throw new UnauthorizedException('Refresh token não encontrado ou já revogado.') };
+    if (!storedToken) { throw new UnauthorizedException('Sessão expirada. Faça login novamente.') };
 
     const jwtPayload = {
       sub: payload.sub,

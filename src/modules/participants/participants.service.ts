@@ -23,8 +23,8 @@ export class ParticipantsService {
     const existsByEmail = await this.prisma.participant.findFirst({ where: { eventId: dto.eventId, email: dto.email } });
     if (existsByEmail) throw new ConflictException('Participante com este e-mail já inscrito neste evento.');
     if (dto.ra) {
-      if (!dto.email.match(/@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br|cps\.sp\.gov\.br)$/)) {
-        throw new ConflictException('E-mail deve ser institucional (@fatec.sp.gov.br, @cms.sp.gov.br ou @cps.sp.gov.br)');
+      if (!dto.email.match(/@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br|cps\.sp\.gov\.br|aluno\.cps\.sp\.gov\.br)$/)) {
+        throw new ConflictException('E-mail deve ser institucional (@fatec.sp.gov.br, @cms.sp.gov.br, @cps.sp.gov.br ou @aluno.cps.sp.gov.br)');
       }
       const existsByRa = await this.prisma.participant.findFirst({ where: { eventId: dto.eventId, ra: dto.ra } });
       if (existsByRa) throw new ConflictException('Participante com este RA já inscrito neste evento.');
@@ -64,7 +64,7 @@ export class ParticipantsService {
     });
 
     if (updated.count === 0) {
-      throw new ConflictException('Sentimos muito mas este evento já atingiu o limite de participantes e não é possível se inscrever nele. Sentimos muito por isso!');
+      throw new ConflictException('Este evento já atingiu o limite de participantes e não aceita novas inscrições.');
     }
 
     const participant = await this.prisma.participant.create({ data: dto });

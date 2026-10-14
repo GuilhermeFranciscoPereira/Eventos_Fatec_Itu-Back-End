@@ -26,17 +26,31 @@
 
 ## 🛎️ Updates to this commit
 
-### `Swagger/OpenAPI documentation:` Implemented professional API documentation in the NestJS back-end, available at `/apiEvents/docs`, with the production server configured as `https://agendafatecitu.com.br/apiEvents` and the OpenAPI JSON available at `/apiEvents/docs-json`.
+### `New institutional e-mail domain:` The `@aluno.cps.sp.gov.br` domain is now accepted, keeping the already accepted `@fatec.sp.gov.br`, `@cms.sp.gov.br` and `@cps.sp.gov.br`, in login, password reset, user creation and editing, and student registration with RA.
 
-### `./package.json and ./package-lock.json:` Added the `@nestjs/swagger` and `swagger-ui-express` dependencies required to generate and serve Swagger documentation in NestJS.
+### `./src/modules/auth/dto/request-login-auth.dto.ts, ./src/modules/auth/dto/request-reset-password-auth.dto.ts, ./src/modules/users/dto/create-auth.dto.ts, ./src/modules/users/dto/update-user.dto.ts and ./src/modules/participants/participants.service.ts:` Updated the accepted domains regular expression and the error message, which now lists the four domains.
 
-### `./src/swagger.ts:` Created the central Swagger configuration file, defining title, description, version, development and production servers, module tags, `access_token` and `refresh_token` cookie authentication, `X-CSRF-Token` header, and UI options.
+### `Fatec RA validation:` Implemented validation based on the official Academic Record (RA) standard (Centro Paula Souza General Regulation for Undergraduate Courses, Art. 15), in the format used by SIGA: `FFF CCC AA S T NNN` (unit, course, entry year, entry semester, shift and enrollment sequence). RAs are rejected when the semester is not 1 or 2, the shift is outside 1 to 4, the unit, course or sequence is `000`, the entry year is in the future or more than 20 years old, or the 2nd semester of the current year is used before June. Since the RA has no check digit, the validation blocks impossible numbers but cannot confirm that the RA exists in SIGA.
 
-### `./src/main.ts:` Integrated Swagger configuration into the application bootstrap and adjusted Helmet so the Swagger UI loads correctly in production without exposing unnecessary external origins.
+### `./src/modules/participants/validators/fatec-ra.validator.ts:` Created the `@IsFatecRa()` decorator and the `getFatecRaError()` function, which returns a specific message pointing out which part of the RA is wrong.
 
-### `./src/modules/**/*.controller.ts:` Added Swagger decorators to the main controllers, documenting public routes, private routes, role permissions, expected responses, session cookies, CSRF, multipart uploads, and administrative endpoints.
+### `./src/modules/participants/validators/fatec-ra.validator.spec.ts:` Created unit tests covering valid RAs and each kind of invalid RA.
 
-### `./src/modules/**/dto/*.ts:` Added Swagger decorators to the main DTOs to reflect required fields, optional fields, examples, enums, arrays, uploads, sensitive fields as `writeOnly`, and response contracts.
+### `./src/modules/participants/dto/create-participant.dto.ts:` Replaced the simple 13-digit validation with `@IsFatecRa()`, automatically removing dots, dashes and spaces typed in the RA, and replaced the technical `courseId` and `eventId` messages with user-friendly ones.
+
+### `Reviewed error messages:` Reviewed every API error message so they are complete, in Portuguese and free of internal details.
+
+### `./src/main.ts and ./src/modules/common/validation-exception.factory.ts:` Created an exception factory for the `ValidationPipe` that keeps the same response shape but replaces the built-in English messages (such as non-whitelisted fields) with Portuguese ones.
+
+### `./src/modules/events/dto/create-event.dto.ts, find-by-participant-email.dto.ts and validate-presence.dto.ts:` Added Portuguese messages to every validation that previously returned the default English text.
+
+### `./src/modules/auth/auth.service.ts and ./src/modules/auth/auth.controller.ts:` Login now answers "E-mail ou senha inválidos." without telling which one is wrong, preventing anyone from discovering registered e-mails. Session and expired code messages were also rewritten for end users.
+
+### `./src/services/email.service.ts:` E-mail sending failures no longer expose the SMTP technical error in the response; the details are only written to the server log.
+
+### `./src/modules/events/events.service.ts, ./src/modules/participants/participants.service.ts, ./src/modules/carousel/carousel.service.ts and carousel/participant DTOs:` Fixed broken accents ("horÃ¡rio"), grammar, repeated texts and technical field names shown to users.
+
+### `./test/app.e2e-spec.ts:` Updated the expected messages in the E2E tests to match the new texts.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

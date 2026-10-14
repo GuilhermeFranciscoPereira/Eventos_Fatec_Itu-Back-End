@@ -104,7 +104,7 @@ export class CarouselService {
 
   async update(id: number, dto: UpdateCarouselDto, file?: Express.Multer.File): Promise<CarouselResponseDto> {
     const exists = await this.prisma.carousel.findUnique({ where: { id } });
-    if (!exists) throw new NotFoundException(`Imagem com id ${id} não encontrado.`);
+    if (!exists) throw new NotFoundException(`Imagem com id ${id} não encontrada.`);
 
     if (dto.name && dto.name !== exists.name) {
       const clashName = await this.prisma.carousel.findFirst({ where: { name: dto.name, id: { not: id } } });

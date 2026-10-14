@@ -8,7 +8,7 @@ export class FindEventsByParticipantEmailDto {
         description: 'E-mail usado pelo participante na inscrição.',
     })
     @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
-    @IsEmail()
-    @IsNotEmpty()
+    @IsEmail({}, { message: 'Formato de e-mail inválido.' })
+    @IsNotEmpty({ message: 'Informe o e-mail usado na inscrição.' })
     email!: string;
 }

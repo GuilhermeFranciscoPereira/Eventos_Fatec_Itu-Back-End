@@ -88,7 +88,7 @@ export class EventsService {
     const endsAt = this.combineDateAndTime(this.getEffectiveEndDate(startDate, endDate), endTime);
 
     if (endsAt <= startsAt) {
-      throw new ConflictException('A data e horÃ¡rio de fim devem ser posteriores ao inÃ­cio do evento.');
+      throw new ConflictException('A data e o horário de fim devem ser posteriores ao início do evento.');
     }
   }
 

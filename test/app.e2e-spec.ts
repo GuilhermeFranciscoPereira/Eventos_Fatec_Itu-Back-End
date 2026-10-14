@@ -500,13 +500,13 @@ describe('Application Tests - (e2e)', () => {
 
     describe('Error Cases', () => {
         it('POST /apiEvents/auth/request-login invalid creds → 401', async () => {
-            authStub.requestLogin.mockRejectedValueOnce(new UnauthorizedException('E-mail incorreto'));
+            authStub.requestLogin.mockRejectedValueOnce(new UnauthorizedException('E-mail ou senha inválidos.'));
             await request(server)
                 .post('/apiEvents/auth/request-login')
                 .set('Cookie', csrfCookie)
                 .set('X-CSRF-Token', csrfToken)
                 .send({ email: 'wrong@cms.sp.gov.br', password: 'BadPass1!' })
-                .expect(401, { statusCode: 401, message: 'E-mail incorreto', error: 'Unauthorized' });
+                .expect(401, { statusCode: 401, message: 'E-mail ou senha inválidos.', error: 'Unauthorized' });
         });
 
         it('POST /apiEvents/auth/request-login invalid payload → 400', async () => {
@@ -527,7 +527,7 @@ describe('Application Tests - (e2e)', () => {
                 .set('Cookie', csrfCookie)
                 .set('X-CSRF-Token', csrfToken)
                 .send({ code: '123456' })
-                .expect(401, { statusCode: 401, message: 'Token expirado, solicite novamente!', error: 'Unauthorized' }));
+                .expect(401, { statusCode: 401, message: 'Código expirado. Solicite um novo código.', error: 'Unauthorized' }));
 
         it('GET /apiEvents/auth/me invalid token → 401', async () => {
             authStub.getMe.mockRejectedValueOnce(new UnauthorizedException('Token inválido ou expirado!'));
@@ -537,13 +537,13 @@ describe('Application Tests - (e2e)', () => {
         });
 
         it('POST /apiEvents/auth/request-reset-password no email → 401', async () => {
-            authStub.requestPasswordReset.mockRejectedValueOnce(new UnauthorizedException('E-mail não existe!'));
+            authStub.requestPasswordReset.mockRejectedValueOnce(new UnauthorizedException('E-mail não cadastrado.'));
             await request(server)
                 .post('/apiEvents/auth/request-reset-password')
                 .set('Cookie', csrfCookie)
                 .set('X-CSRF-Token', csrfToken)
                 .send({ email: 'noone@cms.sp.gov.br' })
-                .expect(401, { statusCode: 401, message: 'E-mail não existe!', error: 'Unauthorized' });
+                .expect(401, { statusCode: 401, message: 'E-mail não cadastrado.', error: 'Unauthorized' });
         });
 
         it('POST /apiEvents/auth/reset-password no reset_token → 401', () =>
@@ -552,7 +552,7 @@ describe('Application Tests - (e2e)', () => {
                 .set('Cookie', csrfCookie)
                 .set('X-CSRF-Token', csrfToken)
                 .send({ code: '123456', newPassword: 'NewP@ss1' })
-                .expect(401, { statusCode: 401, message: 'Token expirado, solicite novamente!', error: 'Unauthorized' }));
+                .expect(401, { statusCode: 401, message: 'Código expirado. Solicite um novo código.', error: 'Unauthorized' }));
 
         it('POST /apiEvents/users/create dup email → 409', async () => {
             usersStub.create.mockRejectedValueOnce(new ConflictException('E-mail já cadastrado!'));

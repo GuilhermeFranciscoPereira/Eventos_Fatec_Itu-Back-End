@@ -20,7 +20,7 @@ export class CreateCarouselDto {
         example: true,
         description: 'Define se o item deve aparecer no carrossel público.',
     })
-    @IsBoolean({ message: 'isActive deve ser true ou false' })
+    @IsBoolean({ message: 'Informe se a imagem está ativa.' })
     isActive!: boolean;
 
     @ApiPropertyOptional({

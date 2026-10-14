@@ -26,17 +26,31 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Documentação Swagger/OpenAPI:` Implementada documentação profissional da API no back-end NestJS, disponível em `/apiEvents/docs`, com servidor de produção configurado para `https://agendafatecitu.com.br/apiEvents` e JSON OpenAPI em `/apiEvents/docs-json`.
+### `Novo domínio de e-mail institucional:` Passou a ser aceito o domínio `@aluno.cps.sp.gov.br`, mantendo os domínios já aceitos `@fatec.sp.gov.br`, `@cms.sp.gov.br` e `@cps.sp.gov.br`, no login, na recuperação de senha, no cadastro e edição de usuários e na inscrição de alunos com RA.
 
-### `./package.json e ./package-lock.json:` Adicionadas as dependências `@nestjs/swagger` e `swagger-ui-express`, necessárias para gerar e servir a documentação Swagger no NestJS.
+### `./src/modules/auth/dto/request-login-auth.dto.ts, ./src/modules/auth/dto/request-reset-password-auth.dto.ts, ./src/modules/users/dto/create-auth.dto.ts, ./src/modules/users/dto/update-user.dto.ts e ./src/modules/participants/participants.service.ts:` Atualizada a expressão regular dos domínios aceitos e a mensagem de erro, que agora lista os quatro domínios.
 
-### `./src/swagger.ts:` Criado arquivo central de configuração do Swagger, definindo título, descrição, versão, servidores de desenvolvimento e produção, tags por módulo, autenticação via cookies `access_token` e `refresh_token`, cabeçalho `X-CSRF-Token` e opções da interface.
+### `Validação do RA da Fatec:` Implementada validação baseada no padrão oficial do Registro Acadêmico (Regulamento Geral dos Cursos de Graduação do Centro Paula Souza, Art. 15), no formato usado pelo SIGA: `FFF CCC AA S T NNN` (unidade, curso, ano de ingresso, semestre de ingresso, turno e sequência da matrícula). São recusados RAs com semestre diferente de 1 ou 2, turno fora de 1 a 4, unidade, curso ou sequência `000`, ano de ingresso no futuro ou com mais de 20 anos e 2º semestre do ano atual antes de junho. Como o RA não possui dígito verificador, a validação barra números impossíveis, mas não consegue confirmar se o RA existe no SIGA.
 
-### `./src/main.ts:` Integrada a configuração do Swagger ao bootstrap da aplicação e ajustado o Helmet para permitir que a interface do Swagger carregue corretamente em produção sem expor origens desnecessárias.
+### `./src/modules/participants/validators/fatec-ra.validator.ts:` Criado o decorator `@IsFatecRa()` e a função `getFatecRaError()`, que retorna uma mensagem específica indicando qual parte do RA está incorreta.
 
-### `./src/modules/**/*.controller.ts:` Adicionados decorators Swagger nos controllers principais, documentando rotas públicas, rotas privadas, permissões por perfil, respostas esperadas, cookies de sessão, CSRF, uploads multipart e endpoints administrativos.
+### `./src/modules/participants/validators/fatec-ra.validator.spec.ts:` Criados testes unitários cobrindo RAs válidos e cada tipo de RA inválido.
 
-### `./src/modules/**/dto/*.ts:` Adicionados decorators Swagger nos DTOs principais para refletir campos obrigatórios, opcionais, exemplos, enums, arrays, uploads, dados sensíveis como `writeOnly` e contratos de resposta.
+### `./src/modules/participants/dto/create-participant.dto.ts:` Substituída a validação simples de 13 números pelo `@IsFatecRa()`, removendo automaticamente pontos, traços e espaços digitados no RA, e trocadas as mensagens técnicas `courseId` e `eventId` por "Curso inválido" e "Evento inválido".
+
+### `Mensagens de erro revisadas:` Revisadas todas as mensagens de erro da API para que fiquem completas, em português e sem detalhes internos.
+
+### `./src/main.ts e ./src/modules/common/validation-exception.factory.ts:` Criada uma fábrica de exceções para o `ValidationPipe` que mantém o mesmo formato de resposta, mas troca as mensagens automáticas em inglês (como campos não permitidos) por mensagens em português.
+
+### `./src/modules/events/dto/create-event.dto.ts, find-by-participant-email.dto.ts e validate-presence.dto.ts:` Adicionadas mensagens em português em todas as validações que antes retornavam o texto padrão em inglês.
+
+### `./src/modules/auth/auth.service.ts e ./src/modules/auth/auth.controller.ts:` O login passou a responder "E-mail ou senha inválidos." sem indicar qual dos dois está errado, evitando que alguém descubra quais e-mails estão cadastrados. As mensagens de sessão e de código expirado também foram reescritas para o usuário final.
+
+### `./src/services/email.service.ts:` A falha no envio de e-mail não expõe mais o erro técnico do servidor SMTP na resposta; o detalhe é registrado apenas no log do servidor.
+
+### `./src/modules/events/events.service.ts, ./src/modules/participants/participants.service.ts, ./src/modules/carousel/carousel.service.ts e DTOs de carrossel e participantes:` Corrigidos acentos quebrados ("horÃ¡rio"), concordância, textos repetidos e nomes técnicos de campos exibidos ao usuário.
+
+### `./test/app.e2e-spec.ts:` Atualizadas as mensagens esperadas nos testes E2E de acordo com os novos textos.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 

@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Semester } from '@prisma/client'
 import { Transform } from 'class-transformer'
-import { IsEmail, Matches, IsString, IsNotEmpty, MinLength, MaxLength, IsEnum, IsInt, Min, Length, IsOptional } from 'class-validator'
+import { IsEmail, IsString, IsNotEmpty, MinLength, MaxLength, IsEnum, IsInt, Min, IsOptional } from 'class-validator'
+import { IsFatecRa } from '../validators/fatec-ra.validator'
 
 export class CreateParticipantDto {
     @ApiProperty({
@@ -33,8 +34,8 @@ export class CreateParticipantDto {
         description: 'Identificador do curso do participante.',
     })
     @IsOptional()
-    @IsInt({ message: 'courseId deve ser inteiro' })
-    @Min(1, { message: 'courseId inválido' })
+    @IsInt({ message: 'Curso inválido' })
+    @Min(1, { message: 'Curso inválido' })
     courseId?: number
 
     @ApiPropertyOptional({
@@ -47,14 +48,14 @@ export class CreateParticipantDto {
     semester?: Semester
 
     @ApiPropertyOptional({
-        example: '1234567890123',
+        example: '0480482511001',
         minLength: 13,
         maxLength: 13,
-        description: 'RA do aluno, quando houver.',
+        description: 'RA do aluno (13 dígitos no formato do SIGA: unidade, curso, ano, semestre, turno e sequência), quando houver.',
     })
     @IsOptional()
-    @Length(13, 13, { message: 'RA deve ter 13 dígitos' })
-    @Matches(/^[0-9]{13}$/, { message: 'RA deve conter apenas números' })
+    @Transform(({ value }) => typeof value === 'string' ? value.replace(/[\s.\-/]/g, '') : value)
+    @IsFatecRa()
     ra?: string
 
     @ApiProperty({
@@ -62,7 +63,7 @@ export class CreateParticipantDto {
         minimum: 1,
         description: 'Identificador do evento em que o participante será inscrito.',
     })
-    @IsInt({ message: 'eventId deve ser um número inteiro' })
-    @Min(1, { message: 'eventId inválido' })
+    @IsInt({ message: 'Evento inválido' })
+    @Min(1, { message: 'Evento inválido' })
     eventId!: number
 }

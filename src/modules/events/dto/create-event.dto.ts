@@ -35,10 +35,10 @@ export class CreateEventDto {
         description: 'Nome do evento.',
     })
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-    @IsString()
-    @IsNotEmpty()
-    @MinLength(3)
-    @MaxLength(140)
+    @IsString({ message: 'Nome do evento deve ser um texto.' })
+    @IsNotEmpty({ message: 'Informe o nome do evento.' })
+    @MinLength(3, { message: 'Nome do evento deve ter ao menos 3 caracteres.' })
+    @MaxLength(140, { message: 'Nome do evento deve ter no máximo 140 caracteres.' })
     name!: string;
 
     @ApiProperty({
@@ -46,8 +46,8 @@ export class CreateEventDto {
         description: 'Descrição completa do evento.',
     })
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-    @IsString()
-    @IsNotEmpty()
+    @IsString({ message: 'Descrição deve ser um texto.' })
+    @IsNotEmpty({ message: 'Informe a descrição do evento.' })
     description!: string;
 
     @ApiPropertyOptional({
@@ -57,8 +57,8 @@ export class CreateEventDto {
     })
     @IsOptional()
     @Type(() => Number)
-    @IsInt()
-    @Min(1)
+    @IsInt({ message: 'Curso inválido.' })
+    @Min(1, { message: 'Curso inválido.' })
     courseId?: number;
 
     @ApiPropertyOptional({
@@ -69,10 +69,10 @@ export class CreateEventDto {
     })
     @IsOptional()
     @Transform(({ value }) => toNumberArray(value))
-    @IsArray()
-    @ArrayUnique()
-    @IsInt({ each: true })
-    @Min(1, { each: true })
+    @IsArray({ message: 'Lista de cursos inválida.' })
+    @ArrayUnique({ message: 'Não repita cursos na lista.' })
+    @IsInt({ each: true, message: 'Curso inválido na lista de cursos.' })
+    @Min(1, { each: true, message: 'Curso inválido na lista de cursos.' })
     courseIds?: number[];
 
     @ApiPropertyOptional({
@@ -81,7 +81,7 @@ export class CreateEventDto {
         description: 'Semestre permitido para inscrição, quando o evento for restrito.',
     })
     @IsOptional()
-    @IsEnum(Semester)
+    @IsEnum(Semester, { message: 'Semestre inválido.' })
     semester?: Semester;
 
     @ApiProperty({
@@ -90,8 +90,8 @@ export class CreateEventDto {
         description: 'Quantidade máxima de participantes.',
     })
     @Type(() => Number)
-    @IsInt()
-    @Min(1)
+    @IsInt({ message: 'Limite de participantes deve ser um número inteiro.' })
+    @Min(1, { message: 'Limite de participantes deve ser no mínimo 1.' })
     maxParticipants!: number;
 
     @ApiProperty({
@@ -103,7 +103,7 @@ export class CreateEventDto {
         if (value === false || value === 'false') return false
         return Boolean(value)
     })
-    @IsBoolean()
+    @IsBoolean({ message: 'Informe se o evento é restrito.' })
     isRestricted!: boolean;
 
     @ApiProperty({
@@ -112,8 +112,8 @@ export class CreateEventDto {
         description: 'Identificador do local cadastrado.',
     })
     @Type(() => Number)
-    @IsInt()
-    @Min(1)
+    @IsInt({ message: 'Selecione um local válido.' })
+    @Min(1, { message: 'Selecione um local válido.' })
     locationId!: number;
 
     @ApiPropertyOptional({
@@ -124,8 +124,8 @@ export class CreateEventDto {
     })
     @IsOptional()
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-    @MinLength(3)
-    @MaxLength(140)
+    @MinLength(3, { message: 'Local personalizado deve ter ao menos 3 caracteres.' })
+    @MaxLength(140, { message: 'Local personalizado deve ter no máximo 140 caracteres.' })
     customLocation?: string;
 
     @ApiProperty({
@@ -135,17 +135,17 @@ export class CreateEventDto {
         description: 'Nome do palestrante ou responsável.',
     })
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-    @IsString()
-    @IsNotEmpty()
-    @MinLength(3)
-    @MaxLength(120)
+    @IsString({ message: 'Nome do palestrante deve ser um texto.' })
+    @IsNotEmpty({ message: 'Informe o nome do palestrante.' })
+    @MinLength(3, { message: 'Nome do palestrante deve ter ao menos 3 caracteres.' })
+    @MaxLength(120, { message: 'Nome do palestrante deve ter no máximo 120 caracteres.' })
     speakerName!: string;
 
     @ApiProperty({
         example: '2026-06-29T00:00:00.000Z',
         description: 'Data inicial do evento.',
     })
-    @IsDateString()
+    @IsDateString({}, { message: 'Data inicial inválida.' })
     startDate!: string;
 
     @ApiPropertyOptional({
@@ -155,21 +155,21 @@ export class CreateEventDto {
     })
     @IsOptional()
     @Transform(({ value }) => value === '' ? null : value)
-    @IsDateString()
+    @IsDateString({}, { message: 'Data final inválida.' })
     endDate?: string | null;
 
     @ApiProperty({
         example: '2026-06-29T08:00:00.000Z',
         description: 'Horário de início do evento.',
     })
-    @IsDateString()
+    @IsDateString({}, { message: 'Horário de início inválido.' })
     startTime!: string;
 
     @ApiProperty({
         example: '2026-06-29T18:00:00.000Z',
         description: 'Horário de encerramento do evento.',
     })
-    @IsDateString()
+    @IsDateString({}, { message: 'Horário de término inválido.' })
     endTime!: string;
 
     @ApiPropertyOptional({
@@ -179,8 +179,8 @@ export class CreateEventDto {
     })
     @IsOptional()
     @Type(() => Number)
-    @IsInt()
-    @Min(1)
+    @IsInt({ message: 'Duração deve ser um número inteiro de minutos.' })
+    @Min(1, { message: 'Duração deve ser de no mínimo 1 minuto.' })
     duration?: number;
 
     @ApiPropertyOptional({
@@ -190,8 +190,8 @@ export class CreateEventDto {
     })
     @IsOptional()
     @Type(() => Number)
-    @IsInt()
-    @Min(1)
+    @IsInt({ message: 'Selecione uma categoria válida.' })
+    @Min(1, { message: 'Selecione uma categoria válida.' })
     categoryId?: number;
 
     @ApiPropertyOptional({
@@ -207,7 +207,7 @@ export class CreateEventDto {
         const trimmed = value.trim();
         return trimmed || null;
     })
-    @IsString()
-    @MaxLength(80)
+    @IsString({ message: 'Palavra secreta deve ser um texto.' })
+    @MaxLength(80, { message: 'Palavra secreta deve ter no máximo 80 caracteres.' })
     presenceSecret?: string | null;
 }

@@ -6,6 +6,6 @@ export class UpdateParticipantDto {
         example: true,
         description: 'Define se o participante está presente no evento.',
     })
-    @IsBoolean({ message: 'isPresent deve ser true ou false' })
+    @IsBoolean({ message: 'Informe se o participante está presente.' })
     isPresent!: boolean;
 }

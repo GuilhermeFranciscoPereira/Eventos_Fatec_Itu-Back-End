@@ -48,7 +48,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Refresh token ausente, inválido ou expirado.' })
   async refresh(@Req() req: Request & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response) {
     const refreshCookie = req.cookies[REFRESH_COOKIE];
-    if (!refreshCookie) throw new UnauthorizedException('Refresh token não encontrado.');
+    if (!refreshCookie) throw new UnauthorizedException('Sessão expirada. Faça login novamente.');
     const { accessToken, refreshToken } = await this.authService.refreshTokens(refreshCookie);
     setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000);
     setCookie(res, REFRESH_COOKIE, refreshToken, 3 * 24 * 60 * 60 * 1000);
@@ -93,7 +93,7 @@ export class AuthController {
   @ApiOkResponse({ schema: { example: { message: 'Autenticado com 2FA' } } })
   @ApiUnauthorizedResponse({ description: 'Código inválido, expirado ou cookie temporário ausente.' })
   async login(@Body() dto: LoginDto, @Req() req: Request & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response) {
-    const tmpToken = req.cookies['2fa_token']; if (!tmpToken) throw new UnauthorizedException('Token expirado, solicite novamente!');
+    const tmpToken = req.cookies['2fa_token']; if (!tmpToken) throw new UnauthorizedException('Código expirado. Solicite um novo código.');
     const { accessToken, refreshToken } = await this.authService.login(dto.code, tmpToken);
     if (accessToken) res.clearCookie('2fa_token', { path: '/auth' });
     setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000); // 15 Minutes
@@ -123,7 +123,7 @@ export class AuthController {
   @ApiOkResponse({ schema: { example: { message: 'Senha redefinida com sucesso' } } })
   @ApiUnauthorizedResponse({ description: 'Código inválido, expirado ou cookie temporário ausente.' })
   async passwordReset(@Body() dto: ResetPasswordDto, @Req() req: Request & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response) {
-    const tmpToken = req.cookies['reset_token']; if (!tmpToken) throw new UnauthorizedException('Token expirado, solicite novamente!');
+    const tmpToken = req.cookies['reset_token']; if (!tmpToken) throw new UnauthorizedException('Código expirado. Solicite um novo código.');
     const result = await this.authService.passwordReset(dto.code, dto.newPassword, tmpToken);
     if (result) res.clearCookie('reset_token', { path: '/auth' });
     return { message: 'Senha redefinida com sucesso' };
