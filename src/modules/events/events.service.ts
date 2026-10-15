@@ -3,6 +3,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ValidatePresenceDto } from './dto/validate-presence.dto';
+import { nowInEventClock } from '../common/event-clock';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { EventPublicResponseDto } from './dto/event-public-response.dto';
 import { Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -155,7 +156,7 @@ export class EventsService {
   async findAllPublic(): Promise<EventPublicResponseDto[]> {
     const rows = await this.prisma.event.findMany({
       where: {
-        endTime: { gt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000) },
+        endTime: { gt: nowInEventClock() },
       },
       select: PUBLIC_EVENT_SELECT,
       orderBy: { startTime: 'asc' },
@@ -237,7 +238,7 @@ export class EventsService {
     const events = await this.prisma.event.findMany({
       where: {
         endTime: {
-          gte: new Date(),
+          gte: nowInEventClock(),
         },
         participants: {
           some: {
@@ -585,11 +586,11 @@ export class EventsService {
     if (location.name.toLowerCase() === 'outros') return [];
 
     const dates: string[] = [];
-    const today = new Date();
+    const today = nowInEventClock();
 
     for (let i = 0; i < 90; i++) {
       const d = new Date(today);
-      d.setDate(today.getDate() + i);
+      d.setUTCDate(today.getUTCDate() + i);
       const dayStr = d.toISOString().split('T')[0];
 
       if (await this.hasFreeSlot(locationId, dayStr)) {

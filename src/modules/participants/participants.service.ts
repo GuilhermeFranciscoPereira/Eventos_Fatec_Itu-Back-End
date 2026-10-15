@@ -1,9 +1,13 @@
 import { PrismaService } from '../prisma/prisma.service';
+import { nowInEventClock } from '../common/event-clock';
 import { EmailService } from '../../services/email.service';
-import { Participant, Event, Location } from '@prisma/client';
+import { Participant, Event, Location, Prisma } from '@prisma/client';
 import { CreateParticipantDto } from './dto/create-participant.dto';
 import { UpdateParticipantDto } from './dto/update-participant.dto';
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+
+const INSTITUTIONAL_EMAIL = /@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br|cps\.sp\.gov\.br|aluno\.cps\.sp\.gov\.br)$/;
+const DUPLICATED_EMAIL_MESSAGE = 'Participante com este e-mail já inscrito neste evento.';
 
 @Injectable()
 export class ParticipantsService {
@@ -21,9 +25,9 @@ export class ParticipantsService {
 
   async create(dto: CreateParticipantDto): Promise<Participant> {
     const existsByEmail = await this.prisma.participant.findFirst({ where: { eventId: dto.eventId, email: dto.email } });
-    if (existsByEmail) throw new ConflictException('Participante com este e-mail já inscrito neste evento.');
+    if (existsByEmail) throw new ConflictException(DUPLICATED_EMAIL_MESSAGE);
     if (dto.ra) {
-      if (!dto.email.match(/@(?:fatec\.sp\.gov\.br|cms\.sp\.gov\.br|cps\.sp\.gov\.br|aluno\.cps\.sp\.gov\.br)$/)) {
+      if (!INSTITUTIONAL_EMAIL.test(dto.email)) {
         throw new ConflictException('E-mail deve ser institucional (@fatec.sp.gov.br, @cms.sp.gov.br, @cps.sp.gov.br ou @aluno.cps.sp.gov.br)');
       }
       const existsByRa = await this.prisma.participant.findFirst({ where: { eventId: dto.eventId, ra: dto.ra } });
@@ -43,7 +47,16 @@ export class ParticipantsService {
     });
     if (!event) throw new NotFoundException(`Evento ${dto.eventId} não encontrado.`);
 
+    if (event.endTime <= nowInEventClock()) {
+      throw new ConflictException('As inscrições para este evento foram encerradas.');
+    }
+
     if (event.isRestricted) {
+      // A restricted event is only for Fatec students, with or without a course limit.
+      if (!dto.ra || !INSTITUTIONAL_EMAIL.test(dto.email)) {
+        throw new ConflictException('Este evento é exclusivo para alunos da Fatec. Informe seu RA e seu e-mail institucional.');
+      }
+
       const allowedCourseIds = event.eventCourses.map(({ courseId }) => courseId);
 
       if (allowedCourseIds.length) {
@@ -58,16 +71,28 @@ export class ParticipantsService {
       }
     }
 
-    const updated = await this.prisma.event.updateMany({
-      where: { id: dto.eventId, currentParticipants: { lt: event.maxParticipants } },
-      data: { currentParticipants: { increment: 1 } },
-    });
+    // The seat and the registration are saved together: if the registration fails, the seat is given back.
+    let participant: Participant;
+    try {
+      participant = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.event.updateMany({
+          where: { id: dto.eventId, currentParticipants: { lt: event.maxParticipants } },
+          data: { currentParticipants: { increment: 1 } },
+        });
 
-    if (updated.count === 0) {
-      throw new ConflictException('Este evento já atingiu o limite de participantes e não aceita novas inscrições.');
+        if (updated.count === 0) {
+          throw new ConflictException('Este evento já atingiu o limite de participantes e não aceita novas inscrições.');
+        }
+
+        return tx.participant.create({ data: dto });
+      });
+    } catch (err: unknown) {
+      // Two simultaneous registrations with the same e-mail: the unique index rejects the second one.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException(DUPLICATED_EMAIL_MESSAGE);
+      }
+      throw err;
     }
-
-    const participant = await this.prisma.participant.create({ data: dto });
 
     const html = this.buildConfirmationEmail(participant.name, event);
     await this.emailService.send(participant.email, 'Confirmação de inscrição', html);

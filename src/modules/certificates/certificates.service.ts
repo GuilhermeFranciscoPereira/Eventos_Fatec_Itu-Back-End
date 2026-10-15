@@ -6,6 +6,7 @@ import { Location } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { todayInEventClock } from '../common/event-clock';
 import { Participant, Event, Course } from '@prisma/client';
 import { EmailService } from '../../services/email.service';
 
@@ -15,10 +16,9 @@ export class CertificatesService {
 
   @Cron('0 20 * * *', { timeZone: 'America/Sao_Paulo' })
   async handleDailyCertificates() {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    const start = new Date(d); start.setHours(0, 0, 0, 0);
-    const end = new Date(d); end.setHours(23, 59, 59, 999);
+    const start = new Date(`${todayInEventClock()}T00:00:00.000Z`);
+    start.setUTCDate(start.getUTCDate() - 1);
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
 
     const events = await this.prisma.event.findMany({
       where: { endTime: { gte: start, lte: end } },
@@ -103,7 +103,9 @@ export class CertificatesService {
   }
 
   private buildVerificationUrl(token: string) {
-    return `${process.env.CORS_ORIGINS}/Verification/${token}`;
+    // CORS_ORIGINS may list several comma-separated origins, so only the first one is a valid base URL.
+    const frontendUrl = process.env.FRONTEND_URL || (process.env.CORS_ORIGINS ?? '').split(',')[0];
+    return `${frontendUrl.trim().replace(/\/+$/, '')}/Verification/${token}`;
   }
 
   private formatDateRange(startDate: Date, endDate?: Date | null): string {

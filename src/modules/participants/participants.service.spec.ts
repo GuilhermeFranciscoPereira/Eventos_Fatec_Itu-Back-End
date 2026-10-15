@@ -1,4 +1,4 @@
-import { Course, Semester } from '@prisma/client';
+import { Prisma, Semester } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../../services/email.service';
@@ -9,14 +9,15 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 describe('ParticipantsService - Unitary Test', () => {
   let service: ParticipantsService
   let prisma: any
+  let tx: any
   let emailService: any
 
   const validDto: CreateParticipantDto = {
     name: 'Fulano de Tal',
     email: 'fulano@fatec.sp.gov.br',
-    course: Course.ADS,
+    courseId: 1,
     semester: Semester.SEMESTER1,
-    ra: '1234567890123',
+    ra: '0480482511001',
     eventId: 42,
   }
 
@@ -28,29 +29,40 @@ describe('ParticipantsService - Unitary Test', () => {
     updatedAt: new Date(),
   }
 
+  const inOneYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+
   const event = {
     id: 42,
     name: 'Evento X',
-    startDate: new Date(),
-    startTime: new Date(),
-    endTime: new Date(),
+    description: 'Descrição',
+    startDate: inOneYear,
+    endDate: null,
+    startTime: inOneYear,
+    endTime: inOneYear,
     speakerName: 'Palestrante',
-    location: 'AUDITORIO',
+    location: { name: 'Auditório' },
     customLocation: null,
+    isRestricted: false,
+    semester: 'ALL',
+    maxParticipants: 50,
+    eventCourses: [],
   }
 
   beforeEach(async () => {
+    tx = {
+      event: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      participant: { create: jest.fn().mockResolvedValue(participant) },
+    }
     prisma = {
       participant: {
-        findFirst: jest.fn(),
-        create: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null),
         findUnique: jest.fn(),
         update: jest.fn(),
       },
       event: {
-        update: jest.fn(),
-        findUnique: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue(event),
       },
+      $transaction: jest.fn().mockImplementation(callback => callback(tx)),
     }
     emailService = { send: jest.fn() }
 
@@ -68,13 +80,12 @@ describe('ParticipantsService - Unitary Test', () => {
   describe('create', () => {
     it('throws if email already registered', async () => {
       prisma.participant.findFirst.mockResolvedValueOnce({})
-      await expect(service.create(validDto as any)).rejects.toThrow(ConflictException)
+      await expect(service.create(validDto)).rejects.toThrow(ConflictException)
     })
 
     it('throws if ra provided and email invalid', async () => {
-      prisma.participant.findFirst.mockResolvedValue(null)
       await expect(
-        service.create({ ...validDto, email: 'foo@gmail.com' } as any)
+        service.create({ ...validDto, email: 'foo@gmail.com' })
       ).rejects.toThrow(ConflictException)
     })
 
@@ -82,28 +93,59 @@ describe('ParticipantsService - Unitary Test', () => {
       prisma.participant.findFirst
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({})
-      await expect(service.create(validDto as any)).rejects.toThrow(ConflictException)
+      await expect(service.create(validDto)).rejects.toThrow(ConflictException)
     })
 
-    it('increments event, creates participant and sends email', async () => {
-      prisma.participant.findFirst.mockResolvedValue(null)
-      prisma.event.update.mockResolvedValue(event)
-      prisma.participant.create.mockResolvedValue(participant)
-      prisma.event.findUnique.mockResolvedValue(event)
+    it('throws if the event does not exist', async () => {
+      prisma.event.findUnique.mockResolvedValue(null)
+      await expect(service.create(validDto)).rejects.toThrow(NotFoundException)
+    })
 
+    it('rejects registrations after the event has ended', async () => {
+      prisma.event.findUnique.mockResolvedValue({ ...event, endTime: new Date('2020-01-01T10:00:00.000Z') })
+      await expect(service.create(validDto)).rejects.toThrow('As inscrições para este evento foram encerradas.')
+      expect(prisma.$transaction).not.toHaveBeenCalled()
+    })
+
+    it('requires RA and institutional e-mail for a restricted event without courses', async () => {
+      prisma.event.findUnique.mockResolvedValue({ ...event, isRestricted: true, eventCourses: [] })
+      const outsider = { name: 'Visitante', email: 'visitante@gmail.com', eventId: 42 }
+      await expect(service.create(outsider)).rejects.toThrow('Este evento é exclusivo para alunos da Fatec. Informe seu RA e seu e-mail institucional.')
+      expect(prisma.$transaction).not.toHaveBeenCalled()
+    })
+
+    it('accepts a Fatec student in a restricted event without courses', async () => {
+      prisma.event.findUnique.mockResolvedValue({ ...event, isRestricted: true, eventCourses: [] })
+      await expect(service.create(validDto)).resolves.toBe(participant)
+    })
+
+    it('takes the seat and creates the participant in the same transaction, then sends the e-mail', async () => {
       const result = await service.create(validDto)
 
-      expect(prisma.event.update).toHaveBeenCalledWith({
-        where: { id: 42 },
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1)
+      expect(tx.event.updateMany).toHaveBeenCalledWith({
+        where: { id: 42, currentParticipants: { lt: 50 } },
         data: { currentParticipants: { increment: 1 } },
       })
-      expect(prisma.participant.create).toHaveBeenCalledWith({ data: validDto })
+      expect(tx.participant.create).toHaveBeenCalledWith({ data: validDto })
       expect(emailService.send).toHaveBeenCalledWith(
         validDto.email,
         'Confirmação de inscrição',
         expect.stringContaining('<!DOCTYPE html>')
       )
       expect(result).toBe(participant)
+    })
+
+    it('does not create the participant when the event is full', async () => {
+      tx.event.updateMany.mockResolvedValue({ count: 0 })
+      await expect(service.create(validDto)).rejects.toThrow('Este evento já atingiu o limite de participantes')
+      expect(tx.participant.create).not.toHaveBeenCalled()
+    })
+
+    it('answers 409 when the same e-mail registers twice at the same time', async () => {
+      tx.participant.create.mockRejectedValue(new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: 'test' }))
+      await expect(service.create(validDto)).rejects.toThrow('Participante com este e-mail já inscrito neste evento.')
+      expect(emailService.send).not.toHaveBeenCalled()
     })
   })
 

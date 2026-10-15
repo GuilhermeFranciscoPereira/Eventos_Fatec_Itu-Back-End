@@ -1,5 +1,5 @@
 import { Response, Request } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService, REFRESH_TOKEN_TTL_MS } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { LoginDto } from './dto/login-auth.dto';
 import { MeResponseDto } from './dto/me-auth.dto';
@@ -51,7 +51,7 @@ export class AuthController {
     if (!refreshCookie) throw new UnauthorizedException('Sessão expirada. Faça login novamente.');
     const { accessToken, refreshToken } = await this.authService.refreshTokens(refreshCookie);
     setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000);
-    setCookie(res, REFRESH_COOKIE, refreshToken, 3 * 24 * 60 * 60 * 1000);
+    setCookie(res, REFRESH_COOKIE, refreshToken, REFRESH_TOKEN_TTL_MS);
     return { message: 'Sessão renovada com sucesso!' };
   }
 
@@ -97,7 +97,7 @@ export class AuthController {
     const { accessToken, refreshToken } = await this.authService.login(dto.code, tmpToken);
     if (accessToken) res.clearCookie('2fa_token', { path: '/auth' });
     setCookie(res, ACCESS_COOKIE, accessToken, 15 * 60 * 1000); // 15 Minutes
-    setCookie(res, REFRESH_COOKIE, refreshToken, 3 * 24 * 60 * 60 * 1000); // 3 Days
+    setCookie(res, REFRESH_COOKIE, refreshToken, REFRESH_TOKEN_TTL_MS);
     return { message: 'Autenticado com 2FA' };
   }
 

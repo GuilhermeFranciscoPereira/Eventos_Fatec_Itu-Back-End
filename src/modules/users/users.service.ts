@@ -3,6 +3,7 @@ import { Role, User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from './dto/create-auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -34,9 +35,14 @@ export class UsersService {
     });
   }
 
-  async updatePersonalProfile(id: number, dto: UpdateUserDto, file?: Express.Multer.File) {
+  async updatePersonalProfile(id: number, dto: UpdateProfileDto, file?: Express.Multer.File) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuário não encontrado.');
+
+    if (dto.email && dto.email !== user.email) {
+      const clash = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (clash) throw new ConflictException(`E-mail "${dto.email}" já está em uso por outro usuário.`);
+    }
 
     let imageUrl = user.imageUrl;
 
@@ -53,7 +59,7 @@ export class UsersService {
 
     return this.prisma.user.update({
       where: { id },
-      data: { name: dto.name ?? user.name, imageUrl },
+      data: { name: dto.name ?? user.name, email: dto.email ?? user.email, imageUrl },
       select: { id: true, name: true, email: true, role: true, imageUrl: true, createdAt: true, updatedAt: true },
     });
   }

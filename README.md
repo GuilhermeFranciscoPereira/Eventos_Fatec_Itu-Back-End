@@ -26,21 +26,25 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Correções de segurança críticas:` Corrigidas falhas que permitiam trocar a senha de qualquer conta sabendo apenas o e-mail, pular o 2FA, ver os dados pessoais de todos os inscritos de um evento e marcar presença de outras pessoas.
+### `Edição do próprio perfil:` Apenas o ADMIN conseguia editar o próprio perfil, porque a regra de perfil da classe de usuários (somente ADMIN) também valia para `PATCH /users/profile`; COORDENADOR e AUXILIAR recebiam 403. Agora os três perfis podem alterar o próprio nome, e-mail e foto. O e-mail enviado nessa rota, que antes era ignorado, passou a ser salvo, com verificação de que não pertence a outro usuário.
 
-### `./src/modules/auth/auth.service.ts:` O código de 6 dígitos do 2FA e da redefinição de senha deixou de ser gravado dentro do token enviado no cookie, cujo conteúdo pode ser lido por quem o recebe. O token agora guarda apenas um HMAC do código, além de indicar para que serve (2FA ou redefinição), então um não pode ser usado no lugar do outro. Cada código vale uma única vez e é bloqueado após 5 tentativas erradas. Também foram removidos os códigos fixos que eram aceitos para qualquer usuário no login, e um código expirado passou a responder 401 em vez de erro 500.
+### `./src/modules/users/dto/update-profile.dto.ts:` Criado um DTO só para o próprio perfil, com nome e e-mail. Campos como perfil de acesso e senha são recusados nessa rota e continuam disponíveis apenas nas rotas de administração.
 
-### `./src/modules/auth/jwt.strategy.ts:` Os tokens de 2FA e de redefinição de senha não são mais aceitos como sessão, mesmo sendo assinados com a mesma chave.
+### `Inscrições em eventos:` Um evento restrito ("Fatecano") sem curso definido aceitava qualquer pessoa pela API. Agora todo evento restrito exige RA e e-mail institucional. A API também deixou de aceitar inscrições em eventos que já terminaram.
 
-### `./src/modules/auth/auth.controller.ts:` O limite de tentativas do login, do 2FA e da redefinição de senha não estava funcionando, porque usava nomes de limitador que não existiam na configuração; na prática valia o limite geral de 50 por minuto. Agora valem 5 tentativas por minuto no login e no 2FA e 3 a cada 15 minutos na redefinição de senha.
+### `./src/modules/participants/participants.service.ts:` A reserva da vaga e o cadastro do participante passaram a acontecer na mesma transação: se o cadastro falhar, a vaga é devolvida e o contador de inscritos não fica errado. Duas inscrições simultâneas com o mesmo e-mail agora retornam a mensagem de e-mail já inscrito, em vez de um erro interno.
 
-### `./src/main.ts e .env.example:` Criada a variável `TRUST_PROXY`. Atrás de um proxy reverso (como o Nginx), todas as requisições chegam com o IP do proxy e os limites de tentativas seriam compartilhados por todos os usuários. Em produção, informe a quantidade de proxies na frente da API (por exemplo `TRUST_PROXY=1`).
+### `Fuso horário:` Os horários dos eventos são gravados como horário de Itu marcado como UTC. A listagem pública tentava compensar usando o fuso do servidor, que no Docker é UTC, e a busca por e-mail, as datas disponíveis e os certificados não compensavam. Com isso, eventos sumiam ou continuavam aparecendo algumas horas fora do horário certo.
 
-### `./src/modules/events/events.controller.ts e events.service.ts:` A rota pública `GET /events/:id` retornava todos os inscritos do evento (nome, e-mail e RA) e a palavra secreta de presença. Agora ela retorna apenas os dados públicos, os mesmos da listagem pública. Os dados completos para a edição do evento ficam na nova rota privada `GET /events/manage/:id`, para ADMIN e COORDENADOR, que também deixou de carregar a lista de inscritos.
+### `./src/modules/common/event-clock.ts:` Criadas as funções `nowInEventClock()` e `todayInEventClock()`, que retornam o momento atual e a data de hoje em Itu no mesmo formato dos horários gravados, independentemente do fuso do servidor. Elas passaram a ser usadas na listagem pública, na busca por e-mail, nas datas disponíveis para eventos, no bloqueio de inscrição em evento encerrado e na escolha dos eventos do dia anterior para enviar certificados.
 
-### `./src/modules/events/dto/validate-presence.dto.ts:` A confirmação de presença passou a exigir o e-mail usado na inscrição, além da palavra secreta. Como os IDs dos participantes são sequenciais, quem soubesse a palavra conseguia marcar a presença de qualquer pessoa trocando o ID. A rota também passou a aceitar no máximo 10 tentativas por minuto.
+### `./src/modules/certificates/certificates.service.ts e .env.example:` O link de verificação do certificado era montado com `CORS_ORIGINS`, que pode ter várias URLs separadas por vírgula, gerando um link quebrado. Agora o link usa a nova variável `FRONTEND_URL` ou, se ela não estiver definida, a primeira URL de `CORS_ORIGINS`.
 
-### `./src/modules/auth/auth.service.spec.ts, ./src/modules/events/events.service.spec.ts e ./test/app.e2e-spec.ts:` Atualizados e criados testes para os novos comportamentos: o código nunca vai dentro do token, os códigos fixos não funcionam, cada código vale uma vez, o bloqueio após 5 tentativas, a separação entre 2FA e redefinição de senha, a rota pública sem dados privados e a presença vinculada ao e-mail.
+### `./src/modules/auth/auth.service.ts e auth.controller.ts:` A validade do refresh token era de 3 dias no token e no cookie, mas de 7 dias no banco. Agora as três usam a mesma constante `REFRESH_TOKEN_TTL_MS`, de 3 dias.
+
+### `Testes:` Atualizados e criados testes para a edição do próprio perfil, as novas regras de inscrição (evento encerrado, evento restrito, transação, evento lotado e inscrição simultânea) e a conversão de horário. Os testes de participantes e de usuários, que não executavam por erros de configuração, voltaram a rodar.
+
+### `README.md e README.en.md:` Corrigido o nome da pasta `common`, que estava escrito como "commom".
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -136,8 +140,9 @@
     - `cloudinary.provider.ts:` Configura a conexão com a Cloudinary
     - `cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto
 
-  - `commom:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
+  - `common:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
+    - `event-clock.ts:` Converte o momento atual para o horário de Itu no mesmo formato em que os horários dos eventos são gravados, para que as comparações com "agora" (eventos públicos, datas disponíveis, inscrições e certificados) não dependam do fuso horário do servidor.
 
    - `courses:` Pacote dedicado ao gerenciamento completo de cursos, englobando todas as operações de CRUD.
     - `dto:` Diretório que contém os Data Transfer Objects (CreateCourseDto, UpdateCourseDto e CourseResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de cursos.

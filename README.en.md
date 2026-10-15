@@ -26,21 +26,25 @@
 
 ## 🛎️ Updates to this commit
 
-### `Critical security fixes:` Fixed flaws that allowed changing the password of any account knowing only the e-mail, skipping 2FA, reading the personal data of everyone registered in an event and marking other people as present.
+### `Editing your own profile:` Only ADMIN could edit their own profile, because the users class role rule (ADMIN only) also applied to `PATCH /users/profile`; COORDENADOR and AUXILIAR got 403. Now the three roles can change their own name, e-mail and photo. The e-mail sent to this route, which used to be ignored, is now saved, checking that it does not belong to another user.
 
-### `./src/modules/auth/auth.service.ts:` The 6-digit code of 2FA and password reset is no longer stored inside the token sent in the cookie, whose content can be read by whoever receives it. The token now keeps only an HMAC of the code and states what it is for (2FA or reset), so one cannot be used in place of the other. Each code works only once and is blocked after 5 wrong attempts. The fixed codes that were accepted for any user at login were also removed, and an expired code now answers 401 instead of a 500 error.
+### `./src/modules/users/dto/update-profile.dto.ts:` Created a DTO only for your own profile, with name and e-mail. Fields such as access role and password are rejected on this route and remain available only on the admin routes.
 
-### `./src/modules/auth/jwt.strategy.ts:` 2FA and password reset tokens are no longer accepted as a session, even though they are signed with the same key.
+### `Event registrations:` A restricted ("Fatecano") event without a defined course accepted anyone through the API. Now every restricted event requires an RA and an institutional e-mail. The API also no longer accepts registrations for events that have already ended.
 
-### `./src/modules/auth/auth.controller.ts:` The attempt limit for login, 2FA and password reset was not working, because it used throttler names that did not exist in the configuration; in practice the general limit of 50 per minute applied. Now there are 5 attempts per minute for login and 2FA and 3 every 15 minutes for password reset.
+### `./src/modules/participants/participants.service.ts:` Booking the seat and saving the participant now happen in the same transaction: if saving fails, the seat is given back and the registration counter stays correct. Two simultaneous registrations with the same e-mail now return the e-mail already registered message, instead of an internal error.
 
-### `./src/main.ts and .env.example:` Created the `TRUST_PROXY` variable. Behind a reverse proxy (such as Nginx), every request arrives with the proxy's IP and the attempt limits would be shared by all users. In production, set the number of proxies in front of the API (for example `TRUST_PROXY=1`).
+### `Time zone:` Event times are stored as the Itu time marked as UTC. The public listing tried to compensate using the server time zone, which is UTC in Docker, and the search by e-mail, the available dates and the certificates did not compensate. Because of that, events disappeared or kept showing up a few hours off.
 
-### `./src/modules/events/events.controller.ts and events.service.ts:` The public route `GET /events/:id` returned everyone registered in the event (name, e-mail and RA) and the attendance secret word. Now it returns only the public data, the same as the public listing. The full data for editing an event is in the new private route `GET /events/manage/:id`, for ADMIN and COORDENADOR, which also no longer loads the list of registrations.
+### `./src/modules/common/event-clock.ts:` Created the `nowInEventClock()` and `todayInEventClock()` functions, which return the current moment and today's date in Itu in the same format as the stored times, regardless of the server time zone. They are now used in the public listing, the search by e-mail, the available dates for events, the block on registrations for ended events and the choice of the previous day's events to send certificates.
 
-### `./src/modules/events/dto/validate-presence.dto.ts:` Attendance confirmation now requires the e-mail used in the registration, besides the secret word. Since participant IDs are sequential, anyone who knew the word could mark anyone as present by changing the ID. The route also accepts at most 10 attempts per minute.
+### `./src/modules/certificates/certificates.service.ts and .env.example:` The certificate verification link was built with `CORS_ORIGINS`, which may have several comma-separated URLs, producing a broken link. Now the link uses the new `FRONTEND_URL` variable or, when it is not set, the first URL of `CORS_ORIGINS`.
 
-### `./src/modules/auth/auth.service.spec.ts, ./src/modules/events/events.service.spec.ts and ./test/app.e2e-spec.ts:` Updated and created tests for the new behaviors: the code never goes inside the token, the fixed codes do not work, each code works once, the block after 5 attempts, the separation between 2FA and password reset, the public route without private data and attendance tied to the e-mail.
+### `./src/modules/auth/auth.service.ts and auth.controller.ts:` The refresh token was valid for 3 days in the token and the cookie, but 7 days in the database. Now all three use the same `REFRESH_TOKEN_TTL_MS` constant, of 3 days.
+
+### `Tests:` Updated and created tests for editing your own profile, the new registration rules (ended event, restricted event, transaction, full event and simultaneous registration) and the time conversion. The participants and users tests, which did not run because of setup errors, run again.
+
+### `README.md and README.en.md:` Fixed the name of the `common` folder, which was written as "commom".
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -134,8 +138,9 @@
         - `cloudinary.provider.ts:` Configures the connection to Cloudinary
         - `cloudinary.service.ts:` Exports the functions for uploading and deleting a photo
 
-    - `commom:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
+    - `common:` We concentrate functionality shared by multiple modules; this is where components that don't belong to a specific domain are stored.
         - `csrf.controller.ts:` Exposes an endpoint to obtain the user's CSRF token, ensuring that each call actually comes from the legitimate application and not a malicious website, thus preventing CSRF.
+        - `event-clock.ts:` Converts the current moment to the Itu time in the same format the event times are stored in, so comparisons with "now" (public events, available dates, registrations and certificates) do not depend on the server time zone.
 
     - `events:` Package dedicated to complete event management, encompassing CRUD operations, image upload, date and time availability checks, and attendance validation via secret word.
         - `dto:` Directory containing the Data Transfer Objects (CreateEventDto, UpdateEventDto, ValidatePresenceDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.

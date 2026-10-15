@@ -3,6 +3,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-auth.dto';
 import { RolesGuard } from '../../guards/roles.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '../../decorators/roles.decorator';
 import { UserResponseDto } from './dto/user-response.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -51,20 +52,18 @@ export class UsersController {
   }
 
   @Patch('profile')
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.ADMIN, Role.COORDENADOR, Role.AUXILIAR)
   @UseInterceptors(FileInterceptor('photo'))
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Atualiza perfil do usuário autenticado', description: 'Rota privada. Permite atualizar dados e foto de perfil.' })
+  @ApiOperation({ summary: 'Atualiza perfil do usuário autenticado', description: 'Rota privada para ADMIN, COORDENADOR e AUXILIAR. Permite atualizar o próprio nome, e-mail e foto de perfil.' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         name: { type: 'string', example: 'Coordenador Fatec' },
         email: { type: 'string', example: 'coordenador@fatec.sp.gov.br' },
-        password: { type: 'string', example: 'NovaSenha@123', writeOnly: true },
-        role: { type: 'string', example: 'COORDENADOR' },
         photo: { type: 'string', format: 'binary' },
       },
     },
@@ -72,7 +71,7 @@ export class UsersController {
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
   @ApiForbiddenResponse({ description: 'Perfil sem permissão.' })
-  async updatePersonalProfile(@Req() req: Request & { user: { userId: number } }, @UploadedFile() file: Express.Multer.File, @Body() dto: UpdateUserDto) {
+  async updatePersonalProfile(@Req() req: Request & { user: { userId: number } }, @UploadedFile() file: Express.Multer.File, @Body() dto: UpdateProfileDto) {
     return this.usersService.updatePersonalProfile(req.user.userId, dto, file);
   }
 

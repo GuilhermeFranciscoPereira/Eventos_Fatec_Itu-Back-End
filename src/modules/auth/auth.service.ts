@@ -22,6 +22,9 @@ type CodeTokenState = { failures: number; used: boolean; expiresAt: number };
 
 const MAX_CODE_ATTEMPTS = 5;
 
+// One value for the JWT, the cookie and the database record, so the session never outlives any of them.
+export const REFRESH_TOKEN_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class AuthService {
   // The API runs as a single instance, so memory is enough to count attempts during the 15 minutes a code lives.
@@ -77,7 +80,7 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshToken = jwtSign(payload, this.refreshSecret, { algorithm: 'HS256', expiresIn: '3d' });
+    const refreshToken = jwtSign(payload, this.refreshSecret, { algorithm: 'HS256', expiresIn: REFRESH_TOKEN_TTL_MS / 1000 });
 
     await this.prisma.refreshToken.updateMany({
       where: { userId: user.id, isRevoked: false },
@@ -87,7 +90,7 @@ export class AuthService {
     const tokenHash = createHmac('sha256', this.hashSecret).update(refreshToken).digest('hex');
 
     await this.prisma.refreshToken.create({
-      data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+      data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS) },
     });
 
     return { accessToken, refreshToken };
@@ -240,7 +243,7 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(jwtPayload, { expiresIn: '15m' });
-    const refreshToken = jwtSign(jwtPayload, this.refreshSecret, { algorithm: 'HS256', expiresIn: '3d' });
+    const refreshToken = jwtSign(jwtPayload, this.refreshSecret, { algorithm: 'HS256', expiresIn: REFRESH_TOKEN_TTL_MS / 1000 });
     const newHash = createHmac('sha256', this.hashSecret).update(refreshToken).digest('hex');
 
     await this.prisma.$transaction([
@@ -252,7 +255,7 @@ export class AuthService {
         data: {
           userId: payload.sub,
           tokenHash: newHash,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
         },
       }),
     ]);

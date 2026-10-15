@@ -4,12 +4,14 @@ import { UsersService } from './users.service';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 
 describe('UsersService - Unitary Test', () => {
   let service: UsersService;
   let prisma: any;
   let config: any;
+  let cloudinary: any;
 
   beforeEach(async () => {
     prisma = {
@@ -28,11 +30,16 @@ describe('UsersService - Unitary Test', () => {
     config = {
       getOrThrow: jest.fn().mockReturnValue('pepper'),
     };
+    cloudinary = {
+      uploadFile: jest.fn(),
+      deleteFile: jest.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: prisma },
         { provide: ConfigService, useValue: config },
+        { provide: CloudinaryService, useValue: cloudinary },
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);
@@ -125,6 +132,35 @@ describe('UsersService - Unitary Test', () => {
         prisma.user.delete({ where: { id: 4 } }),
       ]);
       expect(result).toEqual({ message: 'Usuário removido com sucesso.' });
+    });
+  });
+
+  describe('updatePersonalProfile', () => {
+    const current = { id: 7, name: 'Coord', email: 'coord@fatec.sp.gov.br', imageUrl: null, role: Role.COORDENADOR };
+
+    it('should update the name and the e-mail of the logged user', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(current).mockResolvedValueOnce(null);
+      prisma.user.update.mockResolvedValue({ ...current, name: 'Novo', email: 'novo@fatec.sp.gov.br' });
+      await service.updatePersonalProfile(7, { name: 'Novo', email: 'novo@fatec.sp.gov.br' });
+      expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 7 },
+        data: { name: 'Novo', email: 'novo@fatec.sp.gov.br', imageUrl: null },
+      }));
+    });
+
+    it('should keep the current e-mail when none is sent', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(current);
+      prisma.user.update.mockResolvedValue(current);
+      await service.updatePersonalProfile(7, { name: 'Novo' });
+      expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: { name: 'Novo', email: 'coord@fatec.sp.gov.br', imageUrl: null },
+      }));
+    });
+
+    it('should throw ConflictException when the e-mail belongs to another user', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(current).mockResolvedValueOnce({ id: 8 });
+      await expect(service.updatePersonalProfile(7, { email: 'outro@fatec.sp.gov.br' })).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 });
