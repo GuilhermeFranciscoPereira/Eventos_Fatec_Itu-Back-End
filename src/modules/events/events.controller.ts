@@ -7,11 +7,12 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { Roles } from '../../decorators/roles.decorator';
 import { Public } from '../../decorators/public.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ImageUploadInterceptor } from '../common/image-upload.interceptor';
 import { EventResponseDto } from './dto/event-response.dto';
 import { ValidatePresenceDto } from './dto/validate-presence.dto';
 import { EventPublicResponseDto } from './dto/event-public-response.dto';
 import { FindEventsByParticipantEmailDto } from './dto/find-by-participant-email.dto';
+import { Audit } from '../../decorators/audit.decorator';
 import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UploadedFile, UseGuards, UseInterceptors, HttpCode, ParseIntPipe } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiCookieAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -41,14 +42,19 @@ export class EventsController {
     return this.eventService.findAll();
   }
 
-  @Public()
-  @Get('public/by-participant-email')
-  @ApiOperation({ summary: 'Lista eventos por e-mail do participante', description: 'Rota pública para consulta de eventos vinculados a uma inscrição.' })
+  // Was public: anyone could find out where any e-mail was registered. Now it needs a staff session and every lookup is audited.
+  @Roles(Role.ADMIN, Role.COORDENADOR, Role.AUXILIAR)
+  @Get('manage/by-participant-email')
+  @Audit({ action: 'VIEW', resource: 'participants', summary: 'Consulta das inscrições de um participante por e-mail', target: 'none' })
+  @ApiCookieAuth('access-token')
+  @ApiOperation({ summary: 'Lista eventos por e-mail do participante', description: 'Rota privada para ADMIN, COORDENADOR e AUXILIAR. Cada consulta fica registrada na auditoria.' })
   @ApiOkResponse({ type: EventPublicResponseDto, isArray: true })
-  async findPublicByParticipantEmail(
+  @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
+  @ApiForbiddenResponse({ description: 'Perfil sem permissão.' })
+  async findByParticipantEmail(
     @Query() dto: FindEventsByParticipantEmailDto,
   ): Promise<EventPublicResponseDto[]> {
-    return this.eventService.findPublicByParticipantEmail(dto.email);
+    return this.eventService.findByParticipantEmail(dto.email);
   }
 
   @Get('manage/:id')
@@ -70,7 +76,8 @@ export class EventsController {
   }
 
   @Post('create')
-  @UseInterceptors(FileInterceptor('image'))
+  @Audit({ action: 'CREATE', resource: 'events', summary: 'Criação de evento', target: 'response' })
+  @UseInterceptors(ImageUploadInterceptor('image'))
   @HttpCode(201)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -110,7 +117,8 @@ export class EventsController {
   }
 
   @Patch('patch/:id')
-  @UseInterceptors(FileInterceptor('image'))
+  @Audit({ action: 'UPDATE', resource: 'events', summary: 'Edição de evento' })
+  @UseInterceptors(ImageUploadInterceptor('image'))
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiConsumes('multipart/form-data')
@@ -148,6 +156,7 @@ export class EventsController {
   }
 
   @Delete('delete/:id')
+  @Audit({ action: 'DELETE', resource: 'events', summary: 'Exclusão de evento' })
   @HttpCode(200)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -162,6 +171,7 @@ export class EventsController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000, blockDuration: 5 * 60_000 } })
   @Patch(':eventId/participants/:participantId/presence')
+  @Audit({ action: 'UPDATE', resource: 'participants', summary: 'Confirmação de presença pelo participante (palavra secreta)', target: { param: 'participantId' } })
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Confirma presença em evento', description: 'Rota pública. Valida a palavra secreta e o e-mail da inscrição e marca o participante como presente.' })
   @ApiOkResponse({ schema: { example: { message: 'Presença confirmada com sucesso!' } } })

@@ -47,6 +47,7 @@ export function configureSwagger(app: INestApplication, config: ConfigService): 
       name: 'X-CSRF-Token',
       description: 'Token obtido em GET /csrf-token e enviado em requisições POST, PATCH e DELETE.',
     }, 'csrf-token')
+    .addTag('Audit', 'Trilha de auditoria: quem fez o quê, quando e com qual resultado (somente ADMIN)')
     .addTag('Auth', 'Autenticação, sessão, 2FA e recuperação de senha')
     .addTag('CSRF', 'Token de proteção CSRF')
     .addTag('Carousel', 'Gerenciamento e consulta pública do carrossel')

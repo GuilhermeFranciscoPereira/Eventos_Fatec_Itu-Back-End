@@ -7,7 +7,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '../../decorators/roles.decorator';
 import { UserResponseDto } from './dto/user-response.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ImageUploadInterceptor } from '../common/image-upload.interceptor';
+import { Audit } from '../../decorators/audit.decorator';
 import { Controller, Get, Patch, Delete, Param, Body, UseGuards, ParseIntPipe, Post, HttpCode, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiCookieAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -29,6 +30,7 @@ export class UsersController {
   }
 
   @Post('create')
+  @Audit({ action: 'CREATE', resource: 'users', summary: 'Criação de usuário', target: 'response' })
   @HttpCode(201)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -41,6 +43,7 @@ export class UsersController {
   }
 
   @Patch('patch/:id')
+  @Audit({ action: 'UPDATE', resource: 'users', summary: 'Edição de usuário' })
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Atualiza usuário', description: 'Rota privada para ADMIN.' })
@@ -52,8 +55,9 @@ export class UsersController {
   }
 
   @Patch('profile')
+  @Audit({ action: 'UPDATE', resource: 'profile', summary: 'Edição do próprio perfil', target: 'self' })
   @Roles(Role.ADMIN, Role.COORDENADOR, Role.AUXILIAR)
-  @UseInterceptors(FileInterceptor('photo'))
+  @UseInterceptors(ImageUploadInterceptor('photo'))
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiConsumes('multipart/form-data')
@@ -76,6 +80,7 @@ export class UsersController {
   }
 
   @Delete('delete/:id')
+  @Audit({ action: 'DELETE', resource: 'users', summary: 'Exclusão de usuário' })
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Remove usuário', description: 'Rota privada para ADMIN.' })

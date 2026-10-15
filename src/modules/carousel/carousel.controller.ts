@@ -4,11 +4,12 @@ import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../decorators/roles.decorator';
 import { Public } from '../../decorators/public.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ImageUploadInterceptor } from '../common/image-upload.interceptor';
 import { CreateCarouselDto } from './dto/create-carousel.dto';
 import { UpdateCarouselDto } from './dto/update-carousel.dto';
 import { CarouselResponseDto } from './dto/carousel-response.dto';
 import { CarouselPublicResponseDto } from './dto/carousel-public-response.dto';
+import { Audit } from '../../decorators/audit.decorator';
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors, UploadedFile, HttpCode, ParseIntPipe, ParseBoolPipe } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiCookieAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -38,7 +39,8 @@ export class CarouselController {
   }
 
   @Post('create')
-  @UseInterceptors(FileInterceptor('image'))
+  @Audit({ action: 'CREATE', resource: 'carousel', summary: 'Criação de imagem do carrossel', target: 'response' })
+  @UseInterceptors(ImageUploadInterceptor('image'))
   @HttpCode(201)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -64,7 +66,8 @@ export class CarouselController {
   }
 
   @Patch('patch/:id')
-  @UseInterceptors(FileInterceptor('image'))
+  @Audit({ action: 'UPDATE', resource: 'carousel', summary: 'Edição de imagem do carrossel' })
+  @UseInterceptors(ImageUploadInterceptor('image'))
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiConsumes('multipart/form-data')
@@ -88,6 +91,7 @@ export class CarouselController {
   }
 
   @Patch('patch/toggle/:id')
+  @Audit({ action: 'UPDATE', resource: 'carousel', summary: 'Ativação ou desativação de imagem do carrossel' })
   @HttpCode(200)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -101,6 +105,7 @@ export class CarouselController {
   }
 
   @Delete('delete/:id')
+  @Audit({ action: 'DELETE', resource: 'carousel', summary: 'Exclusão de imagem do carrossel' })
   @HttpCode(200)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')

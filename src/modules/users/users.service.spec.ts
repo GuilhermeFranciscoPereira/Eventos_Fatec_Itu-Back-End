@@ -24,6 +24,7 @@ describe('UsersService - Unitary Test', () => {
       },
       refreshToken: {
         deleteMany: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       $transaction: jest.fn(),
     };
@@ -87,8 +88,12 @@ describe('UsersService - Unitary Test', () => {
       await expect(service.update(10, { name: 'X' })).rejects.toBeInstanceOf(NotFoundException);
     });
 
+    beforeEach(() => {
+      prisma.$transaction.mockImplementation((operations: Promise<unknown>[]) => Promise.all(operations));
+    });
+
     it('should update name and return updated user', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 2 });
+      prisma.user.findUnique.mockResolvedValue({ id: 2, role: Role.ADMIN });
       const updatedUser = { id: 2, name: 'Y', email: 'y', role: Role.ADMIN, createdAt: new Date(), updatedAt: new Date() };
       prisma.user.update.mockResolvedValue(updatedUser);
       const result = await service.update(2, { name: 'Y' });
@@ -98,10 +103,11 @@ describe('UsersService - Unitary Test', () => {
         select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
       });
       expect(result).toEqual(updatedUser);
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
     });
 
-    it('should hash password when provided', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 3 });
+    it('should hash password when provided and end the open sessions', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 3, role: Role.AUXILIAR });
       jest.spyOn(argon2, 'hash').mockResolvedValue('newHash');
       const updatedUser = { id: 3, name: 'N', email: 'n', role: Role.AUXILIAR, createdAt: new Date(), updatedAt: new Date() };
       prisma.user.update.mockResolvedValue(updatedUser);
@@ -110,10 +116,27 @@ describe('UsersService - Unitary Test', () => {
       expect(argon2.hash).toHaveBeenCalledWith('Ab1$pepper', { type: argon2.argon2id });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 3 },
-        data: { password: 'newHash' },
+        data: { password: 'newHash', sessionVersion: { increment: 1 } },
         select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
       });
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({ where: { userId: 3, isRevoked: false }, data: { isRevoked: true } });
       expect(result).toEqual(updatedUser);
+    });
+
+    it('should end the open sessions when the role changes', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 5, role: Role.ADMIN });
+      prisma.user.update.mockResolvedValue({ id: 5, role: Role.AUXILIAR });
+      await service.update(5, { role: Role.AUXILIAR });
+      expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: { role: Role.AUXILIAR, sessionVersion: { increment: 1 } } }));
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({ where: { userId: 5, isRevoked: false }, data: { isRevoked: true } });
+    });
+
+    it('should keep the sessions when the same role is sent again', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 6, role: Role.COORDENADOR });
+      prisma.user.update.mockResolvedValue({ id: 6, role: Role.COORDENADOR });
+      await service.update(6, { role: Role.COORDENADOR });
+      expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: { role: Role.COORDENADOR } }));
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
     });
   });
 

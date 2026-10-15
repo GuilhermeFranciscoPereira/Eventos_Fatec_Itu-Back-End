@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../../guards/roles.guard';
-import { Public } from 'src/decorators/public.decorator';
+import { Public } from '../../decorators/public.decorator';
 import { CategoriesService } from './categories.service';
 import { Roles } from '../../decorators/roles.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -8,6 +8,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { CategoryPublicResponseDto } from './dto/category-public-response.dto';
+import { Audit } from '../../decorators/audit.decorator';
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards, HttpCode } from '@nestjs/common';
 import { ApiCookieAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -37,6 +38,7 @@ export class CategoriesController {
   }
 
   @Post('create')
+  @Audit({ action: 'CREATE', resource: 'categories', summary: 'Criação de categoria', target: 'response' })
   @HttpCode(201)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -49,6 +51,7 @@ export class CategoriesController {
   }
 
   @Patch('patch/:id')
+  @Audit({ action: 'UPDATE', resource: 'categories', summary: 'Edição de categoria' })
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Atualiza categoria', description: 'Rota privada para ADMIN e COORDENADOR.' })
@@ -60,6 +63,7 @@ export class CategoriesController {
   }
 
   @Delete('delete/:id')
+  @Audit({ action: 'DELETE', resource: 'categories', summary: 'Exclusão de categoria' })
   @HttpCode(200)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')

@@ -238,7 +238,7 @@ export class EventsService {
     };
   }
 
-  async findPublicByParticipantEmail(email: string): Promise<EventPublicResponseDto[]> {
+  async findByParticipantEmail(email: string): Promise<EventPublicResponseDto[]> {
     const events = await this.prisma.event.findMany({
       where: {
         endTime: {

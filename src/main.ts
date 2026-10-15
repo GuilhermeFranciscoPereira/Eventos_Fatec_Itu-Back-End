@@ -1,5 +1,4 @@
 import helmet from 'helmet';
-import * as csurf from 'csurf';
 import { AppModule } from './app.module';
 import { NestFactory } from '@nestjs/core';
 import * as compression from 'compression';
@@ -8,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { configureSwagger } from './swagger';
+import { createCsrfProtection } from './modules/common/csrf';
 import { ThrottlerExceptionFilter } from './modules/common/throttler-exception.filter';
 import { validationExceptionFactory } from './modules/common/validation-exception.factory';
 
@@ -42,17 +42,13 @@ async function bootstrap() {
   configureSwagger(app, config);
 
   app.use(cookieParser());
-  app.use(
-    csurf({
-      cookie: {
-        httpOnly: true,
-        secure: config.get<string>('NODE_ENV') === 'production', //Exige https em prod
-        sameSite: config.get<string>('NODE_ENV') === 'production' ? ('none' as const) : ('lax' as const),
-        domain: config.get<string>('COOKIE_DOMAIN'),
-        path: '/'
-      },
-    }),
-  );
+
+  app.use(createCsrfProtection({
+    csrfSecret: config.get<string>('CSRF_SECRET'),
+    tokenHashSecret: config.getOrThrow<string>('TOKEN_HASH_SECRET'),
+    production: config.get<string>('NODE_ENV') === 'production',
+    cookieDomain: config.get<string>('COOKIE_DOMAIN'),
+  }));
 
   app.useGlobalFilters(new ThrottlerExceptionFilter())
 

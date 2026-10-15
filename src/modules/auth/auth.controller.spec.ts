@@ -1,5 +1,5 @@
 import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
+import { AuthController, RESET_REQUEST_MESSAGE } from './auth.controller';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 
@@ -51,6 +51,15 @@ describe('AuthController - Unitary Test', () => {
       expect(result).toEqual({ message: 'Sessão renovada com sucesso!' });
     });
 
+    it('should clear the session cookies when the session was ended', async () => {
+      service.refreshTokens.mockRejectedValue(new UnauthorizedException('Sessão expirada. Faça login novamente.'));
+      req.cookies = { refresh_token: 'r' };
+      await expect(controller.refresh(req, res)).rejects.toThrow(UnauthorizedException);
+      expect(res.clearCookie).toHaveBeenCalledWith('access_token', expect.objectContaining({ path: '/' }));
+      expect(res.clearCookie).toHaveBeenCalledWith('refresh_token', expect.objectContaining({ path: '/' }));
+      expect(res.cookie).not.toHaveBeenCalled();
+    });
+
     it('should throw UnauthorizedException when refresh token is missing', async () => {
       await expect(controller.refresh(req, res)).rejects.toThrow(UnauthorizedException);
     });
@@ -87,7 +96,7 @@ describe('AuthController - Unitary Test', () => {
       service.login.mockResolvedValue({ accessToken: 'a', refreshToken: 'b' });
       const dto = { code: 'c' };
       const result = await controller.login(dto, req, res);
-      expect(res.clearCookie).toHaveBeenCalledWith('2fa_token', { path: '/auth' });
+      expect(res.clearCookie).toHaveBeenCalledWith('2fa_token', expect.objectContaining({ path: '/', httpOnly: true }));
       expect(res.cookie).toHaveBeenCalledWith('access_token', 'a', expect.any(Object));
       expect(res.cookie).toHaveBeenCalledWith('refresh_token', 'b', expect.any(Object));
       expect(result).toEqual({ message: 'Autenticado com 2FA' });
@@ -100,7 +109,7 @@ describe('AuthController - Unitary Test', () => {
       const dto = { email: 'e' };
       const result = await controller.requestPasswordReset(dto, res);
       expect(res.cookie).toHaveBeenCalledWith('reset_token', 't', expect.any(Object));
-      expect(result).toEqual({ message: 'O código foi enviado por e-mail' });
+      expect(result).toEqual({ message: RESET_REQUEST_MESSAGE });
     });
   });
 
@@ -115,8 +124,15 @@ describe('AuthController - Unitary Test', () => {
       service.passwordReset.mockResolvedValue(true);
       const dto = { code: 'c', newPassword: 'p' };
       const result = await controller.passwordReset(dto, req, res);
-      expect(res.clearCookie).toHaveBeenCalledWith('reset_token', { path: '/auth' });
+      expect(res.clearCookie).toHaveBeenCalledWith('reset_token', expect.objectContaining({ path: '/', httpOnly: true }));
       expect(result).toEqual({ message: 'Senha redefinida com sucesso' });
+    });
+
+    it('should keep the cookie when the code is wrong', async () => {
+      req.cookies = { reset_token: 't' };
+      service.passwordReset.mockRejectedValue(new UnauthorizedException('Código inválido'));
+      await expect(controller.passwordReset({ code: 'c', newPassword: 'p' }, req, res)).rejects.toThrow(UnauthorizedException);
+      expect(res.clearCookie).not.toHaveBeenCalled();
     });
   });
 });

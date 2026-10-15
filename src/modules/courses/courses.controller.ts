@@ -7,6 +7,7 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import { Public } from '../../decorators/public.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { CourseResponseDto } from './dto/course-response.dto';
+import { Audit } from '../../decorators/audit.decorator';
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards, HttpCode } from '@nestjs/common';
 import { ApiCookieAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -36,6 +37,7 @@ export class CoursesController {
   }
 
   @Post('create')
+  @Audit({ action: 'CREATE', resource: 'courses', summary: 'Criação de curso', target: 'response' })
   @HttpCode(201)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -48,6 +50,7 @@ export class CoursesController {
   }
 
   @Patch('patch/:id')
+  @Audit({ action: 'UPDATE', resource: 'courses', summary: 'Edição de curso' })
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Atualiza curso', description: 'Rota privada para ADMIN e COORDENADOR.' })
@@ -59,6 +62,7 @@ export class CoursesController {
   }
 
   @Delete('delete/:id')
+  @Audit({ action: 'DELETE', resource: 'courses', summary: 'Exclusão de curso' })
   @HttpCode(200)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')

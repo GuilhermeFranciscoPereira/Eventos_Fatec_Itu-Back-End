@@ -1,7 +1,8 @@
-import * as csurf from 'csurf';
+import { createCsrfProtection } from '../src/modules/common/csrf';
 import * as request from 'supertest';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
+import { RESET_REQUEST_MESSAGE } from '../src/modules/auth/auth.controller';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RolesGuard } from '../src/guards/roles.guard';
 import { JwtAuthGuard } from '../src/guards/jwt-auth.guard';
@@ -86,7 +87,7 @@ describe('Application Tests - (e2e)', () => {
         app = moduleFixture.createNestApplication();
         app.setGlobalPrefix('apiEvents');
         app.use(cookieParser());
-        app.use(csurf({ cookie: { httpOnly: true, sameSite: 'lax' } }));
+        app.use(createCsrfProtection({ tokenHashSecret: 'e2e-secret', production: false }));
         app.useGlobalPipes(
             new ValidationPipe({
                 whitelist: true,
@@ -235,7 +236,7 @@ describe('Application Tests - (e2e)', () => {
                 .send({ email: 'user@cms.sp.gov.br' })
                 .expect(200)
                 .expect('set-cookie', /reset_token=rtok/)
-                .expect({ message: 'O código foi enviado por e-mail' }));
+                .expect({ message: RESET_REQUEST_MESSAGE }));
 
         it('POST /apiEvents/auth/reset-password clears reset cookie and returns message', () =>
             request(server)

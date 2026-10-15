@@ -1,5 +1,5 @@
 import * as argon2 from 'argon2';
-import { Role, User } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from './dto/create-auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -80,7 +80,7 @@ export class UsersService {
     const userExist = await this.prisma.user.findUnique({ where: { id } });
     if (!userExist) { throw new NotFoundException(`Usuário com id ${id} não encontrado.`) };
 
-    const data: Partial<User> = {};
+    const data: Prisma.UserUpdateInput = {};
     if (dto.name) data.name = dto.name;
     if (dto.email && dto.email !== userExist.email) {
       const clash = await this.prisma.user.findUnique({ where: { email: dto.email } });
@@ -90,11 +90,18 @@ export class UsersService {
     if (dto.role) data.role = dto.role as Role;
     if (dto.password) data.password = await argon2.hash(dto.password + this.pepper, { type: argon2.argon2id });
 
-    const user = await this.prisma.user.update({
-      where: { id },
-      data,
-      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
-    });
+    // A new password or a different role ends every open session of the user right away (see JwtStrategy and refresh).
+    const endsSessions = !!dto.password || (!!dto.role && dto.role !== userExist.role);
+    if (endsSessions) data.sessionVersion = { increment: 1 };
+
+    const [user] = await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
+      }),
+      ...(endsSessions ? [this.prisma.refreshToken.updateMany({ where: { userId: id, isRevoked: false }, data: { isRevoked: true } })] : []),
+    ]);
 
     return user;
   }

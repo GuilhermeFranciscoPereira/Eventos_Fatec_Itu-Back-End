@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../../guards/roles.guard';
-import { Public } from 'src/decorators/public.decorator';
+import { Public } from '../../decorators/public.decorator';
 import { Roles } from '../../decorators/roles.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { LocationsService } from './locations.service';
@@ -8,6 +8,7 @@ import { CreateLocationDto } from './dto/create-location.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
 import { LocationResponseDto } from './dto/location-response.dto';
 import { LocationPublicResponseDto } from './dto/location-public-response.dto';
+import { Audit } from '../../decorators/audit.decorator';
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards, HttpCode } from '@nestjs/common';
 import { ApiCookieAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -37,6 +38,7 @@ export class LocationsController {
   }
 
   @Post('create')
+  @Audit({ action: 'CREATE', resource: 'locations', summary: 'Criação de local', target: 'response' })
   @HttpCode(201)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
@@ -49,6 +51,7 @@ export class LocationsController {
   }
 
   @Patch('patch/:id')
+  @Audit({ action: 'UPDATE', resource: 'locations', summary: 'Edição de local' })
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Atualiza local', description: 'Rota privada para ADMIN e COORDENADOR.' })
@@ -60,6 +63,7 @@ export class LocationsController {
   }
 
   @Delete('delete/:id')
+  @Audit({ action: 'DELETE', resource: 'locations', summary: 'Exclusão de local' })
   @HttpCode(200)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')

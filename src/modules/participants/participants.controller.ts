@@ -7,6 +7,7 @@ import { ParticipantsService } from './participants.service';
 import { UpdateParticipantDto } from './dto/update-participant.dto';
 import { CreateParticipantDto } from './dto/create-participant.dto';
 import { ParticipantResponseDto } from './dto/participant-response.dto';
+import { Audit } from '../../decorators/audit.decorator';
 import { Controller, Post, Body, Get, Param, Patch, UseGuards, HttpCode, ParseIntPipe } from '@nestjs/common';
 import { ApiCookieAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -18,6 +19,7 @@ export class ParticipantsController {
   constructor(private readonly participantsService: ParticipantsService) { }
 
   @Get('event/:id')
+  @Audit({ action: 'VIEW', resource: 'participants', summary: 'Visualização da lista de participantes do evento', target: { param: 'id' }, targetResource: 'events' })
   @ApiCookieAuth('access-token')
   @ApiOperation({ summary: 'Lista participantes por evento', description: 'Rota privada para ADMIN, COORDENADOR e AUXILIAR.' })
   @ApiOkResponse({ type: ParticipantResponseDto, isArray: true })
@@ -29,6 +31,7 @@ export class ParticipantsController {
 
   @Public()
   @Post('create')
+  @Audit({ action: 'CREATE', resource: 'participants', summary: 'Inscrição em evento', target: 'response' })
   @HttpCode(201)
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Inscreve participante', description: 'Rota pública usada para inscrição em um evento.' })
@@ -38,6 +41,7 @@ export class ParticipantsController {
   }
 
   @Patch('patch/:id')
+  @Audit({ action: 'UPDATE', resource: 'participants', summary: 'Alteração de presença do participante' })
   @HttpCode(200)
   @ApiCookieAuth('access-token')
   @ApiSecurity('csrf-token')

@@ -26,13 +26,25 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Consulta de datas disponíveis mais rápida:` Ao escolher o local de um evento, a API verificava os próximos 90 dias fazendo duas consultas ao banco por dia (até 180 consultas a cada chamada). Agora ela busca de uma vez todos os eventos do local nesse período e calcula os dias livres em memória.
+### `Uploads de imagem mais seguros e leves (eventos, carrossel e foto de perfil):` Os arquivos eram guardados inteiros na memória da API e não havia verificação de tipo, então um envio grande podia derrubar a API. Agora o arquivo vai para a pasta temporária do servidor (não fica inteiro na memória), só são aceitas imagens JPG, PNG, WEBP, GIF ou AVIF (conferidas pelos primeiros bytes do arquivo, então um PDF renomeado para .jpg é recusado) e o arquivo temporário é apagado ao fim de toda requisição. Não existe limite de tamanho: imagens acima de 5 MB são otimizadas automaticamente com o `sharp` (reduzidas para no máximo 2560 px no maior lado e convertidas para WebP), e as menores seguem como foram enviadas. Num teste, uma imagem de 24,4 MB ficou com 1,1 MB.
 
-### `./src/modules/events/events.service.ts:` O cálculo dos horários livres de um dia foi separado na função `getFreeSlots()`, usada tanto pela consulta de horários de um dia quanto pela de datas disponíveis, para as duas darem sempre o mesmo resultado. A regra que define se um evento ocupa um período também foi centralizada em `overlapsPeriod()`.
+### `Consulta de inscrições por e-mail protegida:` A rota pública `GET /events/public/by-participant-email` mostrava em quais eventos qualquer e-mail estava inscrito. Ela foi removida e a consulta passou para `GET /events/manage/by-participant-email`, que exige login de ADMIN, COORDENADOR ou AUXILIAR e fica registrada na auditoria. O front-end não usava essa rota.
 
-### `./src/modules/events/events.service.spec.ts:` Criados testes que garantem uma única consulta ao banco, a exclusão de dias totalmente ocupados e de todos os dias de um evento de vários dias, a concordância com o cálculo de horários de um dia e o local "Outros".
+### `Redefinição de senha sem revelar e-mails cadastrados:` A resposta era "E-mail não cadastrado", o que permitia descobrir quais e-mails existem. Agora a API responde sempre "Se o e-mail informado estiver cadastrado, você receberá um código para redefinir a senha em instantes.", grava o mesmo cookie e cria o mesmo registro de código nos dois casos, e envia o e-mail em segundo plano para que o tempo de resposta também não denuncie a conta. No login, um e-mail inexistente passou a levar o mesmo tempo que uma senha errada.
 
-### `README.md e README.en.md:` Atualizadas as versões utilizadas (Nest 11.1.16, TypeScript 5.9.3 e Prisma 6.19.2) e corrigido "contem" para "contém".
+### `Sessões encerradas ao trocar senha ou perfil:` Trocar a senha (pelo administrador ou pela redefinição) ou o perfil de um usuário não derrubava as sessões abertas, e o refresh copiava o perfil antigo do token, então um usuário rebaixado mantinha o acesso. Agora cada usuário tem um `sessionVersion` que vai dentro dos tokens: a troca aumenta esse número e revoga os refresh tokens, a `JwtStrategy` confere o usuário no banco a cada requisição (o perfil sempre vem do banco) e o refresh monta a nova sessão com os dados atuais do banco. Quando a renovação falha, os cookies de sessão também são apagados.
+
+### `Códigos de uso único e cookies apagados de verdade:` Os códigos de 2FA e de redefinição eram controlados só na memória da API. Agora ficam na nova tabela `AuthCode` (só com o hash do código): cada código vale uma única vez mesmo se a API reiniciar, pedir um novo código cancela o anterior e após 5 tentativas erradas o código é bloqueado. O `clearCookie` usava `path: '/auth'`, mas os cookies são criados com `path: '/'`, então nunca eram apagados; agora criação e remoção usam as mesmas opções.
+
+### `Auditoria:` Novo módulo `./src/modules/audit` que registra tudo o que altera dados (criações, edições, exclusões, inscrições e presença), além de login, logout, tentativas recusadas, pedidos e trocas de senha, acessos negados por falta de permissão e duas visualizações com dados pessoais (lista de participantes de um evento e consulta de inscrições por e-mail). Cada registro guarda quem fez (nome, e-mail, perfil e id na ocasião), quando, o resultado (sucesso, erro ou recusado, com o código HTTP), IP, navegador, todos os dados antes e depois, o que mudou campo a campo, os dados enviados e a resposta. Senhas, códigos, tokens e a palavra secreta de presença nunca são armazenados (aparecem como `[PROTEGIDO]`). As rotas `GET /audit` (paginada, com busca e filtros) e `GET /audit/:id` são exclusivas do ADMIN. Os registros são mantidos por 365 dias (configurável em `AUDIT_RETENTION_DAYS`) e removidos depois por uma rotina diária.
+
+### `Dependências:` O `csurf`, descontinuado, foi trocado pelo `csrf-csrf` sem mudar o uso pelo front-end (mesma rota `/csrf-token` e mesmo cabeçalho `X-CSRF-Token`). Atualizados `@nestjs/core`, `@nestjs/common` e `@nestjs/platform-express` (11.2.7), `multer` (2.4.0), `path-to-regexp` (8.4.2), `proxy-addr` (2.0.8), `nodemailer` (7 para 10.1.1), `@nestjs/swagger` (11.4.7, com o `js-yaml` interno forçado para 5.4.3), `jest` (30), `ts-jest`, `@types/jest` e `@swc/cli` (0.8.1), e adicionado o `sharp`. O `npm audit` foi de 84 alertas (4 críticos) para 23, nenhum crítico: os restantes estão em ferramentas usadas só no desenvolvimento (Jest e a CLI do Prisma) e só seriam resolvidos trocando de versão principal.
+
+### `Banco de dados:` Nova migration `20261015120000_add_session_version_auth_codes_and_audit_log`, que cria a coluna `sessionVersion` em `User` e as tabelas `AuthCode` e `AuditLog`. Ela é aplicada pelo `npx prisma migrate deploy` que já roda no deploy.
+
+### `Testes:` A suíte foi de 7 testes falhando (arquivos de teste vazios, teste do carrossel desatualizado e nomes de cookie no teste do controller de autenticação) para 225 testes passando em 24 arquivos. Foram criados testes para a auditoria, o `RolesGuard`, a validação e a otimização de imagens, o controller de eventos e os módulos de cursos e locais, e os testes de autenticação e de usuários cobrem agora os códigos de uso único, a resposta neutra e o encerramento das sessões.
+
+### `.env.example e Swagger:` O `.env.example` passou a listar as variáveis de segurança que o código já exigia (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`, `JWT_REFRESH_SECRET`, `PASSWORD_PEPPER` e `TOKEN_HASH_SECRET`) e as novas opcionais `CSRF_SECRET` e `AUDIT_RETENTION_DAYS`. O Swagger ganhou a tag `Audit`.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -51,12 +63,12 @@
 </div>
 
 ## Versões utilizadas:
-    - Nest: 11.1.16
+    - Nest: 11.2.7
     - Typescript: 5.9.3
     - Prisma: 6.19.2
     - MySQL: 8.0.42
     - Docker: 28.3.2
-    - Swagger/OpenAPI: @nestjs/swagger 11.4.5
+    - Swagger/OpenAPI: @nestjs/swagger 11.4.7
 
 ## 🙋🏻‍♂ Como me localizar no projeto?
 
@@ -65,7 +77,8 @@
 ## 🛈 Como o projeto está estruturado
 
 - `./prisma:` O prisma permite interagir com o banco de dados de forma segura e performática.Ele também cuida do gerenciamento de schema e facilita a criação e execução de migrations, além de oferecer uma API intuitiva para consultas e manipulação de dados.
-  - `schema.prisma:` É o arquivo central onde definimos os modelos de dados, relacionamentos e geradores do Prisma Client.
+  - `schema.prisma:` É o arquivo central onde definimos os modelos de dados, relacionamentos e geradores do Prisma Client. Inclui o `sessionVersion` do usuário e as tabelas `AuthCode` (códigos de 2FA e redefinição de uso único) e `AuditLog` (trilha de auditoria).
+  - `migrations:` Histórico versionado das alterações do banco, aplicado no deploy com `npx prisma migrate deploy`.
 
 - `./.github/workflows/deploy.yml:` Workflow do GitHub Actions responsável pelo CI/CD do back-end. Ao receber um `git push` na branch `main`, realiza o build da imagem Docker, publica no GitHub Container Registry e atualiza automaticamente o container do back-end na VPS.
 
@@ -74,41 +87,56 @@
 - `./.dockerignore` Define quais arquivos e diretórios devem ser ignorados durante o build da imagem Docker.
 
 - `./test/` Diretório dedicado aos testes de ponta a ponta (e2e):  
-  - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado, fazendo testes de fluxos de sucesso e fluxos de erros, como validação, autorização e etc.
+  - `app.e2e-spec.ts`: Nossos testes e2e para validar endpoints e fluxos principais da API, garante que os cenários funcionem conforme esperado, fazendo testes de fluxos de sucesso e fluxos de erros, como validação, autorização e etc. Usa a mesma proteção CSRF da aplicação (`createCsrfProtection`).
   - `jest.e2e-json`: Arquivo de configuração do Jest para executar os testes e2e (definição de extensões de arquivo reconhecidas, ponto de partida para busca de testes, transform, e etc.)   
 
 - `./src/app.module.ts`: Módulo raiz que declara/importa os demais módulos, controladores e provedores da aplicação.  
-- `./src/main.ts`: Ponto de entrada da aplicação, aqui o Nest é inicializado e configurado.
+- `./src/main.ts`: Ponto de entrada da aplicação, aqui o Nest é inicializado e configurado (Helmet, CORS, cookies, proteção CSRF com `csrf-csrf`, validação global e Swagger).
 - `./src/swagger.ts`: Configuração central da documentação Swagger/OpenAPI, incluindo título, descrição, versão, servidores, autenticação por cookies, CSRF, tags e rota da interface em `/apiEvents/docs`.
 
 - `./src/assets:` diretório para organizar recursos estáticos adicionais.
   - `readme:` Pasta que irá armazenar nossas fotos para utilizar na documentação ( README )
 
 - `./src/decorators:` Pasta para decorators customizados.
+  - `audit.decorator.ts:` Define os decorators `@Audit`, que descreve como uma rota aparece na auditoria (ação, área, resumo e de onde vem o registro afetado), e `@SkipAudit`, para chamadas automáticas que não são um ato do usuário, como a renovação da sessão.
   - `public.decorator.ts:` Define um decorator para liberar rotas publicas para usuários não autenticados.
   - `roles.decorator.ts:` Define um decorator para indicar quais perfis de usuário têm permissão para acessar cada endpoint.
 
 - `./src/guards:` Pasta para guards de autenticação e autorização.
   - `jwt-auth.guard.ts:` Garante que apenas requisições autenticadas com token JWT válido sejam aceitas e popula os dados do usuário na requisição.
-  - `roles.guard.ts:` Controla acesso a partir do perfil do usuário, liberando endpoints sem restrição e bloqueando quando o perfil não corresponde aos permitidos. 
+  - `roles.guard.ts:` Controla acesso a partir do perfil do usuário, liberando endpoints sem restrição e bloqueando quando o perfil não corresponde aos permitidos. Cada acesso negado fica registrado na auditoria.
+  - `roles.guard.spec.ts:` Testes do guard: perfil permitido, perfil recusado com registro na auditoria e requisição sem usuário.
 
 - `./src/modules:` A pasta modules reúne todos os módulos da aplicação, cada um em seu próprio diretório para manter lógica, controladores e provedores bem organizados e desacoplados, depois todos importados pelo módulo raiz (AppModule)
+  - `audit:` Módulo da trilha de auditoria: registra quem fez o quê, quando e com qual resultado, sem guardar senhas, códigos ou tokens.
+    - `dto:` Data Transfer Objects da listagem (filtros e paginação) e das respostas resumida e detalhada.
+    - `audit.context.ts:` Contexto da requisição (AsyncLocalStorage) que permite aos services informar o responsável, o registro afetado e detalhes extras, como no login ou na otimização de uma imagem.
+    - `audit.controller.ts:` Expõe `GET /audit` (paginado, do mais recente para o mais antigo, com busca e filtros por resultado, área, ação e período em horário de Brasília) e `GET /audit/:id` (todos os detalhes), ambos exclusivos do ADMIN.
+    - `audit.interceptor.ts:` Interceptor global que registra cada alteração feita pela API e as rotas marcadas com `@Audit`: lê o registro antes e depois, calcula o que mudou e guarda o resultado, inclusive quando a operação falha ou é recusada.
+    - `audit.interceptor.spec.ts:` Testes do interceptor: edição com antes/depois, criação, login recusado, erro de regra de negócio, dados informados pelos services, senha como alteração protegida, visualização de lista e rotas com `@SkipAudit`.
+    - `audit.module.ts:` Módulo global que registra o AuditService, o AuditController e o interceptor.
+    - `audit-sanitizer.ts:` Funções que mascaram senhas, códigos, tokens, hashes e segredos, limitam o tamanho do que é guardado e calculam a diferença campo a campo.
+    - `audit-sanitizer.spec.ts:` Testes do mascaramento, do limite de tamanho e do cálculo do que mudou.
+    - `audit.service.ts:` Grava os registros (uma falha ao gravar nunca desfaz a operação do usuário), monta o retrato de cada registro afetado com os nomes das relações, lista e detalha os registros e apaga os mais antigos que o prazo de retenção.
+    - `audit.service.spec.ts:` Testes da gravação sem credenciais, do retrato dos registros, da paginação com filtros e da retenção.
+    - `audit.utils.ts:` Funções compartilhadas: responsável a partir da sessão, área a partir do controller, resultado a partir do código HTTP e origem da requisição.
+
   - `auth:` Módulo dedicado a todo o fluxo de autenticação e autorização do usuário.
     - `dto:` Pasta com os Data Transfer Objects que definem o formato de entrada e saída das requisições de autenticação, em resumo, é a nossa "Tipagem".
-    - `auth.controller.ts:` Expõe os endpoints de me, refresh, logout, request-login, login, request-reset-password e reset-password, gerencia cookies de acesso, refresh e 2FA, e fornece uma rota própria para renovar sessão sem depender do carregamento inicial do front-end.
-    - `auth.controller.spec.ts:` Cobre testes de integração do controller, validando cenários de token válido, token expirado, renovação via refresh, ausência de refresh token, logout, login com 2FA e reset de senha
-    - `auth.service.ts:` Encapsula toda a lógica de negócio de autenticação — verificação de usuário, hash de senha, geração e verificação de tokens de acesso, rotação de refresh tokens, 2FA, envio de e-mails e limpeza de tokens expirados
-    - `auth.service.spec.ts:` Testa os fluxos do serviço de autenticação, garantindo comportamento correto em casos de conflito, credenciais inválidas, geração de tokens, revogação e renovação de refresh tokens  
+    - `auth.controller.ts:` Expõe os endpoints de me, refresh, logout, request-login, login, request-reset-password e reset-password, gerencia cookies de acesso, refresh, 2FA e redefinição (criados e apagados com as mesmas opções, para serem removidos de verdade) e fornece uma rota própria para renovar sessão sem depender do carregamento inicial do front-end. O pedido de redefinição responde sempre a mesma mensagem, exista ou não o e-mail, e uma sessão encerrada também tem os cookies apagados.
+    - `auth.controller.spec.ts:` Cobre testes de integração do controller, validando cenários de token válido, token expirado, renovação via refresh, sessão encerrada com cookies apagados, ausência de refresh token, logout, login com 2FA, resposta neutra da redefinição e reset de senha
+    - `auth.service.ts:` Encapsula toda a lógica de negócio de autenticação — verificação de usuário, hash de senha, geração e verificação de tokens de acesso, rotação de refresh tokens (sempre com o perfil atual do banco e o `sessionVersion`), códigos de 2FA e redefinição de uso único guardados na tabela `AuthCode`, resposta igual para e-mails existentes ou não, encerramento das sessões na troca de senha, envio de e-mails em segundo plano e limpeza de tokens e códigos expirados
+    - `auth.service.spec.ts:` Testa os fluxos do serviço de autenticação, garantindo comportamento correto em casos de credenciais inválidas, geração de tokens, códigos de uso único (inclusive após reiniciar a API), bloqueio após 5 tentativas, resposta neutra na redefinição, encerramento das sessões, perfil vindo do banco no refresh, revogação e renovação de refresh tokens
     - `auth.module.ts:` Configura o módulo de autenticação, importa PrismaModule, ConfigModule, JwtModule com chaves RSA carregadas de variáveis de ambiente, e registra AuthService, JwtStrategy e EmailService  
-    - `jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, e fornece os dados de usuário (id, e-mail, perfil) para os guards
+    - `jwt.strategy.ts:` Extrai o JWT do cookie de acesso, valida sua assinatura e expiração usando a chave pública, confere no banco se o usuário existe e se o `sessionVersion` do token ainda é o atual, e fornece os dados de usuário (id, nome, e-mail e perfil vindo do banco) para os guards
   
   - `carousel:` Pacote dedicado ao gerenciamento completo das coleções de imagens exibidas em carrossel no sistema, englobando todas as operações de CRUD e apresentação das fotos.
     - `dto:` Diretório que contém os Data Transfer Objects (CreateCarouselDto, UpdateCarouselDto e CarouselResponseDto) responsáveis por definir a forma dos dados de entrada e saída nas requisições de carrossel.
     - `carousel.controller.ts:` Define os endpoints REST para listagem (GET /carousel), criação (POST /carousel/post), atualização (PATCH /carousel/patch/:id), atualização apenas do campo de isActive (PATCH patch/toggle/:id) e remoção (DELETE /carousel/delete/:id) dos itens de imagem no carrossel.
     - `carousel.controller.spec.ts:` Testes de integração do controller, assegurando que cada rota encaminhe corretamente as chamadas ao CarouselService e retorne os códigos HTTP esperados.
     - `carousel.service.ts:` Implementa a lógica de negócio do carrossel — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela Carousel, e integração com o módulo de Cloudinary para salvar e excluir as imagens na claudinary.
-    - `carousel.service.spec.ts:` Conjunto de testes unitários do serviço, cobrindo cenários de sucesso e falha para cada método exposto por CarouselService.
-    - `carousel.module.ts:` Arquivo de configuração do módulo de carrossel, importando PrismaModule, MulterModule, e CloudinaryModule, registrando CarouselService e CarouselController no contexto do NestJS.
+    - `carousel.service.spec.ts:` Conjunto de testes unitários do serviço, com uma tabela em memória, cobrindo cenários de sucesso e falha para cada método exposto por CarouselService, inclusive a reorganização da ordem e a troca de imagem.
+    - `carousel.module.ts:` Arquivo de configuração do módulo de carrossel, importando PrismaModule e CloudinaryModule, registrando CarouselService e CarouselController no contexto do NestJS. O upload da imagem é tratado pelo `ImageUploadInterceptor`.
 
   - `categories:` Pacote dedicado ao gerenciamento completo de categorias, englobando todas as operações de CRUD.
     - `dto:` Diretório que contém os Data Transfer Objects (CreateCategoryDto, UpdateCategoryDto e CategoryResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de categorias.
@@ -126,11 +154,16 @@
   - `cloudinary:` Exporta a opção de inserir ou remover fotos da cloudinary - ( serviço gratuito para salvar imagens, recomendo: https://cloudinary.com)
     - `cloudinary.module.ts:` Importa o nosso provider e service e exporta o service para ser utilizado em outros locais do código
     - `cloudinary.provider.ts:` Configura a conexão com a Cloudinary
-    - `cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto
+    - `cloudinary.service.ts:` Exporta as funções para subir e deletar uma foto. Envia o arquivo do disco (ou da memória) para a Cloudinary depois de passar pelo otimizador e responde com uma mensagem amigável quando a Cloudinary recusa o envio.
+    - `image-optimizer.ts:` Otimiza apenas imagens acima de 5 MB: reduz para no máximo 2560 px no maior lado e converte para WebP com o `sharp`. Se o resultado não ficar menor ou a imagem não puder ser processada, envia a original.
+    - `image-optimizer.spec.ts:` Testes do otimizador: imagem leve mantida, imagem pesada reduzida e convertida com o arquivo temporário apagado e arquivo inválido enviado como está.
 
   - `common:` Concentramos funcionalidades compartilhadas por vários módulos, é nesse nível que ficam componentes que não pertencem a um domínio específico.
     - `csrf.controller.ts:` Expõe um endpoint para obter o token CSRF do usuário, garantindo que cada chamada realmente venha da aplicação legítima e não de um site mal-intencionado, evitando CSRF.
+    - `csrf.ts:` Cria a proteção CSRF com o `csrf-csrf` (substituto do `csurf`, descontinuado), mantendo o mesmo contrato com o front-end: `GET /csrf-token` devolve o token e toda alteração envia o cabeçalho `X-CSRF-Token`.
     - `event-clock.ts:` Converte o momento atual para o horário de Itu no mesmo formato em que os horários dos eventos são gravados, para que as comparações com "agora" (eventos públicos, datas disponíveis, inscrições e certificados) não dependam do fuso horário do servidor.
+    - `image-upload.interceptor.ts:` Interceptor usado nos uploads de imagem (eventos, carrossel e foto de perfil): grava o arquivo na pasta temporária em vez da memória, aceita só JPG, PNG, WEBP, GIF ou AVIF conferindo os primeiros bytes do arquivo e apaga o arquivo temporário ao fim da requisição. Não limita o tamanho.
+    - `image-upload.interceptor.spec.ts:` Testes da identificação das imagens pelos primeiros bytes e da recusa de arquivos que não são imagem.
 
    - `courses:` Pacote dedicado ao gerenciamento completo de cursos, englobando todas as operações de CRUD.
     - `dto:` Diretório que contém os Data Transfer Objects (CreateCourseDto, UpdateCourseDto e CourseResponseDto) responsáveis por modelar os dados de entrada e saída nas requisições de cursos.
@@ -142,15 +175,18 @@
 
   - `events:` Pacote dedicado ao gerenciamento completo de eventos, englobando operações de CRUD, upload de imagem, consulta de disponibilidade de datas e horários e validação de presença por palavra secreta.
     - `dto:` Diretório com os Data Transfer Objects (CreateEventDto, UpdateEventDto, ValidatePresenceDto e EventResponseDto) responsáveis por definir o formato dos dados de entrada e saída nas requisições de eventos.
-    - `events.controller.ts:` Define os endpoints REST para listagem (GET /events), busca pública por ID (GET /events/:id, sem participantes nem palavra secreta), busca completa por ID para edição (GET /events/manage/:id), criação (POST /events/create), atualização parcial (PATCH /events/patch/:id), remoção (DELETE /events/delete/:id), confirmação de presença por palavra secreta e e-mail da inscrição (PATCH /events/:eventId/participants/:participantId/presence, limitada a 10 tentativas por minuto), disponibilidade de datas (GET /events/availability/dates) e disponibilidade de horários (GET /events/availability/times). Todos protegidos por JwtAuthGuard e RolesGuard, com decorator @Roles para perfis ADMIN e COORDENADOR, interceptação de arquivo para upload de imagem e códigos HTTP apropriados (201 para criação, 200 para remoção), apenas as rotas públicas não necessitam estar autenticadas, como a listagem pública de eventos e a confirmação de presença.
+    - `events.controller.ts:` Define os endpoints REST para listagem (GET /events), busca pública por ID (GET /events/:id, sem participantes nem palavra secreta), busca completa por ID para edição (GET /events/manage/:id), consulta das inscrições de um participante por e-mail (GET /events/manage/by-participant-email, apenas para ADMIN, COORDENADOR e AUXILIAR e registrada na auditoria), criação (POST /events/create), atualização parcial (PATCH /events/patch/:id), remoção (DELETE /events/delete/:id), confirmação de presença por palavra secreta e e-mail da inscrição (PATCH /events/:eventId/participants/:participantId/presence, limitada a 10 tentativas por minuto), disponibilidade de datas (GET /events/availability/dates) e disponibilidade de horários (GET /events/availability/times). Todos protegidos por JwtAuthGuard e RolesGuard, com decorator @Roles para perfis ADMIN e COORDENADOR, o `ImageUploadInterceptor` para o upload de imagem e códigos HTTP apropriados (201 para criação, 200 para remoção), apenas as rotas públicas não necessitam estar autenticadas, como a listagem pública de eventos e a confirmação de presença.
     - `events.service.ts:` Implementa toda a lógica de negócio de eventos — interage com o PrismaClient para operações de CRUD, valida conflitos de horários para evitar sobreposição, utiliza o CloudinaryService para upload e exclusão de imagens, calcula dinamicamente os slots livres de datas e horários conforme o local e data informados, garante que as rotas públicas retornem apenas os dados públicos do evento e valida a palavra secreta e o e-mail da inscrição para marcar o participante como presente.
     - `events.service.spec.ts:` Conjunto de testes unitários do EventsService, cobrindo cenários de criação sem arquivo, detecção de sobreposição de horários, criação bem-sucedida com upload de imagem, atualização com e sem novo arquivo (incluindo exclusão e upload no Cloudinary), cálculo de disponibilidade de horários e datas para diferentes locais, remoção de evento com exclusão de imagem, e tratamento de exceções ConflictException e NotFoundException.
+    - `events.controller.spec.ts:` Testes do controller: consulta por e-mail exigindo login e perfil, registro na auditoria, ausência da antiga rota pública e repasse da confirmação de presença.
     - `events.module.ts:` Arquivo de configuração do módulo de eventos, importando PrismaModule e CloudinaryModule, e registrando EventsService e EventsController no contexto do NestJS.
 
   - `locations:` Pacote dedicado ao gerenciamento completo de locais, englobando todas as operações de CRUD e servindo como base relacional para o cadastro de eventos.
     - `dto:` Diretório que contém os Data Transfer Objects (`CreateLocationDto`, `UpdateLocationDto`, `LocationResponseDto` e `LocationPublicResponseDto`) responsáveis por modelar os dados de entrada e saída nas requisições de locais.
     - `locations.controller.ts:` Define os endpoints REST para listagem administrativa (GET /locations), listagem pública (GET /locations/publicAllLocations), criação (POST /locations/create), atualização (PATCH /locations/patch/:id) e remoção (DELETE /locations/delete/:id) dos locais cadastrados no sistema.
     - `locations.service.ts:` Implementa a lógica de negócio dos locais — interage com o PrismaClient para buscar, inserir, alterar e excluir registros na tabela `Location`, incluindo validações de existência, conflitos de nome duplicado e proteção contra exclusão de locais vinculados a eventos.
+    - `locations.controller.spec.ts:` Testes do controller: listagem pública liberada, repasse das operações ao service e registro na auditoria.
+    - `locations.service.spec.ts:` Testes do service: nomes duplicados, local inexistente e bloqueio da exclusão de locais vinculados a eventos.
     - `locations.module.ts:` Arquivo de configuração do módulo de locais, importando o PrismaModule e registrando o LocationsService e LocationsController no contexto do NestJS.
 
   - `participants:` Módulo dedicado ao fluxo completo de inscrição e controle de presença de participantes em eventos
@@ -169,7 +205,7 @@
     - `dto:` Pasta com os Data Transfer Objects que definem o formato de entrada e saída das requisições de usuários, em resumo, é a nossa "Tipagem".
     - `users.controller.ts`: Expõe os endpoints de get, post, patch e delete para o crud de usuários.
     - `users.controller.spec.ts`: Testes de integração do controller, garantindo que cada rota invoque corretamente o UsersService.
-    `users.service.ts:` Lógica de negócio do módulo de usuários, tratando as requisições que chegam nas rotas do controller, buscando todos os usuários, registrando, atualizando e removendo.
+    - `users.service.ts:` Lógica de negócio do módulo de usuários, tratando as requisições que chegam nas rotas do controller, buscando todos os usuários, registrando, atualizando e removendo. Ao trocar a senha ou o perfil de um usuário, aumenta o `sessionVersion` e revoga os refresh tokens, encerrando na hora todas as sessões abertas dele.
     - `users.service.spec.ts:` Testes unitários do UsersService, cobrindo cenários de sucesso e erro para cada método.
     - `users.module.ts:` Configura o UsersModule, importando PrismaModule e ConfigModule, e registrando UsersService e UsersController.
     

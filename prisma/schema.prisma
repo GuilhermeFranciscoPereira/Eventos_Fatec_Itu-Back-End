@@ -24,19 +24,83 @@ enum Semester {
   ESPECIAL
 }
 
+enum AuthCodePurpose {
+  TWO_FACTOR
+  PASSWORD_RESET
+}
+
+enum AuditOutcome {
+  SUCCESS
+  ERROR
+  DENIED
+}
+
 model User {
-  id           Int            @id @default(autoincrement())
-  imageUrl     String?        @db.VarChar(2048)
-  name         String         @db.VarChar(120)
-  email        String         @unique @db.VarChar(191)
-  password     String         @db.VarChar(255)
-  role         Role
-  refreshToken RefreshToken[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id             Int            @id @default(autoincrement())
+  imageUrl       String?        @db.VarChar(2048)
+  name           String         @db.VarChar(120)
+  email          String         @unique @db.VarChar(191)
+  password       String         @db.VarChar(255)
+  role           Role
+  // Goes into every session token: raising it (password or role change) ends all open sessions at once.
+  sessionVersion Int            @default(0)
+  refreshToken   RefreshToken[]
+  authCodes      AuthCode[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([role])
   @@index([createdAt])
+}
+
+// 2FA and password reset codes live in the database so a code stays single-use even after an API restart.
+// A reset asked for an unknown e-mail also gets a row (without user), so both cases answer exactly alike.
+model AuthCode {
+  id        String          @id @db.Char(36)
+  user      User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int?
+  purpose   AuthCodePurpose
+  codeHash  String          @db.Char(64)
+  failures  Int             @default(0)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime        @default(now())
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+// The actor is copied instead of related: the history must stay intact when a user is renamed or removed.
+model AuditLog {
+  id           Int          @id @default(autoincrement())
+  createdAt    DateTime     @default(now())
+  actorId      Int?
+  actorName    String?      @db.VarChar(120)
+  actorEmail   String?      @db.VarChar(191)
+  actorRole    Role?
+  action       String       @db.VarChar(40)
+  resource     String       @db.VarChar(40)
+  summary      String       @db.VarChar(255)
+  targetId     String?      @db.VarChar(64)
+  targetLabel  String?      @db.VarChar(255)
+  outcome      AuditOutcome
+  statusCode   Int
+  method       String       @db.VarChar(10)
+  path         String       @db.VarChar(255)
+  ip           String?      @db.VarChar(64)
+  userAgent    String?      @db.VarChar(255)
+  errorMessage String?      @db.VarChar(500)
+  before       Json?
+  after        Json?
+  changes      Json?
+  requestBody  Json?
+  response     Json?
+  details      Json?
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([resource, createdAt])
+  @@index([outcome, createdAt])
 }
 
 model RefreshToken {
