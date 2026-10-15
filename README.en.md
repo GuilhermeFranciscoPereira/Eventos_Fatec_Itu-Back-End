@@ -26,25 +26,13 @@
 
 ## 🛎️ Updates to this commit
 
-### `Editing your own profile:` Only ADMIN could edit their own profile, because the users class role rule (ADMIN only) also applied to `PATCH /users/profile`; COORDENADOR and AUXILIAR got 403. Now the three roles can change their own name, e-mail and photo. The e-mail sent to this route, which used to be ignored, is now saved, checking that it does not belong to another user.
+### `Faster available dates query:` When choosing an event location, the API checked the next 90 days running two database queries per day (up to 180 queries per call). Now it fetches every event of the location in that period at once and calculates the free days in memory.
 
-### `./src/modules/users/dto/update-profile.dto.ts:` Created a DTO only for your own profile, with name and e-mail. Fields such as access role and password are rejected on this route and remain available only on the admin routes.
+### `./src/modules/events/events.service.ts:` The calculation of a day's free times was moved to the `getFreeSlots()` function, used both by the times of a day query and by the available dates query, so both always give the same result. The rule that defines whether an event takes up a period was also centralized in `overlapsPeriod()`.
 
-### `Event registrations:` A restricted ("Fatecano") event without a defined course accepted anyone through the API. Now every restricted event requires an RA and an institutional e-mail. The API also no longer accepts registrations for events that have already ended.
+### `./src/modules/events/events.service.spec.ts:` Created tests that make sure there is a single database query, that fully booked days and every day of a multi-day event are left out, that the result agrees with the calculation of a day's times, and the "Outros" (other) location.
 
-### `./src/modules/participants/participants.service.ts:` Booking the seat and saving the participant now happen in the same transaction: if saving fails, the seat is given back and the registration counter stays correct. Two simultaneous registrations with the same e-mail now return the e-mail already registered message, instead of an internal error.
-
-### `Time zone:` Event times are stored as the Itu time marked as UTC. The public listing tried to compensate using the server time zone, which is UTC in Docker, and the search by e-mail, the available dates and the certificates did not compensate. Because of that, events disappeared or kept showing up a few hours off.
-
-### `./src/modules/common/event-clock.ts:` Created the `nowInEventClock()` and `todayInEventClock()` functions, which return the current moment and today's date in Itu in the same format as the stored times, regardless of the server time zone. They are now used in the public listing, the search by e-mail, the available dates for events, the block on registrations for ended events and the choice of the previous day's events to send certificates.
-
-### `./src/modules/certificates/certificates.service.ts and .env.example:` The certificate verification link was built with `CORS_ORIGINS`, which may have several comma-separated URLs, producing a broken link. Now the link uses the new `FRONTEND_URL` variable or, when it is not set, the first URL of `CORS_ORIGINS`.
-
-### `./src/modules/auth/auth.service.ts and auth.controller.ts:` The refresh token was valid for 3 days in the token and the cookie, but 7 days in the database. Now all three use the same `REFRESH_TOKEN_TTL_MS` constant, of 3 days.
-
-### `Tests:` Updated and created tests for editing your own profile, the new registration rules (ended event, restricted event, transaction, full event and simultaneous registration) and the time conversion. The participants and users tests, which did not run because of setup errors, run again.
-
-### `README.md and README.en.md:` Fixed the name of the `common` folder, which was written as "commom".
+### `README.md and README.en.md:` Updated the versions used (Nest 11.1.16, TypeScript 5.9.3 and Prisma 6.19.2) and fixed "contem" to "contém".
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -63,9 +51,9 @@
 </div>
 
 ## Versions used: 
-    - Nest: 11.0.7 
-    - Typescript: 5.7.3
-    - Prisma: 6.12.0
+    - Nest: 11.1.16
+    - Typescript: 5.9.3
+    - Prisma: 6.19.2
     - MySQL: 8.0.42
     - Docker: 28.3.2
     - Swagger/OpenAPI: @nestjs/swagger 11.4.5

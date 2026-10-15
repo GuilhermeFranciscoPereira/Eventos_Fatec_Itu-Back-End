@@ -26,25 +26,13 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Edição do próprio perfil:` Apenas o ADMIN conseguia editar o próprio perfil, porque a regra de perfil da classe de usuários (somente ADMIN) também valia para `PATCH /users/profile`; COORDENADOR e AUXILIAR recebiam 403. Agora os três perfis podem alterar o próprio nome, e-mail e foto. O e-mail enviado nessa rota, que antes era ignorado, passou a ser salvo, com verificação de que não pertence a outro usuário.
+### `Consulta de datas disponíveis mais rápida:` Ao escolher o local de um evento, a API verificava os próximos 90 dias fazendo duas consultas ao banco por dia (até 180 consultas a cada chamada). Agora ela busca de uma vez todos os eventos do local nesse período e calcula os dias livres em memória.
 
-### `./src/modules/users/dto/update-profile.dto.ts:` Criado um DTO só para o próprio perfil, com nome e e-mail. Campos como perfil de acesso e senha são recusados nessa rota e continuam disponíveis apenas nas rotas de administração.
+### `./src/modules/events/events.service.ts:` O cálculo dos horários livres de um dia foi separado na função `getFreeSlots()`, usada tanto pela consulta de horários de um dia quanto pela de datas disponíveis, para as duas darem sempre o mesmo resultado. A regra que define se um evento ocupa um período também foi centralizada em `overlapsPeriod()`.
 
-### `Inscrições em eventos:` Um evento restrito ("Fatecano") sem curso definido aceitava qualquer pessoa pela API. Agora todo evento restrito exige RA e e-mail institucional. A API também deixou de aceitar inscrições em eventos que já terminaram.
+### `./src/modules/events/events.service.spec.ts:` Criados testes que garantem uma única consulta ao banco, a exclusão de dias totalmente ocupados e de todos os dias de um evento de vários dias, a concordância com o cálculo de horários de um dia e o local "Outros".
 
-### `./src/modules/participants/participants.service.ts:` A reserva da vaga e o cadastro do participante passaram a acontecer na mesma transação: se o cadastro falhar, a vaga é devolvida e o contador de inscritos não fica errado. Duas inscrições simultâneas com o mesmo e-mail agora retornam a mensagem de e-mail já inscrito, em vez de um erro interno.
-
-### `Fuso horário:` Os horários dos eventos são gravados como horário de Itu marcado como UTC. A listagem pública tentava compensar usando o fuso do servidor, que no Docker é UTC, e a busca por e-mail, as datas disponíveis e os certificados não compensavam. Com isso, eventos sumiam ou continuavam aparecendo algumas horas fora do horário certo.
-
-### `./src/modules/common/event-clock.ts:` Criadas as funções `nowInEventClock()` e `todayInEventClock()`, que retornam o momento atual e a data de hoje em Itu no mesmo formato dos horários gravados, independentemente do fuso do servidor. Elas passaram a ser usadas na listagem pública, na busca por e-mail, nas datas disponíveis para eventos, no bloqueio de inscrição em evento encerrado e na escolha dos eventos do dia anterior para enviar certificados.
-
-### `./src/modules/certificates/certificates.service.ts e .env.example:` O link de verificação do certificado era montado com `CORS_ORIGINS`, que pode ter várias URLs separadas por vírgula, gerando um link quebrado. Agora o link usa a nova variável `FRONTEND_URL` ou, se ela não estiver definida, a primeira URL de `CORS_ORIGINS`.
-
-### `./src/modules/auth/auth.service.ts e auth.controller.ts:` A validade do refresh token era de 3 dias no token e no cookie, mas de 7 dias no banco. Agora as três usam a mesma constante `REFRESH_TOKEN_TTL_MS`, de 3 dias.
-
-### `Testes:` Atualizados e criados testes para a edição do próprio perfil, as novas regras de inscrição (evento encerrado, evento restrito, transação, evento lotado e inscrição simultânea) e a conversão de horário. Os testes de participantes e de usuários, que não executavam por erros de configuração, voltaram a rodar.
-
-### `README.md e README.en.md:` Corrigido o nome da pasta `common`, que estava escrito como "commom".
+### `README.md e README.en.md:` Atualizadas as versões utilizadas (Nest 11.1.16, TypeScript 5.9.3 e Prisma 6.19.2) e corrigido "contem" para "contém".
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -63,9 +51,9 @@
 </div>
 
 ## Versões utilizadas:
-    - Nest: 11.0.7
-    - Typescript: 5.7.3
-    - Prisma: 6.12.0
+    - Nest: 11.1.16
+    - Typescript: 5.9.3
+    - Prisma: 6.19.2
     - MySQL: 8.0.42
     - Docker: 28.3.2
     - Swagger/OpenAPI: @nestjs/swagger 11.4.5
@@ -238,7 +226,7 @@
     ```
 
 - Ao ter o projeto na sua máquina você deve abrir o site. Para isso siga os passos abaixo:
-    - Lembre-se de criar o arquivo .env com base em tudo que contem no arquivo: `.env.example`
+    - Lembre-se de criar o arquivo .env com base em tudo que contém no arquivo: `.env.example`
     - Abra o terminal e escreva o código abaixo para iniciar o site:
       ```bash
       npm run start:dev

@@ -50,6 +50,10 @@ const PUBLIC_EVENT_SELECT = {
 
 type PublicEventRow = Prisma.EventGetPayload<{ select: typeof PUBLIC_EVENT_SELECT }>;
 
+type EventPeriod = { startDate: Date; endDate: Date | null; startTime: Date; endTime: Date };
+
+const AVAILABILITY_WINDOW_DAYS = 90;
+
 @Injectable()
 export class EventsService {
   constructor(private prisma: PrismaService, private cloudinary: CloudinaryService) { }
@@ -585,24 +589,42 @@ export class EventsService {
 
     if (location.name.toLowerCase() === 'outros') return [];
 
-    const dates: string[] = [];
     const today = nowInEventClock();
-
-    for (let i = 0; i < 90; i++) {
+    const days = Array.from({ length: AVAILABILITY_WINDOW_DAYS }, (_, i) => {
       const d = new Date(today);
       d.setUTCDate(today.getUTCDate() + i);
-      const dayStr = d.toISOString().split('T')[0];
+      return d.toISOString().split('T')[0];
+    });
 
-      if (await this.hasFreeSlot(locationId, dayStr)) {
-        dates.push(dayStr);
-      }
-    }
+    // A single query for the whole window: each day is then checked in memory instead of one query per day.
+    const events = await this.prisma.event.findMany({
+      where: { locationId, ...this.overlapsPeriod(days[0], days[days.length - 1]) },
+      select: { startDate: true, endDate: true, startTime: true, endTime: true },
+    });
 
-    return dates;
+    return days.filter(day => {
+      const dayStart = new Date(`${day}T00:00:00.000Z`);
+      const dayEnd = new Date(`${day}T23:59:59.999Z`);
+      const dayEvents = events.filter(e => e.startDate <= dayEnd && (e.endDate ? e.endDate >= dayStart : e.startDate >= dayStart));
+      return this.getFreeSlots(day, dayEvents).length > 0;
+    });
   }
 
-  private async hasFreeSlot(locationId: number, date: string): Promise<boolean> {
-    return (await this.getAvailableTimes(locationId, date)).length > 0;
+  // Same rule for a single day and for a range: the event starts before the period ends and has not ended before it starts.
+  private overlapsPeriod(firstDay: string, lastDay: string): Prisma.EventWhereInput {
+    const periodStart = new Date(`${firstDay}T00:00:00.000Z`);
+    const periodEnd = new Date(`${lastDay}T23:59:59.999Z`);
+
+    return {
+      startDate: { lte: periodEnd },
+      OR: [
+        { endDate: { gte: periodStart } },
+        {
+          endDate: null,
+          startDate: { gte: periodStart },
+        },
+      ],
+    };
   }
 
   async getAvailableTimes(locationId: number, date: string, exceptId?: number): Promise<{ start: string; end: string }[]> {
@@ -618,25 +640,19 @@ export class EventsService {
       return [{ start: this.BUSINESS_START, end: this.BUSINESS_END }];
     }
 
-    const dayStart = new Date(`${date}T00:00:00.000Z`);
-    const dayEnd = new Date(`${date}T23:59:59.999Z`);
-
     const events = await this.prisma.event.findMany({
       where: {
         locationId,
-        startDate: { lte: dayEnd },
-        OR: [
-          { endDate: { gte: dayStart } },
-          {
-            endDate: null,
-            startDate: { gte: dayStart },
-          },
-        ],
+        ...this.overlapsPeriod(date, date),
         ...(exceptId ? { id: { not: exceptId } } : {}),
       },
       orderBy: { startTime: 'asc' },
     });
 
+    return this.getFreeSlots(date, events);
+  }
+
+  private getFreeSlots(date: string, events: EventPeriod[]): { start: string; end: string }[] {
     const busy = events.map(e => {
       const startDatePart = this.getDatePart(e.startDate);
       const endDatePart = this.getEffectiveEndDate(e.startDate, e.endDate);
