@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,6 +13,41 @@ type EventCourseSummary = {
     name: string;
   };
 };
+
+// Only what the public pages show: participants and the presence secret never leave through public routes.
+const PUBLIC_EVENT_SELECT = {
+  id: true,
+  name: true,
+  description: true,
+  imageUrl: true,
+  eventCourses: {
+    select: {
+      course: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: { courseId: 'asc' },
+  },
+  semester: true,
+  maxParticipants: true,
+  currentParticipants: true,
+  isRestricted: true,
+  locationId: true,
+  location: { select: { name: true } },
+  customLocation: true,
+  speakerName: true,
+  startDate: true,
+  endDate: true,
+  startTime: true,
+  endTime: true,
+  duration: true,
+  categoryId: true,
+} satisfies Prisma.EventSelect;
+
+type PublicEventRow = Prisma.EventGetPayload<{ select: typeof PUBLIC_EVENT_SELECT }>;
 
 @Injectable()
 export class EventsService {
@@ -36,6 +72,30 @@ export class EventsService {
       courseName: courses[0]?.name ?? null,
       courseIds: courses.map(({ id }) => id),
       courseNames: courses.map(({ name }) => name),
+    };
+  }
+
+  private toPublicEvent(e: PublicEventRow): EventPublicResponseDto {
+    return {
+      id: e.id,
+      name: e.name,
+      description: e.description,
+      imageUrl: e.imageUrl,
+      ...this.getCourseSummary(e.eventCourses),
+      semester: e.semester,
+      maxParticipants: e.maxParticipants,
+      currentParticipants: e.currentParticipants,
+      isRestricted: e.isRestricted,
+      locationId: e.locationId,
+      locationName: e.location.name,
+      customLocation: e.customLocation,
+      speakerName: e.speakerName,
+      startDate: e.startDate,
+      endDate: e.endDate,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      duration: e.duration,
+      categoryId: e.categoryId,
     };
   }
 
@@ -97,67 +157,24 @@ export class EventsService {
       where: {
         endTime: { gt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000) },
       },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        imageUrl: true,
-        eventCourses: {
-          select: {
-            course: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-          orderBy: { courseId: 'asc' },
-        },
-        semester: true,
-        maxParticipants: true,
-        currentParticipants: true,
-        isRestricted: true,
-        locationId: true,
-        location: { select: { name: true } },
-        customLocation: true,
-        speakerName: true,
-        startDate: true,
-        endDate: true,
-        startTime: true,
-        endTime: true,
-        duration: true,
-        categoryId: true,
-      },
+      select: PUBLIC_EVENT_SELECT,
       orderBy: { startTime: 'asc' },
     });
 
     return rows
       .filter(e => e.currentParticipants < e.maxParticipants)
-      .map(e => {
-        const courseSummary = this.getCourseSummary(e.eventCourses);
+      .map(e => this.toPublicEvent(e));
+  }
 
-        return {
-          id: e.id,
-          name: e.name,
-          description: e.description,
-          imageUrl: e.imageUrl,
-          ...courseSummary,
-          semester: e.semester,
-          maxParticipants: e.maxParticipants,
-          currentParticipants: e.currentParticipants,
-          isRestricted: e.isRestricted,
-          locationId: e.locationId,
-          locationName: e.location.name,
-          customLocation: e.customLocation,
-          speakerName: e.speakerName,
-          startDate: e.startDate,
-          endDate: e.endDate,
-          startTime: e.startTime,
-          endTime: e.endTime,
-          duration: e.duration,
-          categoryId: e.categoryId,
-        };
-      });
+  async findOnePublic(id: number): Promise<EventPublicResponseDto> {
+    const e = await this.prisma.event.findUnique({
+      where: { id },
+      select: PUBLIC_EVENT_SELECT,
+    });
+
+    if (!e) throw new NotFoundException(`Evento ${id} não encontrado.`);
+
+    return this.toPublicEvent(e);
   }
 
   async findAll() {
@@ -190,7 +207,6 @@ export class EventsService {
     const e = await this.prisma.event.findUnique({
       where: { id },
       include: {
-        participants: true,
         eventCourses: {
           select: {
             course: {
@@ -229,46 +245,13 @@ export class EventsService {
           },
         },
       },
-      include: {
-        eventCourses: {
-          select: {
-            course: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-          orderBy: { courseId: 'asc' },
-        },
-        location: true,
-      },
+      select: PUBLIC_EVENT_SELECT,
       orderBy: {
         startDate: 'asc',
       },
     });
 
-    return events.map(event => ({
-      id: event.id,
-      name: event.name,
-      description: event.description,
-      imageUrl: event.imageUrl,
-      ...this.getCourseSummary(event.eventCourses),
-      semester: event.semester,
-      maxParticipants: event.maxParticipants,
-      currentParticipants: event.currentParticipants,
-      isRestricted: event.isRestricted,
-      locationId: event.locationId,
-      locationName: event.location.name,
-      customLocation: event.customLocation,
-      speakerName: event.speakerName,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      duration: event.duration,
-      categoryId: event.categoryId,
-    }));
+    return events.map(event => this.toPublicEvent(event));
   }
 
   async create(dto: CreateEventDto, file: Express.Multer.File) {
@@ -518,10 +501,12 @@ export class EventsService {
       throw new ForbiddenException('Palavra secreta inválida');
     }
 
+    // Participant IDs are sequential: the e-mail keeps someone who knows the secret from marking other people.
     const participant = await this.prisma.participant.findFirst({
       where: {
         id: participantId,
         eventId,
+        email: dto.email,
       },
       select: {
         id: true,

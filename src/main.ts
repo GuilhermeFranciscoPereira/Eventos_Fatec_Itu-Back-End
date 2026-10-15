@@ -6,14 +6,19 @@ import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { configureSwagger } from './swagger';
 import { ThrottlerExceptionFilter } from './modules/common/throttler-exception.filter';
 import { validationExceptionFactory } from './modules/common/validation-exception.factory';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<ConfigService>(ConfigService);
   app.setGlobalPrefix(config.get<string>('GLOBAL_PREFIX', ''));
+
+  // Behind a reverse proxy every request arrives with the proxy's IP, so the rate limits would be shared by all users.
+  const trustProxy = config.get<string>('TRUST_PROXY');
+  if (trustProxy) app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 
   app.use(helmet({
     contentSecurityPolicy: {

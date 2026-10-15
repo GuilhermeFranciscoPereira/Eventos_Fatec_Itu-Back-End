@@ -51,6 +51,7 @@ describe('Application Tests - (e2e)', () => {
     const eventsStub: any = {
         findAll: jest.fn(),
         findOne: jest.fn(),
+        findOnePublic: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
         remove: jest.fn(),
@@ -154,7 +155,8 @@ describe('Application Tests - (e2e)', () => {
             carouselStub.delete.mockResolvedValue({ message: 'Item do carrossel deletado com sucesso.' });
 
             eventsStub.findAll.mockResolvedValue([{ id: 1, name: 'Evento1' }]);
-            eventsStub.findOne.mockResolvedValue({ id: 1, name: 'Evento1' });
+            eventsStub.findOne.mockResolvedValue({ id: 1, name: 'Evento1', presenceSecret: 'segredo' });
+            eventsStub.findOnePublic.mockResolvedValue({ id: 1, name: 'Evento1' });
             eventsStub.create.mockResolvedValue({ id: 2, name: 'Novo Evento' });
             eventsStub.update.mockResolvedValue({ id: 2, name: 'Evento Atualizado' });
             eventsStub.remove.mockResolvedValue({ message: 'Evento deletado com sucesso.' });
@@ -393,13 +395,24 @@ describe('Application Tests - (e2e)', () => {
                     expect(Array.isArray(res.body)).toBe(true);
                 }));
 
-        it('GET /apiEvents/events/:id → 200 & único', () =>
+        it('GET /apiEvents/events/:id → 200 & único sem dados privados', () =>
             request(server)
                 .get('/apiEvents/events/1')
                 .expect(200)
                 .expect(res => {
-                    expect(eventsStub.findOne).toHaveBeenCalledWith(1);
+                    expect(eventsStub.findOnePublic).toHaveBeenCalledWith(1);
+                    expect(eventsStub.findOne).not.toHaveBeenCalled();
                     expect(res.body.id).toBe(1);
+                    expect(res.body).not.toHaveProperty('presenceSecret');
+                }));
+
+        it('GET /apiEvents/events/manage/:id → 200 & completo', () =>
+            request(server)
+                .get('/apiEvents/events/manage/1')
+                .expect(200)
+                .expect(res => {
+                    expect(eventsStub.findOne).toHaveBeenCalledWith(1);
+                    expect(res.body.presenceSecret).toBe('segredo');
                 }));
 
         it('POST /apiEvents/events/create → 201 & create', () =>

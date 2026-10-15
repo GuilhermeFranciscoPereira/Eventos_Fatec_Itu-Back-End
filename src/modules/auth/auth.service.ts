@@ -1,15 +1,31 @@
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { createHmac, randomInt } from 'crypto';
+import { createHmac, randomInt, randomUUID, timingSafeEqual } from 'crypto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../../services/email.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtPayload, sign as jwtSign, verify as jwtVerify } from 'jsonwebtoken';
 
+type CodePurpose = '2fa' | 'reset';
+
+type CodeTokenPayload = {
+  sub: number;
+  purpose: CodePurpose;
+  jti: string;
+  codeHash: string;
+  exp?: number;
+};
+
+type CodeTokenState = { failures: number; used: boolean; expiresAt: number };
+
+const MAX_CODE_ATTEMPTS = 5;
+
 @Injectable()
 export class AuthService {
+  // The API runs as a single instance, so memory is enough to count attempts during the 15 minutes a code lives.
+  private readonly codeTokens = new Map<string, CodeTokenState>();
   private readonly pepper: string;
   private readonly hashSecret: string;
   private readonly refreshSecret: string;
@@ -40,21 +56,17 @@ export class AuthService {
     const ok = await argon2.verify(user.password, dto.password + this.pepper);
     if (!ok) throw new UnauthorizedException('E-mail ou senha inválidos.');
 
-    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    const tmpToken = this.jwtService.sign({ sub: user.id, code }, { expiresIn: '15m' });
+    const { code, token } = this.createCodeToken(user.id, '2fa');
     const emailBodyMessage = this.tokenMessageEmail(user.name, code, '2fa');
     this.emailService.send(user.email, 'Autenticação em dois fatores', emailBodyMessage);
 
-    return tmpToken;
+    return token;
   }
 
   async login(code: string, tmpToken: string) {
-    const payloadInitial = this.jwtService.verify<{ sub: number; code: string }>(tmpToken);
-    if (payloadInitial.code !== code && code !== '248574' && code !== '194837') {
-      throw new UnauthorizedException('Código 2FA inválido')
-    };
+    const userId = this.consumeCodeToken(tmpToken, code, '2fa');
 
-    const user = await this.prisma.user.findUnique({ where: { id: payloadInitial.sub } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('Usuário não encontrado!');
 
     const payload = {
@@ -85,19 +97,63 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedException('E-mail não cadastrado.');
 
-    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    const tmpToken = this.jwtService.sign({ sub: user.id, code }, { expiresIn: '15m' });
+    const { code, token } = this.createCodeToken(user.id, 'reset');
     const emailBodyMessage = this.tokenMessageEmail(user.name, code, 'reset');
     await this.emailService.send(user.email, 'Redefinição de senha', emailBodyMessage);
-    return tmpToken;
+    return token;
   }
 
   async passwordReset(code: string, newPassword: string, tmpToken: string): Promise<boolean> {
-    const payload = this.jwtService.verify<{ sub: number; code: string }>(tmpToken);
-    if (payload.code !== code) throw new UnauthorizedException('Código inválido');
+    const userId = this.consumeCodeToken(tmpToken, code, 'reset');
     const hash = await argon2.hash(newPassword + this.pepper, { type: argon2.argon2id });
-    await this.prisma.user.update({ where: { id: payload.sub }, data: { password: hash } });
+    await this.prisma.user.update({ where: { id: userId }, data: { password: hash } });
     return true;
+  }
+
+  private hashCode(code: string, userId: number, purpose: CodePurpose, jti: string): string {
+    return createHmac('sha256', this.hashSecret).update(`${purpose}:${userId}:${jti}:${code}`).digest('hex');
+  }
+
+  // The token goes to the browser in a cookie and its payload is readable, so it carries only an HMAC of the code, never the code itself.
+  private createCodeToken(userId: number, purpose: CodePurpose): { code: string; token: string } {
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const jti = randomUUID();
+    const payload: CodeTokenPayload = { sub: userId, purpose, jti, codeHash: this.hashCode(code, userId, purpose, jti) };
+    return { code, token: this.jwtService.sign(payload, { expiresIn: '15m' }) };
+  }
+
+  private consumeCodeToken(token: string, code: string, purpose: CodePurpose): number {
+    let payload: CodeTokenPayload;
+    try {
+      payload = this.jwtService.verify<CodeTokenPayload>(token);
+    } catch {
+      throw new UnauthorizedException('Código expirado. Solicite um novo código.');
+    }
+
+    const invalidMessage = purpose === '2fa' ? 'Código 2FA inválido' : 'Código inválido';
+    if (payload.purpose !== purpose || !payload.jti || !payload.codeHash) throw new UnauthorizedException(invalidMessage);
+
+    this.removeExpiredCodeTokens();
+    const state = this.codeTokens.get(payload.jti) ?? { failures: 0, used: false, expiresAt: (payload.exp ?? 0) * 1000 };
+    if (state.used) throw new UnauthorizedException('Este código já foi utilizado. Solicite um novo código.');
+    if (state.failures >= MAX_CODE_ATTEMPTS) throw new UnauthorizedException('Muitas tentativas inválidas. Solicite um novo código.');
+
+    const expected = Buffer.from(payload.codeHash, 'hex');
+    const received = Buffer.from(this.hashCode(code, payload.sub, purpose, payload.jti), 'hex');
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+      this.codeTokens.set(payload.jti, { ...state, failures: state.failures + 1 });
+      throw new UnauthorizedException(invalidMessage);
+    }
+
+    this.codeTokens.set(payload.jti, { ...state, used: true });
+    return payload.sub;
+  }
+
+  private removeExpiredCodeTokens(): void {
+    const now = Date.now();
+    for (const [jti, state] of this.codeTokens) {
+      if (state.expiresAt <= now) this.codeTokens.delete(jti);
+    }
   }
 
   async getMe(req: Request & { cookies: Record<string, string> }) {
@@ -111,9 +167,11 @@ export class AuthService {
         imageUrl?: string;
         name: string;
         role: string;
+        purpose?: CodePurpose;
         exp: number;
         iat: number;
       };
+      if (payload.purpose || !payload.role) throw new UnauthorizedException();
 
       let refreshTokenExp: number | null = null;
       let refreshTokenIat: number | null = null;

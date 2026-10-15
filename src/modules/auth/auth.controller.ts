@@ -70,7 +70,7 @@ export class AuthController {
     return { message: 'Deslogado com sucesso!' };
   }
 
-  @Throttle({ auth: { limit: 5, ttl: 60_000, blockDuration: 5 * 60_000 } })
+  @Throttle({ default: { limit: 5, ttl: 60_000, blockDuration: 5 * 60_000 } })
   @Post('request-login')
   @HttpCode(200)
   @ApiSecurity('csrf-token')
@@ -86,7 +86,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @Throttle({ auth: { limit: 5, ttl: 60_000, blockDuration: 5 * 60_000 } })
+  @Throttle({ default: { limit: 5, ttl: 60_000, blockDuration: 5 * 60_000 } })
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Confirma login com 2FA', description: 'Rota pública. Usa o cookie temporário de 2FA e o código informado para criar os cookies de sessão.' })
   @ApiBody({ type: LoginDto })
@@ -103,7 +103,7 @@ export class AuthController {
 
   @Post('request-reset-password')
   @HttpCode(200)
-  @Throttle({ reset: { limit: 3, ttl: 15 * 60_000, blockDuration: 10 * 60_000 } })
+  @Throttle({ default: { limit: 3, ttl: 15 * 60_000, blockDuration: 10 * 60_000 } })
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Solicita redefinição de senha', description: 'Rota pública. Envia código de redefinição por e-mail e grava cookie temporário HTTP-only.' })
   @ApiBody({ type: RequestResetPasswordDto })
@@ -116,7 +116,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(200)
-  @Throttle({ reset: { limit: 3, ttl: 15 * 60_000, blockDuration: 10 * 60_000 } })
+  @Throttle({ default: { limit: 3, ttl: 15 * 60_000, blockDuration: 10 * 60_000 } })
   @ApiSecurity('csrf-token')
   @ApiOperation({ summary: 'Redefine senha', description: 'Rota pública. Usa o cookie temporário de reset e o código enviado por e-mail para alterar a senha.' })
   @ApiBody({ type: ResetPasswordDto })

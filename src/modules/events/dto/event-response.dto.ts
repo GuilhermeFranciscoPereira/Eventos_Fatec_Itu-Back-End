@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Semester } from '@prisma/client';
-import { ParticipantResponseDto } from '../../participants/dto/participant-response.dto';
 
 export class EventResponseDto {
     @ApiProperty({ example: 1, description: 'Identificador do evento.' })
@@ -74,9 +73,6 @@ export class EventResponseDto {
 
     @ApiProperty({ example: '2026-06-30T12:00:00.000Z', description: 'Data da última atualização.' })
     updatedAt!: Date;
-
-    @ApiPropertyOptional({ type: () => [ParticipantResponseDto], description: 'Participantes vinculados ao evento, quando carregados.' })
-    participants?: ParticipantResponseDto[];
 
     @ApiPropertyOptional({ example: 'presenca-hackathon', nullable: true, description: 'Palavra secreta de presença, visível apenas em rotas administrativas.' })
     presenceSecret!: string | null;

@@ -1,4 +1,5 @@
 import { Role } from '@prisma/client';
+import { Throttle } from '@nestjs/throttler';
 import { EventsService } from './events.service';
 import { RolesGuard } from '../../guards/roles.guard';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -50,12 +51,22 @@ export class EventsController {
     return this.eventService.findPublicByParticipantEmail(dto.email);
   }
 
-  @Public()
-  @Get(':id')
-  @ApiOperation({ summary: 'Busca evento por ID', description: 'Rota pública para exibir detalhes de um evento.' })
+  @Get('manage/:id')
+  @ApiCookieAuth('access-token')
+  @ApiOperation({ summary: 'Busca evento por ID para edição', description: 'Rota privada para ADMIN e COORDENADOR. Retorna todos os dados do evento, incluindo a palavra secreta de presença.' })
   @ApiOkResponse({ type: EventResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
+  @ApiForbiddenResponse({ description: 'Perfil sem permissão.' })
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<EventResponseDto> {
     return this.eventService.findOne(id);
+  }
+
+  @Public()
+  @Get(':id')
+  @ApiOperation({ summary: 'Busca evento por ID', description: 'Rota pública para exibir detalhes de um evento. Não retorna participantes nem a palavra secreta de presença.' })
+  @ApiOkResponse({ type: EventPublicResponseDto })
+  async findOnePublic(@Param('id', ParseIntPipe) id: number): Promise<EventPublicResponseDto> {
+    return this.eventService.findOnePublic(id);
   }
 
   @Post('create')
@@ -149,9 +160,10 @@ export class EventsController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000, blockDuration: 5 * 60_000 } })
   @Patch(':eventId/participants/:participantId/presence')
   @ApiSecurity('csrf-token')
-  @ApiOperation({ summary: 'Confirma presença em evento', description: 'Rota pública. Valida a palavra secreta e marca o participante como presente.' })
+  @ApiOperation({ summary: 'Confirma presença em evento', description: 'Rota pública. Valida a palavra secreta e o e-mail da inscrição e marca o participante como presente.' })
   @ApiOkResponse({ schema: { example: { message: 'Presença confirmada com sucesso!' } } })
   async validatePresence(
     @Param('eventId', ParseIntPipe) eventId: number,

@@ -26,31 +26,21 @@
 
 ## 🛎️ Updates to this commit
 
-### `New institutional e-mail domain:` The `@aluno.cps.sp.gov.br` domain is now accepted, keeping the already accepted `@fatec.sp.gov.br`, `@cms.sp.gov.br` and `@cps.sp.gov.br`, in login, password reset, user creation and editing, and student registration with RA.
+### `Critical security fixes:` Fixed flaws that allowed changing the password of any account knowing only the e-mail, skipping 2FA, reading the personal data of everyone registered in an event and marking other people as present.
 
-### `./src/modules/auth/dto/request-login-auth.dto.ts, ./src/modules/auth/dto/request-reset-password-auth.dto.ts, ./src/modules/users/dto/create-auth.dto.ts, ./src/modules/users/dto/update-user.dto.ts and ./src/modules/participants/participants.service.ts:` Updated the accepted domains regular expression and the error message, which now lists the four domains.
+### `./src/modules/auth/auth.service.ts:` The 6-digit code of 2FA and password reset is no longer stored inside the token sent in the cookie, whose content can be read by whoever receives it. The token now keeps only an HMAC of the code and states what it is for (2FA or reset), so one cannot be used in place of the other. Each code works only once and is blocked after 5 wrong attempts. The fixed codes that were accepted for any user at login were also removed, and an expired code now answers 401 instead of a 500 error.
 
-### `Fatec RA validation:` Implemented validation based on the official Academic Record (RA) standard (Centro Paula Souza General Regulation for Undergraduate Courses, Art. 15), in the format used by SIGA: `FFF CCC AA S T NNN` (unit, course, entry year, entry semester, shift and enrollment sequence). RAs are rejected when the semester is not 1 or 2, the shift is outside 1 to 4, the unit, course or sequence is `000`, the entry year is in the future or more than 20 years old, or the 2nd semester of the current year is used before June. Since the RA has no check digit, the validation blocks impossible numbers but cannot confirm that the RA exists in SIGA.
+### `./src/modules/auth/jwt.strategy.ts:` 2FA and password reset tokens are no longer accepted as a session, even though they are signed with the same key.
 
-### `./src/modules/participants/validators/fatec-ra.validator.ts:` Created the `@IsFatecRa()` decorator and the `getFatecRaError()` function, which returns a specific message pointing out which part of the RA is wrong.
+### `./src/modules/auth/auth.controller.ts:` The attempt limit for login, 2FA and password reset was not working, because it used throttler names that did not exist in the configuration; in practice the general limit of 50 per minute applied. Now there are 5 attempts per minute for login and 2FA and 3 every 15 minutes for password reset.
 
-### `./src/modules/participants/validators/fatec-ra.validator.spec.ts:` Created unit tests covering valid RAs and each kind of invalid RA.
+### `./src/main.ts and .env.example:` Created the `TRUST_PROXY` variable. Behind a reverse proxy (such as Nginx), every request arrives with the proxy's IP and the attempt limits would be shared by all users. In production, set the number of proxies in front of the API (for example `TRUST_PROXY=1`).
 
-### `./src/modules/participants/dto/create-participant.dto.ts:` Replaced the simple 13-digit validation with `@IsFatecRa()`, automatically removing dots, dashes and spaces typed in the RA, and replaced the technical `courseId` and `eventId` messages with user-friendly ones.
+### `./src/modules/events/events.controller.ts and events.service.ts:` The public route `GET /events/:id` returned everyone registered in the event (name, e-mail and RA) and the attendance secret word. Now it returns only the public data, the same as the public listing. The full data for editing an event is in the new private route `GET /events/manage/:id`, for ADMIN and COORDENADOR, which also no longer loads the list of registrations.
 
-### `Reviewed error messages:` Reviewed every API error message so they are complete, in Portuguese and free of internal details.
+### `./src/modules/events/dto/validate-presence.dto.ts:` Attendance confirmation now requires the e-mail used in the registration, besides the secret word. Since participant IDs are sequential, anyone who knew the word could mark anyone as present by changing the ID. The route also accepts at most 10 attempts per minute.
 
-### `./src/main.ts and ./src/modules/common/validation-exception.factory.ts:` Created an exception factory for the `ValidationPipe` that keeps the same response shape but replaces the built-in English messages (such as non-whitelisted fields) with Portuguese ones.
-
-### `./src/modules/events/dto/create-event.dto.ts, find-by-participant-email.dto.ts and validate-presence.dto.ts:` Added Portuguese messages to every validation that previously returned the default English text.
-
-### `./src/modules/auth/auth.service.ts and ./src/modules/auth/auth.controller.ts:` Login now answers "E-mail ou senha inválidos." without telling which one is wrong, preventing anyone from discovering registered e-mails. Session and expired code messages were also rewritten for end users.
-
-### `./src/services/email.service.ts:` E-mail sending failures no longer expose the SMTP technical error in the response; the details are only written to the server log.
-
-### `./src/modules/events/events.service.ts, ./src/modules/participants/participants.service.ts, ./src/modules/carousel/carousel.service.ts and carousel/participant DTOs:` Fixed broken accents ("horÃ¡rio"), grammar, repeated texts and technical field names shown to users.
-
-### `./test/app.e2e-spec.ts:` Updated the expected messages in the E2E tests to match the new texts.
+### `./src/modules/auth/auth.service.spec.ts, ./src/modules/events/events.service.spec.ts and ./test/app.e2e-spec.ts:` Updated and created tests for the new behaviors: the code never goes inside the token, the fixed codes do not work, each code works once, the block after 5 attempts, the separation between 2FA and password reset, the public route without private data and attendance tied to the e-mail.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -149,8 +139,8 @@
 
     - `events:` Package dedicated to complete event management, encompassing CRUD operations, image upload, date and time availability checks, and attendance validation via secret word.
         - `dto:` Directory containing the Data Transfer Objects (CreateEventDto, UpdateEventDto, ValidatePresenceDto, and EventResponseDto) responsible for defining the format of input and output data in event requests.
-        - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), searching by ID (GET /events/:id), creating (POST /events/create), partial updating (PATCH /events/patch/:id), deleting (DELETE /events/delete/:id), confirming attendance by secret word (PATCH /events/:eventId/participants/:participantId/presence), date availability (GET /events/availability/dates) and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image upload and appropriate HTTP codes (201 for creation, 200 for deletion), only public routes do not need to be authenticated, such as the public listing of events and attendance confirmation.
-        - `events.service.ts:` Implements all the business logic for events — interacts with PrismaClient for CRUD operations, validates time conflicts to avoid overlap, uses CloudinaryService for uploading and deleting images, dynamically calculates available date and time slots according to the location and date provided, saves the attendance secret word with a hash using argon2, and validates the word sent to mark the participant as present.
+        - `events.controller.ts:` Defines the REST endpoints for listing (GET /events), public search by ID (GET /events/:id, without participants or the secret word), full search by ID for editing (GET /events/manage/:id), creating (POST /events/create), partial updating (PATCH /events/patch/:id), deleting (DELETE /events/delete/:id), confirming attendance by secret word and registration e-mail (PATCH /events/:eventId/participants/:participantId/presence, limited to 10 attempts per minute), date availability (GET /events/availability/dates) and time availability (GET /events/availability/times). All protected by JwtAuthGuard and RolesGuard, with @Roles decorator for ADMIN and COORDINATOR profiles, file interception for image upload and appropriate HTTP codes (201 for creation, 200 for deletion), only public routes do not need to be authenticated, such as the public listing of events and attendance confirmation.
+        - `events.service.ts:` Implements all the business logic for events — interacts with PrismaClient for CRUD operations, validates time conflicts to avoid overlap, uses CloudinaryService for uploading and deleting images, dynamically calculates available date and time slots according to the location and date provided, makes sure public routes return only the public event data, and validates the secret word and the registration e-mail to mark the participant as present.
         - `events.service.spec.ts:` Unit test suite for EventsService, covering creation scenarios without a file, detecting schedule overlaps, successful creation with image upload, updating with and without a new file (including deletion and upload to Cloudinary), calculating availability for times and dates for different locations, deleting an event with image deletion, and handling ConflictException and NotFoundException exceptions. - `events.module.ts:` Events module configuration file, importing PrismaModule and CloudinaryModule, and registering EventsService and EventsController in the NestJS context.
 
     - `locations:` Package dedicated to the complete management of locations, encompassing all CRUD operations and serving as a relational base for event registration.
