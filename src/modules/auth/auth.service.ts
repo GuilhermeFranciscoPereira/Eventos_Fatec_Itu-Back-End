@@ -333,7 +333,7 @@ export class AuthService {
       <body style="margin:0;padding:0;width:100%;height:100%;background:#f5f7fb;font-family:Arial,sans-serif;color:#333;font-size:18px;">
         <table width="100%" cellpadding="0" cellspacing="0" style="width:100%;height:100%;">
           <tr><td align="center">
-            <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;margin:40px 0;">
+            <table width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:8px;overflow:hidden;margin:40px 0;">
               <tr>
                 <td style="background:#b20000;padding:20px;text-align:center;">
                   <h2 style="margin:0;font-size:20px;color:#fff;letter-spacing:1px;">Fatec Itu – Dom Amaury Castanho</h2>
@@ -347,9 +347,14 @@ export class AuthService {
                   <p style="line-height:1.5;margin:0 0 30px;">
                     Para reforçar a segurança do seu acesso, ${instruction} Ele ficará válido por <strong>15 minutos</strong> a partir do envio do e-mail.
                   </p>
-                  <div style="background:linear-gradient(135deg,#b20000 0%,#d83333 100%);padding:20px;border-radius:6px;text-align:center;margin-bottom:30px;">
-                    <span style="display:inline-block;font-size:32px;font-weight:bold;letter-spacing:5px;color:#fff;">${codigo}</span>
-                  </div>
+                  <!-- Gmail and Outlook drop gradient backgrounds, which left white text on white: solid light box with red code instead. -->
+                  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 30px;">
+                    <tr>
+                      <td align="center" bgcolor="#fdecec" style="background-color:#fdecec;border:2px dashed #b20000;border-radius:6px;padding:20px;">
+                        <span style="display:inline-block;font-family:'Courier New',Courier,monospace;font-size:34px;font-weight:bold;letter-spacing:8px;color:#b20000;">${codigo}</span>
+                      </td>
+                    </tr>
+                  </table>
                   <p style="font-size:16px;color:#666;line-height:1.5;margin:0 0 30px;">
                     Se você não solicitou este código, ignore este e-mail ou entre em contato com o suporte imediatamente.
                   </p>

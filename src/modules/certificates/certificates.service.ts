@@ -193,7 +193,7 @@ export class CertificatesService {
     <body style="margin:0;padding:0;width:100%;height:100%;background:#f5f7fb;font-family:Arial,sans-serif;color:#333;font-size:18px;">
       <table width="100%" cellpadding="0" cellspacing="0" style="width:100%;height:100%;">
         <tr><td align="center">
-          <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;margin:40px 0;">
+          <table width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:8px;overflow:hidden;margin:40px 0;">
             <tr><td style="background:#b20000;padding:20px;text-align:center;">
               <h2 style="margin:0;font-size:20px;color:#fff;letter-spacing:1px;">Fatec Itu – Dom Amaury Castanho</h2>
               <p style="margin:5px 0 0;font-size:16px;color:#f8d7da;">Centro Paula Souza</p></td></tr>
@@ -201,9 +201,12 @@ export class CertificatesService {
               <h1 style="margin:0 0 20px;font-size:22px;color:#b20000;">Seu Certificado de Participação</h1>
               <p style="line-height:1.5;margin:0 0 15px;">Olá <strong>${nome}</strong>,</p>
               <p style="line-height:1.5;margin:0 0 30px;">Parabéns por participar do evento <strong>${evento}</strong>! Segue em anexo o seu certificado com verificação por QRCode.</p>
-              <div style="background:linear-gradient(135deg,#b20000 0%,#d83333 100%);padding:20px;border-radius:6px;text-align:center;margin-bottom:30px;">
-                <span style="display:inline-block;font-size:18px;color:#fff;">Certificado em anexo</span>
-              </div>
+              <!-- Gmail and Outlook drop gradient backgrounds, which left white text on white: solid light box with red text instead. -->
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 30px;">
+                <tr><td align="center" bgcolor="#fdecec" style="background-color:#fdecec;border:2px dashed #b20000;border-radius:6px;padding:20px;">
+                  <span style="display:inline-block;font-size:18px;font-weight:bold;color:#b20000;">Certificado em anexo</span>
+                </td></tr>
+              </table>
               <p style="font-size:16px;color:#666;line-height:1.5;margin:0 0 30px;">Guarde este arquivo. Em caso de dúvidas, entre em contato.</p>
             </td></tr>
             <tr><td style="background:#f0f0f0;text-align:center;padding:20px;font-size:12px;color:#777;">

@@ -126,7 +126,7 @@ export class ParticipantsService {
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td align="center">
-              <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;margin:40px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+              <table width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;margin:40px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
                 <!-- Header -->
                 <tr>
                   <td style="background:#b20000;padding:20px;text-align:center;">
@@ -163,7 +163,7 @@ export class ParticipantsService {
                     <p style="line-height:1.6;margin:0 0 20px; font-size:14px; color:#777;">
                       Até breve e aproveite ao máximo! 🎉
                     </p>
-                    <p style="font-size:12px;color:#aaa;">© ${new Date().getFullYear()} Fatec Itu – Dom Amaury Castanho. Todos os direitos reservados.</p>
+                    <p style="font-size:12px;color:#777;">© ${new Date().getFullYear()} Fatec Itu – Dom Amaury Castanho. Todos os direitos reservados.</p>
                   </td>
                 </tr>
               </table>
