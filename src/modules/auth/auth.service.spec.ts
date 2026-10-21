@@ -1,6 +1,6 @@
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
-import { AuthService } from './auth.service';
+import { AuthService, REFRESH_TOKEN_TTL_MS, REMEMBER_ME_TTL_MS } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
@@ -123,11 +123,11 @@ describe('AuthService - Unitary Test', () => {
   });
 
   // Runs the real request flow and returns the signed payload and the code that went by e-mail.
-  async function issueCode(purpose: '2fa' | 'reset') {
+  async function issueCode(purpose: '2fa' | 'reset', rememberMe?: boolean) {
     prisma.user.findUnique.mockResolvedValue({ ...baseUser, password: hashedPassword });
     jwtService.sign.mockReturnValue('tmpToken');
 
-    if (purpose === '2fa') await service.requestLogin({ email: 'e', password: 'pw' });
+    if (purpose === '2fa') await service.requestLogin({ email: 'e', password: 'pw', rememberMe });
     else await service.requestPasswordReset('e');
 
     const payload = jwtService.sign.mock.calls.at(-1)[0];
@@ -179,8 +179,30 @@ describe('AuthService - Unitary Test', () => {
       jwtService.sign.mockReturnValue('access');
       (jwtSign as jest.Mock).mockReturnValue('refresh');
       const result = await service.login(code, 'tmpToken');
-      expect(result).toEqual({ accessToken: 'access', refreshToken: 'refresh' });
+      expect(result).toEqual({ accessToken: 'access', refreshToken: 'refresh', sessionTtlMs: REFRESH_TOKEN_TTL_MS });
       expect(jwtService.sign).toHaveBeenLastCalledWith(expect.objectContaining({ sub: 1, role: 'ADMIN', sv: 0 }), { expiresIn: '15m' });
+    });
+    it('should keep the session for 3 days without "Lembrar-me"', async () => {
+      const { payload, code } = await issueCode('2fa');
+      expect(payload).not.toHaveProperty('rm');
+      (jwtSign as jest.Mock).mockReturnValue('refresh');
+      const before = Date.now();
+      await expect(service.login(code, 'tmpToken')).resolves.toMatchObject({ sessionTtlMs: 3 * 24 * 60 * 60 * 1000 });
+      expect(jwtSign).toHaveBeenLastCalledWith(expect.not.objectContaining({ rm: true }), 'refreshSecret', { algorithm: 'HS256', expiresIn: 3 * 24 * 60 * 60 });
+      const { expiresAt } = prisma.refreshToken.create.mock.calls.at(-1)[0].data;
+      expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + REFRESH_TOKEN_TTL_MS);
+      expect(expiresAt.getTime()).toBeLessThan(before + REFRESH_TOKEN_TTL_MS + 5000);
+    });
+    it('should keep the session for 30 days with "Lembrar-me"', async () => {
+      const { payload, code } = await issueCode('2fa', true);
+      expect(payload).toMatchObject({ purpose: '2fa', rm: true });
+      (jwtSign as jest.Mock).mockReturnValue('refresh');
+      const before = Date.now();
+      await expect(service.login(code, 'tmpToken')).resolves.toMatchObject({ sessionTtlMs: 30 * 24 * 60 * 60 * 1000 });
+      expect(jwtSign).toHaveBeenLastCalledWith(expect.objectContaining({ sub: 1, rm: true }), 'refreshSecret', { algorithm: 'HS256', expiresIn: 30 * 24 * 60 * 60 });
+      const { expiresAt } = prisma.refreshToken.create.mock.calls.at(-1)[0].data;
+      expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + REMEMBER_ME_TTL_MS);
+      expect(expiresAt.getTime()).toBeLessThan(before + REMEMBER_ME_TTL_MS + 5000);
     });
     it('should reject a wrong code', async () => {
       const { code } = await issueCode('2fa');
@@ -326,7 +348,7 @@ describe('AuthService - Unitary Test', () => {
     it('should build the new session from the database, so a demoted user loses the old role', async () => {
       (jwtVerify as jest.Mock).mockReturnValue({ sub: 1, name: 'N', email: 'e', role: 'ADMIN', sv: 2 });
       prisma.user.findUnique.mockResolvedValue({ ...baseUser, role: 'AUXILIAR', sessionVersion: 2 });
-      await expect(service.refreshTokens('old')).resolves.toEqual({ accessToken: 'access', refreshToken: 'refresh' });
+      await expect(service.refreshTokens('old')).resolves.toEqual({ accessToken: 'access', refreshToken: 'refresh', sessionTtlMs: REFRESH_TOKEN_TTL_MS });
       expect(jwtService.sign).toHaveBeenCalledWith(expect.objectContaining({ role: 'AUXILIAR', sv: 2 }), { expiresIn: '15m' });
     });
     it('should end the session when the password or role changed after the token was issued', async () => {
@@ -339,7 +361,14 @@ describe('AuthService - Unitary Test', () => {
     it('should accept tokens issued before sessionVersion existed while nothing changed', async () => {
       (jwtVerify as jest.Mock).mockReturnValue({ sub: 1, role: 'ADMIN' });
       prisma.user.findUnique.mockResolvedValue({ ...baseUser, sessionVersion: 0 });
-      await expect(service.refreshTokens('old')).resolves.toEqual({ accessToken: 'access', refreshToken: 'refresh' });
+      await expect(service.refreshTokens('old')).resolves.toEqual({ accessToken: 'access', refreshToken: 'refresh', sessionTtlMs: REFRESH_TOKEN_TTL_MS });
+    });
+    it('should give a "Lembrar-me" session another 30 days on every renewal', async () => {
+      (jwtVerify as jest.Mock).mockReturnValue({ sub: 1, role: 'ADMIN', sv: 0, rm: true });
+      prisma.user.findUnique.mockResolvedValue({ ...baseUser, sessionVersion: 0 });
+      await expect(service.refreshTokens('old')).resolves.toMatchObject({ sessionTtlMs: REMEMBER_ME_TTL_MS });
+      expect(jwtSign).toHaveBeenLastCalledWith(expect.objectContaining({ rm: true }), 'refreshSecret', { algorithm: 'HS256', expiresIn: REMEMBER_ME_TTL_MS / 1000 });
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith({ data: expect.objectContaining({ userId: 1, expiresAt: expect.any(Date) }) });
     });
     it('should refuse a revoked refresh token', async () => {
       (jwtVerify as jest.Mock).mockReturnValue({ sub: 1, role: 'ADMIN', sv: 0 });

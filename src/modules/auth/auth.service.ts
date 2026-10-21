@@ -16,6 +16,7 @@ type CodeTokenPayload = {
   sub: number;
   purpose: CodePurpose;
   jti: string;
+  rm?: boolean;
   exp?: number;
 };
 
@@ -25,6 +26,7 @@ type SessionPayload = {
   email: string;
   role: string;
   sv?: number;
+  rm?: boolean;
 };
 
 const MAX_CODE_ATTEMPTS = 5;
@@ -39,7 +41,11 @@ const PURPOSES: Record<CodePurpose, AuthCodePurpose> = {
 };
 
 // One value for the JWT, the cookie and the database record, so the session never outlives any of them.
+// Each refresh starts the period again, so only a session left unused for the whole period ends by itself.
 export const REFRESH_TOKEN_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+export const REMEMBER_ME_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export type SessionTokens = { accessToken: string; refreshToken: string; sessionTtlMs: number };
 
 @Injectable()
 export class AuthService {
@@ -67,7 +73,7 @@ export class AuthService {
     await this.prisma.refreshToken.updateMany({ where: { userId, isRevoked: false }, data: { isRevoked: true } });
   }
 
-  async requestLogin(dto: { email: string; password: string }) {
+  async requestLogin(dto: { email: string; password: string; rememberMe?: boolean }) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user) {
       // Checks a throwaway hash so an unknown e-mail takes as long to answer as a wrong password.
@@ -80,15 +86,16 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('E-mail ou senha inválidos.');
     AuditContext.setActor(user);
 
-    const { code, token } = await this.createCodeToken(user.id, '2fa');
+    // The choice travels inside the signed 2FA token, so it cannot be changed between the two login steps.
+    const { code, token } = await this.createCodeToken(user.id, '2fa', dto.rememberMe === true);
     const emailBodyMessage = this.tokenMessageEmail(user.name, code, '2fa');
     this.sendInBackground(user.email, 'Autenticação em dois fatores', emailBodyMessage);
 
     return token;
   }
 
-  async login(code: string, tmpToken: string) {
-    const userId = await this.consumeCodeToken(tmpToken, code, '2fa');
+  async login(code: string, tmpToken: string): Promise<SessionTokens> {
+    const { userId, rememberMe } = await this.consumeCodeToken(tmpToken, code, '2fa');
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('Usuário não encontrado!');
@@ -99,10 +106,10 @@ export class AuthService {
       data: { isRevoked: true },
     });
 
-    const { accessToken, refreshToken, record } = this.signSession(user);
+    const { accessToken, refreshToken, sessionTtlMs, record } = this.signSession(user, rememberMe);
     await this.prisma.refreshToken.create({ data: record });
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, sessionTtlMs };
   }
 
   // Same answer, same cookie and same code row for an unknown e-mail: the form never reveals which accounts exist.
@@ -124,7 +131,7 @@ export class AuthService {
   }
 
   async passwordReset(code: string, newPassword: string, tmpToken: string): Promise<boolean> {
-    const userId = await this.consumeCodeToken(tmpToken, code, 'reset');
+    const { userId } = await this.consumeCodeToken(tmpToken, code, 'reset');
     const hash = await argon2.hash(newPassword + this.pepper, { type: argon2.argon2id });
 
     // A new password ends every open session and every pending code of the account.
@@ -153,7 +160,7 @@ export class AuthService {
   }
 
   // The cookie only carries the id of the code: its HMAC, attempts and use are kept in the database.
-  private async createCodeToken(userId: number | null, purpose: CodePurpose): Promise<{ code: string; token: string }> {
+  private async createCodeToken(userId: number | null, purpose: CodePurpose, rememberMe = false): Promise<{ code: string; token: string }> {
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const jti = randomUUID();
 
@@ -171,11 +178,11 @@ export class AuthService {
       }),
     ]);
 
-    const payload: CodeTokenPayload = { sub: userId ?? 0, purpose, jti };
+    const payload: CodeTokenPayload = { sub: userId ?? 0, purpose, jti, ...(rememberMe && { rm: true }) };
     return { code, token: this.jwtService.sign(payload, { expiresIn: '15m' }) };
   }
 
-  private async consumeCodeToken(token: string, code: string, purpose: CodePurpose): Promise<number> {
+  private async consumeCodeToken(token: string, code: string, purpose: CodePurpose): Promise<{ userId: number; rememberMe: boolean }> {
     let payload: CodeTokenPayload;
     try {
       payload = this.jwtService.verify<CodeTokenPayload>(token);
@@ -210,27 +217,31 @@ export class AuthService {
     });
     if (claimed.count !== 1) throw new UnauthorizedException(USED_CODE_MESSAGE);
 
-    return record.userId;
+    return { userId: record.userId, rememberMe: payload.rm === true };
   }
 
   // Name, e-mail and role always come from the database, and sessionVersion ties the tokens to the current password and role.
-  private signSession(user: Pick<User, 'id' | 'name' | 'email' | 'role' | 'sessionVersion'>) {
+  // "Lembrar-me" (rm) is kept in the refresh token, so every renewal keeps the 30-day period chosen at login.
+  private signSession(user: Pick<User, 'id' | 'name' | 'email' | 'role' | 'sessionVersion'>, rememberMe: boolean) {
+    const sessionTtlMs = rememberMe ? REMEMBER_ME_TTL_MS : REFRESH_TOKEN_TTL_MS;
     const payload: SessionPayload = {
       sub: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       sv: user.sessionVersion,
+      ...(rememberMe && { rm: true }),
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshToken = jwtSign(payload, this.refreshSecret, { algorithm: 'HS256', expiresIn: REFRESH_TOKEN_TTL_MS / 1000 });
+    const refreshToken = jwtSign(payload, this.refreshSecret, { algorithm: 'HS256', expiresIn: sessionTtlMs / 1000 });
     const tokenHash = createHmac('sha256', this.hashSecret).update(refreshToken).digest('hex');
 
     return {
       accessToken,
       refreshToken,
-      record: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS) },
+      sessionTtlMs,
+      record: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + sessionTtlMs) },
     };
   }
 
@@ -266,7 +277,7 @@ export class AuthService {
     }
   }
 
-  async refreshTokens(oldRefreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refreshTokens(oldRefreshToken: string): Promise<SessionTokens> {
     let payload: SessionPayload;
 
     try {
@@ -295,7 +306,7 @@ export class AuthService {
       throw new UnauthorizedException(SESSION_ENDED_MESSAGE);
     }
 
-    const { accessToken, refreshToken, record } = this.signSession(user);
+    const { accessToken, refreshToken, sessionTtlMs, record } = this.signSession(user, payload.rm === true);
 
     await this.prisma.$transaction([
       this.prisma.refreshToken.updateMany({
@@ -305,7 +316,7 @@ export class AuthService {
       this.prisma.refreshToken.create({ data: record }),
     ]);
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, sessionTtlMs };
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)

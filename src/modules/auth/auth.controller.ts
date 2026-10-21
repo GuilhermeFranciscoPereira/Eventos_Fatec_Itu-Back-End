@@ -1,5 +1,5 @@
 import { Response, Request } from 'express';
-import { AuthService, REFRESH_TOKEN_TTL_MS } from './auth.service';
+import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { LoginDto } from './dto/login-auth.dto';
 import { MeResponseDto } from './dto/me-auth.dto';
@@ -68,9 +68,9 @@ export class AuthController {
     const refreshCookie = req.cookies[refreshCookieName()];
     if (!refreshCookie) throw new UnauthorizedException('Sessão expirada. Faça login novamente.');
     try {
-      const { accessToken, refreshToken } = await this.authService.refreshTokens(refreshCookie);
+      const { accessToken, refreshToken, sessionTtlMs } = await this.authService.refreshTokens(refreshCookie);
       setCookie(res, accessCookieName(), accessToken, ACCESS_TOKEN_TTL_MS);
-      setCookie(res, refreshCookieName(), refreshToken, REFRESH_TOKEN_TTL_MS);
+      setCookie(res, refreshCookieName(), refreshToken, sessionTtlMs);
       return { message: 'Sessão renovada com sucesso!' };
     } catch (err: unknown) {
       // An ended session also loses its cookies, so the front-end stops treating the browser as logged in.
@@ -101,7 +101,7 @@ export class AuthController {
   @HttpCode(200)
   @Audit({ action: 'LOGIN_REQUEST', resource: 'auth', summary: 'Validação de e-mail e senha (envio do código 2FA)', target: 'none' })
   @ApiSecurity('csrf-token')
-  @ApiOperation({ summary: 'Solicita login com 2FA', description: 'Rota pública. Valida e-mail e senha, envia o código 2FA e grava cookie temporário HTTP-only.' })
+  @ApiOperation({ summary: 'Solicita login com 2FA', description: 'Rota pública. Valida e-mail e senha, envia o código 2FA e grava cookie temporário HTTP-only. Com rememberMe a sessão criada no login dura 30 dias sem uso (sem ele, 3 dias).' })
   @ApiBody({ type: RequestLoginDto })
   @ApiOkResponse({ schema: { example: { requires2FA: true } } })
   @ApiUnauthorizedResponse({ description: 'Credenciais inválidas.' })
@@ -122,10 +122,10 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Código inválido, expirado, já utilizado ou cookie temporário ausente.' })
   async login(@Body() dto: LoginDto, @Req() req: Request & { cookies: Record<string, string> }, @Res({ passthrough: true }) res: Response) {
     const tmpToken = req.cookies[TWO_FACTOR_COOKIE]; if (!tmpToken) throw new UnauthorizedException('Código expirado. Solicite um novo código.');
-    const { accessToken, refreshToken } = await this.authService.login(dto.code, tmpToken);
+    const { accessToken, refreshToken, sessionTtlMs } = await this.authService.login(dto.code, tmpToken);
     clearCookie(res, TWO_FACTOR_COOKIE);
     setCookie(res, accessCookieName(), accessToken, ACCESS_TOKEN_TTL_MS);
-    setCookie(res, refreshCookieName(), refreshToken, REFRESH_TOKEN_TTL_MS);
+    setCookie(res, refreshCookieName(), refreshToken, sessionTtlMs);
     return { message: 'Autenticado com 2FA' };
   }
 

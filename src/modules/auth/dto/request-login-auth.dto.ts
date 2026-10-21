@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsEmail, MinLength, MaxLength, Matches, IsBoolean, IsOptional } from 'class-validator';
 
 export class RequestLoginDto {
     @ApiProperty({
@@ -28,4 +28,13 @@ export class RequestLoginDto {
     @Matches(/(?=.*\d)/, { message: 'Senha deve conter ao menos um número' })
     @Matches(/(?=.*[^A-Za-z0-9])/, { message: 'Senha deve conter ao menos um caractere especial' })
     password!: string;
+
+    @ApiPropertyOptional({
+        example: true,
+        default: false,
+        description: 'Lembrar-me: mantém a sessão por 30 dias sem uso (sem ele, 3 dias). Antes disso ela só termina pelo logout ou por troca de senha ou de perfil.',
+    })
+    @IsOptional()
+    @IsBoolean({ message: 'Lembrar-me deve ser verdadeiro ou falso' })
+    rememberMe?: boolean;
 }

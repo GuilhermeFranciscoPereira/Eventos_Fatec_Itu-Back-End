@@ -43,11 +43,11 @@ describe('AuthController - Unitary Test', () => {
 
   describe('refresh', () => {
     it('should refresh tokens and set cookies', async () => {
-      service.refreshTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'b' });
+      service.refreshTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'b', sessionTtlMs: 30 * 24 * 60 * 60 * 1000 });
       req.cookies = { refresh_token: 'r' };
       const result = await controller.refresh(req, res);
-      expect(res.cookie).toHaveBeenCalledWith('access_token', 'a', expect.any(Object));
-      expect(res.cookie).toHaveBeenCalledWith('refresh_token', 'b', expect.any(Object));
+      expect(res.cookie).toHaveBeenCalledWith('access_token', 'a', expect.objectContaining({ maxAge: 15 * 60 * 1000 }));
+      expect(res.cookie).toHaveBeenCalledWith('refresh_token', 'b', expect.objectContaining({ maxAge: 30 * 24 * 60 * 60 * 1000 }));
       expect(result).toEqual({ message: 'Sessão renovada com sucesso!' });
     });
 
@@ -93,12 +93,12 @@ describe('AuthController - Unitary Test', () => {
 
     it('should authenticate and set cookies', async () => {
       req.cookies = { '2fa_token': 'tmp' };
-      service.login.mockResolvedValue({ accessToken: 'a', refreshToken: 'b' });
+      service.login.mockResolvedValue({ accessToken: 'a', refreshToken: 'b', sessionTtlMs: 3 * 24 * 60 * 60 * 1000 });
       const dto = { code: 'c' };
       const result = await controller.login(dto, req, res);
       expect(res.clearCookie).toHaveBeenCalledWith('2fa_token', expect.objectContaining({ path: '/', httpOnly: true }));
       expect(res.cookie).toHaveBeenCalledWith('access_token', 'a', expect.any(Object));
-      expect(res.cookie).toHaveBeenCalledWith('refresh_token', 'b', expect.any(Object));
+      expect(res.cookie).toHaveBeenCalledWith('refresh_token', 'b', expect.objectContaining({ maxAge: 3 * 24 * 60 * 60 * 1000 }));
       expect(result).toEqual({ message: 'Autenticado com 2FA' });
     });
   });
