@@ -26,9 +26,11 @@
 
 ## 🛎️ Updates to this commit
 
-### `Remember me on login (./src/modules/auth):` The `POST /auth/request-login` route accepts the optional `rememberMe` field. When checked, the session lasts 30 days without use; when unchecked, it stays at 3 days. The choice travels inside the signed 2FA token (it cannot be changed between the two login steps) and then inside the refresh token, so every renewal gives the session another 30 days: whoever uses the platform at least once every 30 days is never logged out by itself. Before that, the session only ends with "Sair" (log out), a password or role change, or a new login to the same account. The refresh token cookie, the JWT and the database record always use the same period.
+### `New certificate design (./src/modules/certificates/certificates.service.ts):` The certificate PDF was redesigned. The old bluish header and footer images are gone, replaced by a light layout with a frame and corners in Fatec red, the Fatec Itu logo, the "CERTIFICADO de participação" (certificate of participation) title and the participant's name highlighted. The text is centered, with the event, the speaker and the workload in bold, and the workload never splits across two lines. At the bottom sit the coordinator's signature and title and the verification QR code with a "Verifique a autenticidade" (verify authenticity) note. Long names shrink to fit on one line, and very long event, speaker or place texts use a slightly smaller font so they never touch the signature or the QR code. The workload is now written out without zero parts ("2 horas e 30 minutos", "3 horas").
 
-### `Tests:` New tests for login with and without "Remember me" (cookie, JWT and database record periods) and for the renewal that keeps the 30 days.
+### `Certificate images and fonts (./src/assets/certificate):` `header_certificate.jpeg` and `footer_certificate.jpeg` were removed. Added `logo_fatec_itu.png` (the same logo as the front-end), `signature_coordinator.png` (the coordinator's signature, cut from the old footer with a transparent background) and the `fonts` folder, with Poppins (the site font) and Playfair Display (used for the participant's name) and both OFL licenses.
+
+### `./Dockerfile:` The final image copied only `dist`, `node_modules` and `prisma`, but the certificate reads its images from `src/assets/certificate`: in production the PDF was not generated and the certificate was not sent. That folder is now copied into the image too.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -66,7 +68,7 @@
 
 - `./.github/workflows/deploy.yml:` GitHub Actions workflow responsible for backend CI/CD. Upon receiving a `git push` on the `main` branch, it builds the Docker image, publishes it to the GitHub Container Registry, and automatically updates the backend container on the VPS.
 
-`./Dockerfile:` File responsible for defining the backend containerization process. It uses Node.js 22 Bookworm Slim and multi-stage build to install dependencies with `npm ci`, generate the Prisma Client with `npx prisma generate`, compile the NestJS application with `npm run build`, and run the API in production mode on port `4000`.
+`./Dockerfile:` File responsible for defining the backend containerization process. It uses Node.js 22 Bookworm Slim and multi-stage build to install dependencies with `npm ci`, generate the Prisma Client with `npx prisma generate`, compile the NestJS application with `npm run build`, and run the API in production mode on port `4000`. The final image also includes `src/assets/certificate`, with the images and fonts used in the certificate PDF.
 
 - `./dockerignore:` Defines which files and directories should be ignored during the Docker image build.
 
@@ -79,6 +81,7 @@
 - `./src/swagger.ts`: Central Swagger/OpenAPI documentation configuration, including title, description, version, servers, cookie authentication, CSRF, tags, and UI route at `/apiEvents/docs`.
 
 - `./src/assets:` directory to organize additional static resources.
+  - `certificate:` Fatec Itu logo, the coordinator's signature and the fonts (Poppins and Playfair Display, with their OFL licenses) used in the certificate PDF.
     - `readme:` Folder that will store our photos for use in the documentation ( README )
 
 - `./src/decorators:` Folder for custom decorators.
@@ -131,7 +134,7 @@
     - `certificates:` Module responsible for storing and exporting the logic for sending certificates to students who attended the event.
         - `certificates.module.ts:` Imports ScheduleModule.forRoot() and PrismaModule and exports the service for use elsewhere in the code.
         - `certificates.controller.ts`: Provides the route for validating whether the certificate is real or not and whether it belongs to the person.
-        - `certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events.
+        - `certificates.service.ts:` All the logic for sending certificates to students who attended the previous day's events, including the PDF design (landscape A4 with logo, participant name, event details, the coordinator's signature and the verification QR code).
     
     - `cloudinary:` Exports the option to insert or remove photos from Cloudinary (free service for saving images, I recommend: https://cloudinary.com)
         - `cloudinary.module.ts:` Imports our provider and service and exports the service for use elsewhere in the code

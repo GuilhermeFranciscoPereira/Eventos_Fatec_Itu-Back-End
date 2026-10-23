@@ -10,6 +10,21 @@ import { todayInEventClock } from '../common/event-clock';
 import { Participant, Event, Course } from '@prisma/client';
 import { EmailService } from '../../services/email.service';
 
+// Read from process.cwd(): the Docker image copies src/assets/certificate next to dist.
+const ASSETS_DIR = path.resolve(process.cwd(), 'src/assets/certificate');
+const FONTS = {
+  regular: path.join(ASSETS_DIR, 'fonts/Poppins-Regular.woff'),
+  medium: path.join(ASSETS_DIR, 'fonts/Poppins-Medium.woff'),
+  semiBold: path.join(ASSETS_DIR, 'fonts/Poppins-SemiBold.woff'),
+  name: path.join(ASSETS_DIR, 'fonts/PlayfairDisplay-BoldItalic.woff'),
+};
+const LOGO_IMG = path.join(ASSETS_DIR, 'logo_fatec_itu.png');
+const SIGNATURE_IMG = path.join(ASSETS_DIR, 'signature_coordinator.png');
+
+const COLORS = { red: '#A33535', redDark: '#852727', ink: '#1F1A17', muted: '#6B625C', paper: '#FCFAF7', frame: '#D9C9C2', qrBorder: '#E2D6D0' };
+
+type TextRun = { font: string; text: string };
+
 @Injectable()
 export class CertificatesService {
   constructor(private prisma: PrismaService, private emailService: EmailService) { }
@@ -78,7 +93,7 @@ export class CertificatesService {
         });
 
         const url = this.buildVerificationUrl(token);
-        const qrPng = await QRCode.toBuffer(url, { errorCorrectionLevel: 'M', margin: 2, scale: 6 });
+        const qrPng = await QRCode.toBuffer(url, { errorCorrectionLevel: 'M', margin: 1, scale: 6, color: { dark: COLORS.ink, light: '#FFFFFF' } });
         const pdfBuffer = await this.createPdf(p, ev, qrPng);
         const html = this.certificateMessageEmail(p.name, ev.name);
 
@@ -123,67 +138,143 @@ export class CertificatesService {
       doc.on('data', c => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-      const { width, height } = doc.page;
+      doc.registerFont('Regular', FONTS.regular);
+      doc.registerFont('Medium', FONTS.medium);
+      doc.registerFont('SemiBold', FONTS.semiBold);
+      doc.registerFont('Name', FONTS.name);
 
-      const grad = doc.linearGradient(0, 0, width, 0);
-      grad.stop(0.0, '#BBC6E6'); grad.stop(0.22, '#B8C1E0'); grad.stop(0.5, '#b5bedd'); grad.stop(0.78, '#aeb9d7'); grad.stop(1.0, '#a2b1d0');
-      doc.rect(0, 0, width, height).fill(grad);
-      doc.fillColor('#000');
+      const { width: W, height: H } = doc.page;
 
-      const assetsDir = path.resolve(process.cwd(), 'src/assets/certificate');
-      const headerImg = path.join(assetsDir, 'header_certificate.jpeg');
-      const footerImg = path.join(assetsDir, 'footer_certificate.jpeg');
+      // Paper, red corners and a double frame
+      doc.rect(0, 0, W, H).fill(COLORS.paper);
+      doc.polygon([0, 0], [160, 0], [0, 125]).fill(COLORS.red);
+      doc.polygon([0, 0], [100, 0], [0, 78]).fill(COLORS.redDark);
+      doc.polygon([W, H], [W - 160, H], [W, H - 125]).fill(COLORS.red);
+      doc.polygon([W, H], [W - 100, H], [W, H - 78]).fill(COLORS.redDark);
+      doc.lineWidth(1.2).strokeColor(COLORS.red).rect(28, 28, W - 56, H - 56).stroke();
+      doc.lineWidth(0.5).strokeColor(COLORS.frame).rect(34, 34, W - 68, H - 68).stroke();
 
-      const headerHeight = 150;
-      doc.image(headerImg, 0, 0, { fit: [width, headerHeight] });
+      // Logo and title
+      const logoW = 96;
+      doc.image(LOGO_IMG, W / 2 - logoW / 2, 52, { width: logoW });
+      this.spacedText(doc, 'CERTIFICADO', 120, W, { size: 36, font: 'SemiBold', color: COLORS.red, spacing: 10 });
+      this.spacedText(doc, 'DE PARTICIPAÇÃO', 170, W, { size: 11, font: 'Medium', color: COLORS.muted, spacing: 5 });
 
-      const contentTop = headerHeight + 20;
-      const footerMaxHeight = 200;
-      const textBlockHeight = height - contentTop - footerMaxHeight - 20;
+      // Participant
+      doc.font('Regular').fontSize(12).fillColor(COLORS.muted).text('Certificamos que', 0, 205, { width: W, align: 'center' });
+      const nameSize = this.fitFontSize(doc, 'Name', p.name, 34, W - 160);
+      // A smaller name moves down so it stays the same distance from the red line.
+      doc.font('Name').fontSize(nameSize).fillColor(COLORS.ink).text(p.name, 80, 222 + (34 - nameSize) * 0.9, { width: W - 160, align: 'center', lineBreak: false });
+      doc.lineWidth(1).strokeColor(COLORS.red).moveTo(W / 2 - 150, 272).lineTo(W / 2 + 150, 272).stroke();
 
-      const dataEvento = this.formatDateRange(ev.startDate, ev.endDate);
-      const horaInicio = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(ev.startTime);
-      const horaFim = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(ev.endTime);
-
-      const durMs = ev.endTime.getTime() - ev.startTime.getTime();
-      const durMin = Math.floor(durMs / 60000);
-      const horasNum = Math.floor(durMin / 60);
-      const minutosNum = durMin % 60;
-      const cargaCurta = `${String(horasNum).padStart(2, '0')}h${String(minutosNum).padStart(2, '0')}m`;
-      const cargaExtenso = `${horasNum} ${horasNum === 1 ? 'hora' : 'horas'} e ${minutosNum} ${minutosNum === 1 ? 'minuto' : 'minutos'}`;
-
+      // Event details
+      const timeFormatter = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
       const localEvento = ev.location.name.toLowerCase() !== 'outros'
         ? ev.location.name
         : (ev.customLocation ?? 'Local a definir');
+      const bodyW = 600;
 
-      const texto = [
-        `A Faculdade de Tecnologia de Itu – Dom Amaury Castanho certifica que ${p.name} participou do evento “${ev.name}”, ministrado por ${ev.speakerName}, realizado em ${dataEvento}, no horário de ${horaInicio} às ${horaFim}, em ${localEvento}.`,
-        `A participação corresponde à carga horária total de ${cargaCurta} (${cargaExtenso}).`,
-      ].join('\n\n');
-
-      const footerImage: any = (doc as any).openImage(footerImg);
-      const footerWidth = width;
-      const footerHeightScaled = footerImage.height * (footerWidth / footerImage.width);
-      const footerY = height - footerHeightScaled;
-      doc.image(footerImg, 0, footerY, { width: footerWidth });
-
-      const textTop = contentTop;
-      const textHeight = textBlockHeight;
-      const textMiddle = textTop + textHeight / 2;
-
-      const qrSize = 140;
-      const qrX = width - qrSize - 80;
-      const qrY = textMiddle - qrSize / 2 - 32;
-
-      doc.image(qrPng, qrX, qrY, { width: qrSize, height: qrSize });
-
-      doc.font('Helvetica').fontSize(15).text(texto, 80, contentTop, {
-        width: qrX - 120,
-        align: 'justify',
-        lineGap: 6
+      this.centeredRichText(doc, [
+        { font: 'Regular', text: 'participou do evento ' },
+        { font: 'SemiBold', text: `“${ev.name}”` },
+        { font: 'Regular', text: ', ministrado por ' },
+        { font: 'SemiBold', text: ev.speakerName },
+        { font: 'Regular', text: `, realizado em ${this.formatDateRange(ev.startDate, ev.endDate)}, das ${timeFormatter.format(ev.startTime)} às ${timeFormatter.format(ev.endTime)}, em ${localEvento}, promovido pela Faculdade de Tecnologia de Itu – Dom Amaury Castanho, com carga horária total de ` },
+        // Non-breaking spaces keep the workload on a single line.
+        { font: 'SemiBold', text: this.formatWorkload(ev.startTime, ev.endTime).replace(/ /g, '\u00A0') },
+        { font: 'Regular', text: '.' },
+      ], W / 2 - bodyW / 2, 292, bodyW, {
+        color: COLORS.ink,
+        // Long event, speaker or place names step down so the text never reaches the signature and QR code.
+        maxLines: 4,
+        sizes: [{ size: 12.5, lineHeight: 22 }, { size: 11.5, lineHeight: 19.5 }, { size: 10.5, lineHeight: 17.5 }],
       });
 
+      // Coordinator signature
+      const sigCenter = 250;
+      const sigLineY = 470;
+      const sigW = 150;
+      doc.image(SIGNATURE_IMG, sigCenter - sigW / 2, sigLineY - 52, { width: sigW });
+      doc.lineWidth(0.8).strokeColor(COLORS.ink).moveTo(sigCenter - 120, sigLineY).lineTo(sigCenter + 120, sigLineY).stroke();
+      doc.font('SemiBold').fontSize(10.5).fillColor(COLORS.ink).text('Profa. Ma. Lucimar Canonico de Santi', sigCenter - 150, sigLineY + 7, { width: 300, align: 'center' });
+      doc.font('Regular').fontSize(8.5).fillColor(COLORS.muted).text('Coordenadora do Curso Superior de Tecnologia em\nAnálise e Desenvolvimento de Sistemas', sigCenter - 150, sigLineY + 23, { width: 300, align: 'center', lineGap: 1 });
+
+      // Verification QR code
+      const qrSize = 88;
+      const qrX = W - 205;
+      const qrY = 398;
+      const qrTextW = 140;
+      const qrTextX = qrX - 20 - qrTextW;
+      doc.roundedRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12, 8).lineWidth(0.8).fillAndStroke('#FFFFFF', COLORS.qrBorder);
+      doc.image(qrPng, qrX, qrY, { width: qrSize, height: qrSize });
+      doc.font('SemiBold').fontSize(9.5).fillColor(COLORS.ink).text('Verifique a autenticidade', qrTextX, qrY + 18, { width: qrTextW, align: 'right' });
+      doc.font('Regular').fontSize(8).fillColor(COLORS.muted).text('Aponte a câmera do celular para o QR Code e confira este certificado no site da Fatec Itu.', qrTextX, qrY + 34, { width: qrTextW, align: 'right', lineGap: 1 });
+
+      doc.font('Medium').fontSize(8).fillColor(COLORS.muted).text('Faculdade de Tecnologia de Itu – Dom Amaury Castanho  ·  Centro Paula Souza  ·  Governo do Estado de São Paulo', 0, H - 58, { width: W, align: 'center', characterSpacing: 0.3 });
+
       doc.end();
+    });
+  }
+
+  private formatWorkload(startTime: Date, endTime: Date): string {
+    const totalMinutes = Math.max(0, Math.floor((endTime.getTime() - startTime.getTime()) / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const parts = [
+      hours ? `${hours} ${hours === 1 ? 'hora' : 'horas'}` : null,
+      minutes || !hours ? `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}` : null,
+    ].filter(Boolean);
+    return parts.join(' e ');
+  }
+
+  // characterSpacing also pads the last letter, so the text moves half a step right to stay centered.
+  private spacedText(doc: PDFKit.PDFDocument, text: string, y: number, pageWidth: number, opts: { size: number; font: string; color: string; spacing: number }) {
+    doc.font(opts.font).fontSize(opts.size).fillColor(opts.color).text(text, opts.spacing / 2, y, { width: pageWidth, align: 'center', characterSpacing: opts.spacing });
+  }
+
+  // Long names shrink instead of wrapping over the red line below them.
+  private fitFontSize(doc: PDFKit.PDFDocument, font: string, text: string, maxSize: number, maxWidth: number): number {
+    let size = maxSize;
+    while (size > 18 && doc.font(font).fontSize(size).widthOfString(text) > maxWidth) size -= 1;
+    return size;
+  }
+
+  // PDFKit can't center a paragraph that mixes fonts (continued: true), so lines are wrapped and centered by hand.
+  // Only plain spaces break lines, so \u00A0 keeps a phrase together.
+  // Uses the first size whose text fits in maxLines (or the smallest one).
+  private centeredRichText(doc: PDFKit.PDFDocument, runs: TextRun[], x: number, y: number, width: number, opts: { color: string; maxLines: number; sizes: { size: number; lineHeight: number }[] }) {
+    const words = runs.flatMap(run => run.text.split(/( +)/).filter(Boolean).map(text => ({ text, font: run.font })));
+    const isSpace = (w: TextRun) => /^ +$/.test(w.text);
+
+    const wrap = (size: number): TextRun[][] => {
+      const measure = (w: TextRun) => doc.font(w.font).fontSize(size).widthOfString(w.text);
+      const lines: TextRun[][] = [[]];
+      let lineWidth = 0;
+      for (const word of words) {
+        const current = lines[lines.length - 1];
+        const wordWidth = measure(word);
+        if (!isSpace(word) && current.length && lineWidth + wordWidth > width) {
+          lines.push([word]);
+          lineWidth = wordWidth;
+          continue;
+        }
+        if (isSpace(word) && !current.length) continue;
+        current.push(word);
+        lineWidth += wordWidth;
+      }
+      lines.forEach(line => { while (line.length && isSpace(line[line.length - 1])) line.pop(); });
+      return lines;
+    };
+
+    const { size, lineHeight } = opts.sizes.find(s => wrap(s.size).length <= opts.maxLines) ?? opts.sizes[opts.sizes.length - 1];
+    const measure = (w: TextRun) => doc.font(w.font).fontSize(size).widthOfString(w.text);
+
+    wrap(size).forEach((line, i) => {
+      let cursorX = x + (width - line.reduce((sum, w) => sum + measure(w), 0)) / 2;
+      for (const word of line) {
+        doc.font(word.font).fontSize(size).fillColor(opts.color).text(word.text, cursorX, y + i * lineHeight, { lineBreak: false });
+        cursorX += measure(word);
+      }
     });
   }
 

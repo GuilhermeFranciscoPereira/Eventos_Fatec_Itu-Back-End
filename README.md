@@ -26,9 +26,11 @@
 
 ## 🛎️ Atualizações deste commit
 
-### `Lembrar-me no login (./src/modules/auth):` A rota `POST /auth/request-login` aceita o campo opcional `rememberMe`. Marcado, a sessão dura 30 dias sem uso; desmarcado, continua com 3 dias. A escolha viaja dentro do token assinado do 2FA (não dá para mudá-la entre as duas etapas do login) e depois dentro do refresh token, então cada renovação dá mais 30 dias à sessão: quem usa a plataforma pelo menos uma vez a cada 30 dias não é deslogado sozinho. A sessão só termina antes disso pelo "Sair", por troca de senha ou de perfil, ou por um novo login da mesma conta. O cookie do refresh token, o JWT e o registro no banco usam sempre o mesmo prazo.
+### `Novo modelo de certificado (./src/modules/certificates/certificates.service.ts):` O PDF do certificado foi redesenhado. Saíram as imagens antigas de cabeçalho e rodapé com fundo azulado, e entrou um layout claro com moldura e cantos no vermelho da Fatec, o logo da Fatec Itu, o título "CERTIFICADO de participação" e o nome do participante em destaque. O texto fica centralizado, com o evento, o palestrante e a carga horária em negrito, e a carga horária não se divide em duas linhas. Embaixo ficam a assinatura e o cargo da coordenadora e o QR Code de verificação com a instrução "Verifique a autenticidade". Nomes longos diminuem para caber em uma linha, e textos de evento, palestrante ou local muito longos usam uma fonte um pouco menor para não encostar na assinatura nem no QR Code. A carga horária agora aparece por extenso e sem partes zeradas ("2 horas e 30 minutos", "3 horas").
 
-### `Testes:` Novos testes do login com e sem "Lembrar-me" (prazo do cookie, do JWT e do registro no banco) e da renovação que mantém os 30 dias.
+### `Imagens e fontes do certificado (./src/assets/certificate):` Saíram `header_certificate.jpeg` e `footer_certificate.jpeg`. Entraram `logo_fatec_itu.png` (o mesmo logo do front-end), `signature_coordinator.png` (a assinatura da coordenadora, recortada do rodapé antigo e com fundo transparente) e a pasta `fonts`, com Poppins (a fonte do site) e Playfair Display (usada no nome do participante) e as licenças OFL das duas.
+
+### `./Dockerfile:` A imagem final copiava só `dist`, `node_modules` e `prisma`, mas o certificado lê as imagens de `src/assets/certificate`: em produção o PDF não era gerado e o certificado não era enviado. Agora essa pasta também é copiada para a imagem.
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer"/>
 
@@ -66,7 +68,7 @@
 
 - `./.github/workflows/deploy.yml:` Workflow do GitHub Actions responsável pelo CI/CD do back-end. Ao receber um `git push` na branch `main`, realiza o build da imagem Docker, publica no GitHub Container Registry e atualiza automaticamente o container do back-end na VPS.
 
-- `./Dockerfile:` Arquivo responsável por definir o processo de containerização do back-end. Utiliza Node.js 22 Bookworm Slim e build multi-stage para instalar as dependências com `npm ci`, gerar o Prisma Client com `npx prisma generate`, compilar a aplicação NestJS com `npm run build` e executar a API em modo production na porta `4000`.
+- `./Dockerfile:` Arquivo responsável por definir o processo de containerização do back-end. Utiliza Node.js 22 Bookworm Slim e build multi-stage para instalar as dependências com `npm ci`, gerar o Prisma Client com `npx prisma generate`, compilar a aplicação NestJS com `npm run build` e executar a API em modo production na porta `4000`. A imagem final também leva `src/assets/certificate`, com as imagens e fontes usadas no PDF do certificado.
 
 - `./.dockerignore` Define quais arquivos e diretórios devem ser ignorados durante o build da imagem Docker.
 
@@ -79,6 +81,7 @@
 - `./src/swagger.ts`: Configuração central da documentação Swagger/OpenAPI, incluindo título, descrição, versão, servidores, autenticação por cookies, CSRF, tags e rota da interface em `/apiEvents/docs`.
 
 - `./src/assets:` diretório para organizar recursos estáticos adicionais.
+  - `certificate:` Logo da Fatec Itu, assinatura da coordenadora e fontes (Poppins e Playfair Display, com as licenças OFL) usadas no PDF do certificado.
   - `readme:` Pasta que irá armazenar nossas fotos para utilizar na documentação ( README )
 
 - `./src/decorators:` Pasta para decorators customizados.
@@ -133,7 +136,7 @@
   - `certificates:` Módulo responsável por armazenar e exportar a lógica de envio de certificado para os alunos que estão como presentes no evento.
     - `certificates.module.ts:` Importa o ScheduleModule.forRoot() e o PrismaModule e exporta o service para ser utilizado em outros locais do código
     - `certificates.controller.ts:` Disponibiliza a rota para validação se o certificado é real ou não e se pertence a pessoa.
-    - `certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior
+    - `certificates.service.ts:` Toda a lógica para envio do certificado para os alunos que estavam presentes nos eventos do dia anterior, incluindo o desenho do PDF (A4 deitado, com logo, nome do participante, dados do evento, assinatura da coordenadora e QR Code de verificação).
 
   - `cloudinary:` Exporta a opção de inserir ou remover fotos da cloudinary - ( serviço gratuito para salvar imagens, recomendo: https://cloudinary.com)
     - `cloudinary.module.ts:` Importa o nosso provider e service e exporta o service para ser utilizado em outros locais do código
